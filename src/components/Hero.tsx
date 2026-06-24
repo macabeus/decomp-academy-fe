@@ -44,16 +44,6 @@ export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: 
             <span className="text-content">real 2001 compiler</span> grades it live.
           </p>
 
-          {/* Terminal one-liner — speaks the audience's native dialect. */}
-          <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-bg-inset/80 px-3 py-1.5 font-mono text-2xs text-content-muted backdrop-blur sm:text-xs">
-            <span className="text-good">$</span>
-            <span>
-              mwcceppc.exe -O4,p fn.c <span className="text-content-faint">→</span>{" "}
-              <span className="text-good">100% matched</span>
-            </span>
-            <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-blink bg-accent/80" />
-          </div>
-
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href={resumeId ? `/lesson/${resumeId}` : "#"}
