@@ -1124,4 +1124,351 @@ void tumbler_integrateSpin(GameObject* obj, RollState* state, f32 timeDelta) {
       "`(f32)(int)rate * timeDelta + (f32)(int)spin` fuses into a single `fmadds`; the int-to-float `xoris ...,32768` / `lfd` / `fsubs` magic-constant sequence is automatic.",
     ],
   },
+  {
+    id: "mastery-voxmap-choosedir",
+    chapter: "mastery",
+    order: 11.3,
+    title: "Two Running Sums, Woven by Hand: Steering the ,p Scheduler",
+    difficulty: 5,
+    concepts: ["scheduling", "instruction-order", "accumulation", "interleaving"],
+    brief: `
+# When the scheduler needs you to interleave
+
+The optimization chapter taught you that \`-O4,p\` scheduling will happily batch
+two independent computations — write \`(a+b)*(c+d)\` and the four loads issue
+together. That works when there's one short dependency chain. This lesson is the
+case where the scheduler alone is **not** enough, lifted from Star Fox
+Adventures' \`voxmapsFn_80010ff4\` (the voxel route-picker).
+
+That function compares two neighbouring voxel columns by summing four occupancy
+bytes each — \`sumCur\` over one column, \`sumNext\` over the next — and picks the
+denser direction. The two sums are completely data-independent, so in principle
+the scheduler can run them in lockstep. The trap: **how you spell the
+accumulation decides the emission order, and emission order seeds the schedule.**
+
+Written as two flat expressions —
+
+\`\`\`c
+sumCur  = occ[0][0] + occ[0][1] + occ[0][2] + occ[0][3];
+sumNext = occ[1][0] + occ[1][1] + occ[1][2] + occ[1][3];
+\`\`\`
+
+— the front end materializes all of \`sumCur\`'s chain, then all of \`sumNext\`'s.
+The \`,p\` scheduler reorders from *that* seed and produces a load layout that
+reads \`2(r3), 1(r3), 6(r3), 5(r3), 3(r3) …\` with a spare third register — and it
+does **not** byte-match the target.
+
+The real commit fixed it by weaving the two running sums together, one term at a
+time:
+
+\`\`\`c
+sumCur  = occ[0][0];
+sumNext = occ[1][0];
+sumCur  += occ[0][1];
+sumNext += occ[1][1];
+sumCur  += occ[0][2];
+sumNext += occ[1][2];
+sumCur  += occ[0][3];
+sumNext += occ[1][3];
+\`\`\`
+
+Now the two accumulators advance in lockstep and the schedule comes out clean —
+loads in offset order, the two sum registers built up alternately:
+
+\`\`\`asm
+lbz   r6, 0(r3)          # sumCur  <- occ[0][0]
+lbz   r0, 1(r3)          # (occ[0][1])
+lbz   r7, 4(r3)          # sumNext <- occ[1][0]
+lbz   r4, 5(r3)          # (occ[1][1])
+add   r6, r6, r0         # sumCur  += occ[0][1]
+lbz   r0, 2(r3)
+add   r7, r7, r4         # sumNext += occ[1][1]
+lbz   r5, 6(r3)
+add   r6, r6, r0         # sumCur  += occ[0][2]
+lbz   r4, 3(r3)
+lbz   r0, 7(r3)
+add   r7, r7, r5         # sumNext += occ[1][2]
+add   r6, r6, r4         # sumCur  += occ[0][3]
+add   r7, r7, r0         # sumNext += occ[1][3]
+xor   r0, r7, r6         # branchless sumCur >= sumNext ? 0 : 1
+srawi r3, r0, 1
+and   r0, r0, r7
+subf  r0, r0, r3
+srwi  r3, r0, 31
+blr
+\`\`\`
+
+\`r6\` (sumCur) and \`r7\` (sumNext) climb in strict alternation, and the loads come
+in column-then-column order \`0,1,4,5,2,6,3,7\`. That lockstep is the signature of
+a *hand-interleaved* two-accumulator sum. There is no pragma — scheduling is on,
+as always at \`-O4,p\`; the lever is the **C shape** that feeds it.
+
+> Why doesn't the scheduler produce this from the flat form? Its priority order
+> is built on the dependency DAG seeded by emission order, and the flat form
+> emits one whole chain before the other. The scheduler interleaves *within* the
+> seed it's given; it won't re-found the chains. You hand it the weave by writing
+> the weave.
+
+## Your task
+
+Sum the four bytes of \`scan->occ[0]\` into \`sumCur\` and the four bytes of
+\`scan->occ[1]\` into \`sumNext\`, then return \`0\` if \`sumCur >= sumNext\`, else \`1\`.
+To match the lockstep schedule above you must **interleave the two accumulations
+term by term** — not write two flat \`a+b+c+d\` sums.
+`,
+    symbol: "voxmap_chooseDir",
+    context: `typedef struct { u8 occ[2][4]; } VoxScan;`,
+    starter: `int voxmap_chooseDir(VoxScan* scan) {
+    int sumCur, sumNext;
+    // Interleave the two 4-term sums, then return sumCur >= sumNext ? 0 : 1
+    return 1;
+}
+`,
+    solution: `int voxmap_chooseDir(VoxScan* scan) {
+    int sumCur, sumNext;
+    sumCur = scan->occ[0][0];
+    sumNext = scan->occ[1][0];
+    sumCur += scan->occ[0][1];
+    sumNext += scan->occ[1][1];
+    sumCur += scan->occ[0][2];
+    sumNext += scan->occ[1][2];
+    sumCur += scan->occ[0][3];
+    sumNext += scan->occ[1][3];
+    if (sumCur >= sumNext) {
+        return 0;
+    }
+    return 1;
+}
+`,
+    hints: [
+      "Declare both accumulators, then seed each with its first byte: `sumCur = scan->occ[0][0]; sumNext = scan->occ[1][0];`.",
+      "Add the remaining three terms in lockstep — one `sumCur += ...;` immediately followed by the matching `sumNext += ...;`. Do NOT collapse either sum into a single `a+b+c+d` expression; that changes the emission order and the scheduler picks a different load layout.",
+      "The `return sumCur >= sumNext ? 0 : 1;` part is the branchless `xor`/`srawi`/`and`/`subf`/`srwi` tail — let the compiler write it.",
+    ],
+  },
+  {
+    id: "mastery-targetblock-scorehit",
+    chapter: "mastery",
+    order: 11.5,
+    title: "Param Inversion: Who Gets the Saved Register",
+    difficulty: 5,
+    concepts: ["register-coloring", "saved-registers", "live-range", "calls", "narrow-types"],
+    brief: `
+# Hoist the value, kill the pointer
+
+This is the lever behind SFA's \`dfptargetblock_hitDetect\` match (and its siblings
+\`MagicPlant_update\`, \`DFP_Torch_render\`): all three earned a match by changing
+**which value MWCC parks in a saved register** — not by renaming anything, but by
+changing a *live range*.
+
+Here is the rule from the decompiled allocator. A value gets a **saved** register
+(\`r31\`, \`r30\`, …) only when it is live across *every* volatile — classically,
+**live across a call**. A value consumed and then dead before the first call
+never needs one. So in a function full of \`bl\`s, "who gets \`r31\`?" is decided
+entirely by **whose live range spans the calls**.
+
+\`\`\`c
+typedef struct { s16 kind; s16 power; } HitInfo;
+typedef struct { HitInfo* hit; int score; } TargetBlockObject;
+extern int Block_ResolveHit(TargetBlockObject* o);
+extern void Block_AwardScore(int kind, int amount);
+extern void Block_LogHit(int kind);
+\`\`\`
+
+You need \`obj->hit->kind\` (an \`s16\`) at two call sites that come *after* a resolve
+call. Read it **once, up front, into a typed local** and the chase \`obj->hit\`
+happens immediately — then the parameter \`obj\` is dead, while \`kind\` is the thing
+that lives across the calls and lands in \`r31\`:
+
+\`\`\`asm
+lwz   r4, 0(r3)          # obj->hit
+lha   r31, 0(r4)         # kind = obj->hit->kind   -> SAVED reg r31
+bl    @Block_ResolveHit  # obj is already dead here
+cmpwi r3, 0
+beq-  .+4
+mr    r3, r31            # reuse kind from r31
+li    r4, 10
+bl    @Block_AwardScore
+mr    r3, r31            # reuse kind again
+bl    @Block_LogHit
+\`\`\`
+
+Now watch the inversion. If instead you write the raw deref \`obj->hit->kind\` at
+**each** use site, the value is recomputed every time — so it is *not* what's live
+across the calls. \`obj\` is, so the param gets stashed (\`mr r31, r3\`) and the value
+is re-fetched twice:
+
+\`\`\`asm
+mr    r31, r3            # obj parked in SAVED reg r31 instead
+bl    @Block_ResolveHit
+lwz   r3, 0(r31)         # re-chase obj->hit
+lha   r3, 0(r3)          # re-load kind
+bl    @Block_AwardScore
+lwz   r3, 0(r31)         # ...and again
+lha   r3, 0(r3)
+bl    @Block_LogHit
+\`\`\`
+
+Same logic, same opcodes — but the *occupant of \`r31\` flipped* from the derived
+value to the parameter, plus two extra \`lwz\`/\`lha\` reloads appeared. That is the
+whole "param-inversion" family of matches: a value **consumed early into a typed
+local** colors the local into the saved reg (the source param dies); the **same
+value left as raw derefs used throughout** keeps the *pointer* hot and parks *it*
+instead. Get this backwards and the function is "right shape, wrong register"
+forever.
+
+## Your task
+
+With the structs above, write \`targetblock_scoreHit\`. Read \`obj->hit->kind\` into
+a local **first**. Then: if \`Block_ResolveHit(obj)\` is nonzero, call
+\`Block_AwardScore(kind, 10)\`; afterwards always call \`Block_LogHit(kind)\`.
+Hoisting \`kind\` up front is the match — do **not** re-deref \`obj->hit->kind\` at
+the call sites, or \`obj\` (not \`kind\`) lands in \`r31\` and the reloads return.
+`,
+    symbol: "targetblock_scoreHit",
+    context: `typedef struct { s16 kind; s16 power; } HitInfo;
+typedef struct { HitInfo* hit; int score; } TargetBlockObject;
+extern int Block_ResolveHit(TargetBlockObject* o);
+extern void Block_AwardScore(int kind, int amount);
+extern void Block_LogHit(int kind);`,
+    starter: `void targetblock_scoreHit(TargetBlockObject* obj) {
+    // read obj->hit->kind into a local FIRST, then resolve / award / log
+}
+`,
+    solution: `void targetblock_scoreHit(TargetBlockObject* obj) {
+    int kind;
+
+    kind = obj->hit->kind;
+    if (Block_ResolveHit(obj) != 0) {
+        Block_AwardScore(kind, 10);
+    }
+    Block_LogHit(kind);
+}
+`,
+    hints: [
+      "Read `kind = obj->hit->kind;` on the very first line — that chases `obj->hit` (`lwz`) and loads the `s16` (`lha r31, ...`) before any call.",
+      "A value lands in a saved register (`r31`) only because it is live across a call. Hoisting `kind` makes *it* the long-lived web, so the param `obj` dies early and never needs a saved reg.",
+      "Do not write `obj->hit->kind` again at the call sites — that recomputes it, keeps `obj` live across the calls, parks `obj` in `r31` instead, and re-adds the `lwz`/`lha` reloads.",
+    ],
+  },
+  {
+    id: "mastery-blend-accumulate",
+    chapter: "mastery",
+    order: 11.7,
+    title: "Declaration Order Is Register Order: Coloring Saved Regs by Hand",
+    difficulty: 5,
+    concepts: ["register-allocation", "saved-registers", "declaration-order", "loops", "calls"],
+    brief: `
+# The order you *declare* locals is the order they get colored
+
+This is the lever behind SFA's \`modelWalkAnimFn_800248b8\` match — the commit whose
+entire diff was **four local declarations, reversed**
+(\`blendChan, animChan, i, m\` → \`m, i, animChan, blendChan\`), nudging the score
+from 88.30 to 88.37 without touching a single line of logic. No casts, no pragmas,
+no restructuring: just decl order. It is the purest demonstration that register
+allocation in MWCC is *positional*, not semantic.
+
+\`\`\`c
+extern int sample(int* p);
+extern void emit(int slot, int v);
+\`\`\`
+
+Here is the rule, straight from the decompiled allocator. A value is put in a
+**callee-saved** register (r31, r30, r29 …) only when it must stay live across a
+function call — that is the only time the allocator's "volatiles only" mask runs
+dry and it falls back to the saved pool. And it hands those saved registers out
+in a fixed sequence — **r31 first, then r30, then r29** — in the order the values
+are *created*. Whoever is created first gets r31; the next gets r30; and so on.
+
+The subtle part: "creation order" is usually decided by the front-end, **not** by
+where you write your \`int x;\`. But there's an exception, and it's the one this
+function lives in. When several values are **first defined at the same program
+point** — a comma-init \`for (i=0, a=0, b=0, c=0; …)\`, or a run of
+\`a=0; b=0; c=0;\` — their definition order *ties*, and MWCC breaks the tie by
+**declaration order**. That is the seam \`modelWalkAnimFn\` reordered.
+
+Three accumulators, each summed across a \`sample()\` call inside the loop and read
+back after it, so all three are forced into saved registers. Declared \`c, b, a\`,
+the allocator colors them **a→r28, b→r29, c→r30**:
+
+\`\`\`asm
+li    r28, 0             # accumulators created in DECL order c, b, a
+li    r29, 0             #   -> a, b, c land in r28, r29, r30
+li    r30, 0
+mr    r3, r31
+bl    @sample
+add   r28, r28, r3       # a += sample(base + i)
+addi  r3, r31, 4
+bl    @sample
+add   r29, r29, r3       # b += sample(base + i + 1)
+addi  r3, r31, 8
+bl    @sample
+add   r30, r30, r3       # c += sample(base + i + 2)
+...
+mr    r4, r28            # emit(100, a)   <- a lives in r28
+bl    @emit
+mr    r4, r29            # emit(101, b)
+bl    @emit
+mr    r4, r30            # emit(102, c)
+bl    @emit
+\`\`\`
+
+Declare them in the *natural* reading order \`a, b, c\` instead and nothing about
+the program changes — but the homes **rotate** to \`a→r30, b→r29, c→r28\`. Every
+\`add\` in the loop body and all three tail \`mr r4, …\` flip, and the function no
+longer byte-matches. The register numbers are a direct readout of the order in
+which you spelled the declarations.
+
+## Your task
+
+With the externs above, write \`blend_accumulate(int* base, int count)\`. Loop \`i\`
+from 0 to \`count\`, keeping three running sums \`a\`, \`b\`, \`c\`
+(\`a += sample(base+i)\`, \`b += sample(base+i+1)\`, \`c += sample(base+i+2)\`), and
+\`emit(i, a+b+c)\` each pass. After the loop, \`emit(100, a)\`, \`emit(101, b)\`,
+\`emit(102, c)\`. The catch is the **declaration order**: to land the accumulators
+in r28/r29/r30 the way the target does, declare them **\`c, b, a\`** (then \`i\`) —
+the reverse of how you use them. Declaring \`a, b, c\` compiles and runs identically
+but colors the saved registers backwards and will not match.
+`,
+    symbol: "blend_accumulate",
+    context: `extern int sample(int* p);
+extern void emit(int slot, int v);`,
+    starter: `void blend_accumulate(int* base, int count) {
+    int a;
+    int b;
+    int c;
+    int i;
+    for (i = 0, a = 0, b = 0, c = 0; i < count; i++) {
+        a += sample(base + i);
+        b += sample(base + i + 1);
+        c += sample(base + i + 2);
+        emit(i, a + b + c);
+    }
+    emit(100, a);
+    emit(101, b);
+    emit(102, c);
+}
+`,
+    solution: `void blend_accumulate(int* base, int count) {
+    int c;
+    int b;
+    int a;
+    int i;
+    for (i = 0, a = 0, b = 0, c = 0; i < count; i++) {
+        a += sample(base + i);
+        b += sample(base + i + 1);
+        c += sample(base + i + 2);
+        emit(i, a + b + c);
+    }
+    emit(100, a);
+    emit(101, b);
+    emit(102, c);
+}
+`,
+    hints: [
+      "All three sums are read *after* the loop and updated *across* a `sample()` call, so each one is forced into a callee-saved register (r28–r30). That's the precondition for the lever — a value only gets a saved reg if it's live across a call.",
+      "Saved registers are handed out r31, r30, r29… in *creation* order, and when several locals are first set at the same point (the `for (i=0, a=0, b=0, c=0; …)` comma-init) the tie-break is **declaration order**. So decl order literally chooses the registers.",
+      "The starter declares `a, b, c` and colors them r30/r29/r28 — backwards from the target. Reverse the three accumulator declarations to `c, b, a` (keep `i` last) and the homes become a→r28, b→r29, c→r30, matching every `add` and tail `mr`.",
+    ],
+  },
 ];
