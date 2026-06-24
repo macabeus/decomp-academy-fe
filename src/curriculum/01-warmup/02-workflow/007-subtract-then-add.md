@@ -33,7 +33,7 @@ isn't associative, so the compiler keeps the left-to-right order you wrote.
 
 ## Your task
 
-Write `subadd3`, returning `a - b + c` for three `int`s.
+Write `subadd3`, taking three `int`s, to reproduce the assembly above.
 
 <!-- starter -->
 ```c

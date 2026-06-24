@@ -37,7 +37,7 @@ around.
 
 ## Your task
 
-Write `addsub3`, returning `a + b - c` for three `int`s.
+Write `addsub3`, taking three `int`s, to reproduce the assembly above.
 
 <!-- starter -->
 ```c

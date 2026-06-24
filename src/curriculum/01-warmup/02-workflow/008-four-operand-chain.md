@@ -35,7 +35,7 @@ threaded from each into the next — chains of any length read the same way.
 
 ## Your task
 
-Write `addsub4`, returning `a + b - c + d` for four `int`s.
+Write `addsub4`, taking four `int`s, to reproduce the assembly above.
 
 <!-- starter -->
 ```c
