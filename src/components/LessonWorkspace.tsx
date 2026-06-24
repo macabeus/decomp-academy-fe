@@ -374,19 +374,30 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
               >
                 <IconRefresh size={14} /> Reset
               </button>
-              <button
-                onClick={() => run()}
-                disabled={check.status === "running"}
-                className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.97] disabled:opacity-60"
-              >
-                {check.status === "running" ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : (
-                  <IconPlayerPlayFilled size={13} />
-                )}
-                Compile &amp; Check
-                <kbd className="ml-1 rounded bg-black/20 px-1 text-2xs">⌘↵</kbd>
-              </button>
+              {check.status === "match" && selectedSymbol === lesson.symbol ? (
+                <Link
+                  href={lesson.next ? `/lesson/${lesson.next.id}` : "/"}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-good px-3.5 py-1.5 text-xs font-semibold text-bg transition hover:bg-good-soft active:scale-[0.97]"
+                >
+                  <IconCheck size={14} />
+                  {lesson.next ? "Next lesson" : "Finish"}
+                  <IconArrowRight size={14} className="transition group-hover:translate-x-0.5" />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => run()}
+                  disabled={check.status === "running"}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.97] disabled:opacity-60"
+                >
+                  {check.status === "running" ? (
+                    <IconLoader2 size={14} className="animate-spin" />
+                  ) : (
+                    <IconPlayerPlayFilled size={13} />
+                  )}
+                  Compile &amp; Check
+                  <kbd className="ml-1 rounded bg-black/20 px-1 text-2xs">⌘↵</kbd>
+                </button>
+              )}
             </div>
           </div>
 
