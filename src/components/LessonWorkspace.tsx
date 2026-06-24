@@ -113,6 +113,10 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
   const [showSolution, setShowSolution] = useState(false);
   const codeRef = useRef(code);
   codeRef.current = code;
+  // The code that produced the current check result. Once the editor diverges
+  // from it, a stale "match" no longer reflects what's on screen, so the
+  // Next-lesson button reverts to Compile & Check.
+  const checkedCodeRef = useRef<string | null>(null);
   // Latest object files (base64), read without re-creating callbacks.
   const targetB64Ref = useRef<string | null>(null);
   const userB64Ref = useRef<string | null>(null);
@@ -127,6 +131,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     async (opts?: { initial?: boolean }) => {
       const initial = opts?.initial ?? false;
       const myRun = loadIdRef.current;
+      const codeAtRun = codeRef.current;
       // A fresh check shows the celebration again if it matches.
       setBannerDismissed(false);
       // Drop the previous vm so the diff shows a skeleton while recompiling rather
@@ -141,7 +146,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
         const res = await fetch("/api/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lesson: lesson.id, code: codeRef.current }),
+          body: JSON.stringify({ lesson: lesson.id, code: codeAtRun }),
         });
         const d = await res.json();
         if (loadIdRef.current !== myRun) return; // lesson changed mid-flight
@@ -177,6 +182,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
         if (loadIdRef.current !== myRun) return;
 
         diffsRef.current = analysis.diffs;
+        checkedCodeRef.current = codeAtRun;
         setOverview(analysis.overview);
         // A Compile & Check always re-centers on the lesson's own function.
         setSelectedSymbol(lesson.symbol);
@@ -237,6 +243,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     targetB64Ref.current = null;
     userB64Ref.current = null;
     diffsRef.current = {};
+    checkedCodeRef.current = null;
     setHintsShown(0);
     setShowSolution(false);
     setTab("diff");
@@ -374,7 +381,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
               >
                 <IconRefresh size={14} /> Reset
               </button>
-              {check.status === "match" && selectedSymbol === lesson.symbol ? (
+              {check.status === "match" && selectedSymbol === lesson.symbol && code === checkedCodeRef.current ? (
                 <Link
                   href={lesson.next ? `/lesson/${lesson.next.id}` : "/"}
                   className="inline-flex items-center gap-1.5 rounded-md bg-good px-3.5 py-1.5 text-xs font-semibold text-bg transition hover:bg-good-soft active:scale-[0.97]"
