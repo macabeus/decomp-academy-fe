@@ -1,18 +1,14 @@
 // Where compilation happens:
-//   - COMPILE_API_URL set (and != "local")  -> proxy to that URL
-//   - production (e.g. Amplify) with no override -> the deployed compile service
-//   - otherwise (local `next dev`)            -> compile locally against ../sfa
+//   - COMPILE_API_URL set to a URL      -> proxy to that compile service
+//   - COMPILE_API_URL unset or "local"  -> compile locally against ../sfa
 //
-// The proxy runs server-side only (API routes), so the compile service can be
-// plain HTTP and lesson solutions never reach the browser.
-const DEFAULT_API = "http://34.255.144.200:8080";
-
+// In production (e.g. Amplify), set COMPILE_API_URL to the deployed compile
+// service's address. The proxy runs server-side only (API routes), so the
+// service can be plain HTTP and lesson solutions never reach the browser.
 export function compileApiUrl(): string | null {
   const env = process.env.COMPILE_API_URL?.trim();
-  if (env === "local") return null;
-  if (env) return env.replace(/\/+$/, "");
-  if (process.env.NODE_ENV === "production") return DEFAULT_API;
-  return null;
+  if (!env || env === "local") return null;
+  return env.replace(/\/+$/, "");
 }
 
 /** POST JSON to the compile service with a timeout; returns parsed JSON or throws. */
