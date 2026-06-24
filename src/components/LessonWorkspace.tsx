@@ -266,9 +266,15 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
 
   const reset = () => {
     setCode(lesson.starter);
+    // Update the ref synchronously so the re-run below reads the starter, not the
+    // pre-reset code (setCode only updates codeRef on the next render).
+    codeRef.current = lesson.starter;
     saveCode(lesson.id, lesson.starter);
-    setCheck({ status: "idle" });
+    setSelectedSymbol(lesson.symbol);
     setTab("diff");
+    // Re-diff the reset starter, exactly like the on-open auto-compile, so the
+    // view reflects the starter instead of falling back to a target-only diff.
+    void runRef.current({ initial: true });
   };
 
   if (lesson.concept) return <ConceptView lesson={lesson} />;
