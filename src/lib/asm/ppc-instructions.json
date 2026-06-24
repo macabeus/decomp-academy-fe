@@ -1,0 +1,2628 @@
+[
+    {
+        "Name": "add",
+        "DescriptiveName": "Add",
+        "Usage": "add rD, rA, rB",
+        "Description": "The sum ({rA}) + ({rB}) is placed into {rD}",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "addc",
+        "DescriptiveName": "Add Carrying",
+        "Usage": "addc rD, rA, rB",
+        "Description": "The sum ({rA}) + ({rB}) is placed into {rD}",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "adde",
+        "DescriptiveName": "Add Extended",
+        "Usage": "adde rD, rA, rB",
+        "Description": "The sum ({rA}) + ({rB}) + XER[CA] is placed into {rD}",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "addi",
+        "DescriptiveName": "Add Immediate",
+        "Usage": "addi rD, rA, simm",
+        "Description": "The sum ({rA}) + sign extended {simm} is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "addic",
+        "DescriptiveName": "Add Immediate Carrying",
+        "Usage": "addic rD, rA, simm",
+        "Description": "The sum ({rA}) + sign extended {simm} is placed into {rD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "addic.",
+        "DescriptiveName": "Add Immediate Carrying and Record",
+        "Usage": "addic. rD, rA, simm",
+        "Description": "The sum ({rA}) + sign extended {simm} is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "addis",
+        "DescriptiveName": "Add Immediate Shifted",
+        "Usage": "addis rD, rA, uimm",
+        "Description": "The sum ({rA}) + ({uimm} << 16) is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "addme",
+        "DescriptiveName": "Add to Minus One Extended",
+        "Usage": "addme rD, rA",
+        "Description": "The sum ({rA}) + {XER[CA]} + 0xFFFF_FFFF is placed into {rD}",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "addze",
+        "DescriptiveName": "Add to Zero Extended",
+        "Usage": "addze rD, rA",
+        "Description": "The sum ({rA}) + {XER[CA]} is placed into {rD}",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "and",
+        "DescriptiveName": "AND",
+        "Usage": "and rA, rS, rB",
+        "Description": "The contents of {rS} are Bitwise ANDed with the contents of {rB} and the result is placed into {rA}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "andc",
+        "DescriptiveName": "AND with Complement",
+        "Usage": "andc rA, rS, rB",
+        "Description": "The contents of {rS} are Bitwise ANDed with the one's complement of the contents of {rB} and the result is placed into {rA}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "andi.",
+        "DescriptiveName": "AND Immediate",
+        "Usage": "andi. rA, rS, uimm",
+        "Description": "The contents of {rS} are ANDed with ({uimm} & 0xFFFF) and the result is placed into {rA}",
+        "Modifiers": []
+    },
+    {
+        "Name": "andis.",
+        "DescriptiveName": "AND Immediate Shifted",
+        "Usage": "andis. rA, rS, uimm",
+        "Description": "The contents of {rS} are ANDed with ({uimm} << 16) and the result is placed into {rA}",
+        "Modifiers": []
+    },
+    {
+        "Name": "b",
+        "DescriptiveName": "Branch",
+        "Usage": "b LI",
+        "Description": "{LI} specifies the branch target address.",
+        "Modifiers": [
+            "a",
+            "l"
+        ]
+    },
+    {
+        "Name": "bc",
+        "DescriptiveName": "Branch if Condition",
+        "Usage": "bc BO, BI, BD",
+        "Description": "{BD} specifies the branch target address. {BO} and {BI} are bits specifying conditions.",
+        "Modifiers": [
+            "a",
+            "-",
+            "l",
+            "+"
+        ]
+    },
+    {
+        "Name": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Condition",
+        "Usage": "bcctr BO, BI, BH",
+        "Description": "{CTR} specifies the branch target address. {BO}, {BI}, and {BH} specify the bits in the condition register to be used as the condition of the branch.",
+        "Modifiers": [
+            "l",
+            "+"
+        ]
+    },
+    {
+        "Name": "bclr",
+        "DescriptiveName": "Branch to Link Register if Condition",
+        "Usage": "bclr BO, BI, BH",
+        "Description": "{LR} specifies the target address. {BO}, {BI}, and {BH} specify the bits in the condition register to be used as the condition of the branch.",
+        "Modifiers": [
+            "l",
+            "+"
+        ]
+    },
+    {
+        "Name": "bctr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch unconditional to Count Register",
+        "Usage": "bctr",
+        "Description": "Branch to the value in the {CTR}.",
+        "Modifiers": [
+            "l"
+        ]
+    },
+    {
+        "Name": "bdnz",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Decrement Not Zero",
+        "Usage": "bdnz BD",
+        "Description": "Decrements the value in the {CTR}. {BD} specifies the branch target address, which will only occur if {CTR} is not zero.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdnzf",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Decrement Not Zero and Condition False",
+        "Usage": "bdnzf BI, BD",
+        "Description": "Decrements the value in the {CTR}. {BD} specifies the branch target address, which will only occur if {CTR} is not zero and Condition {BI} is false.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdnzflr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Decrement Not Zero and Condition False",
+        "Usage": "bdnzflr BI",
+        "Description": "Decrements the value in the {CTR}. {LR} specifies the branch target address, which will only occur if {CTR} is not zero and Condition {BI} is false.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdnzlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Decrement Not Zero",
+        "Usage": "bdnzlr",
+        "Description": "Decrements the value in the {CTR}. {LR} specifies the branch target address, which will only occur if {CTR} is not zero.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdnzt",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Decrement Not Zero and Condition True",
+        "Usage": "bdnzt BI, BD",
+        "Description": "Decrements the value in the {CTR}. {BD} specifies the branch target address, which will only occur if {CTR} is not zero and Condition {BI} is true.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdnztlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Decrement Not Zero and Condition True",
+        "Usage": "bdnztlr BI",
+        "Description": "Decrements the value in the {CTR}. {LR} specifies the branch target address, which will only occur if {CTR} is not zero and Condition {BI} is true.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdz",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Decrement Zero",
+        "Usage": "bdz BD",
+        "Description": "Decrements the value in the {CTR}. {BD} specifies the branch target address, which will only occur if the {CTR} is zero.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdzf",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Decrement Zero and Condition False",
+        "Usage": "bdzf BI, BD",
+        "Description": "Decrements the value in the {CTR}. {BD} specifies the branch target address, which will only occur if {CTR} is zero and Condition {BI} is false.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdzflr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Decrement Not Zero and Condition False",
+        "Usage": "bdzflr BI",
+        "Description": "Decrements the value in the {CTR}. {LR} specifies the branch target address, which will only occur if {CTR} is zero and Condition {BI} is false.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdzlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Decrement Zero",
+        "Usage": "bdzlr",
+        "Description": "Decrements the value in the {CTR}. {LR} specifies the branch target address, which will only occur if the {CTR} is zero.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdzt",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Decrement Zero and Condition True",
+        "Usage": "bdzt BI, BD",
+        "Description": "Decrements the value in the {CTR}. {BD} specifies the branch target address, which will only occur if {CTR} is zero and Condition {BI} is true.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bdztlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Decrement Zero and Condition True",
+        "Usage": "bdztlr BI",
+        "Description": "Decrements the value in the {CTR}. {LR} specifies the branch target address, which will only occur if {CTR} is zero and Condition {BI} is true.",
+        "Modifiers": []
+    },
+    {
+        "Name": "beq",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Equal",
+        "Usage": "beq crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "beqctr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Equal",
+        "Usage": "beqctr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "beqlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Equal",
+        "Usage": "beqlr crfS",
+        "Description": "{LR} specifies the target address, which will only occur if the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bge",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Greater Than or Equal",
+        "Usage": "bge crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[GT]} flag is set, or the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bgectr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Greater Than or Equal",
+        "Usage": "bgectr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[GT]} or {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bgelr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Greater Than or Equal",
+        "Usage": "bgelr crfS",
+        "Description": "The {LR} specifies the target address, which will only occur if the {crfS[GT]} flag is set, or the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bgt",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Greater Than",
+        "Usage": "bgt crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[GT]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bgtctr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Greater Than",
+        "Usage": "bgtctr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[GT]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bgtlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Greater Than",
+        "Usage": "bgtlr crfS",
+        "Description": "The {LR} specifies the target address, which will only occur if the {crfS[GT]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "ble",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Less Than or Equal",
+        "Usage": "ble crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[LT]} flag is set, or the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "blectr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Less Than or Equal",
+        "Usage": "blectr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[LT]} or {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "blelr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Less Than or Equal",
+        "Usage": "blelr crfS",
+        "Description": "The {LR} specifies the target address, which will only occur if the {crfS[LT]} flag is set, or the {crfS[EQ]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "blr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register",
+        "Usage": "blr",
+        "Description": "The {LR} specifies the branch target address.",
+        "Modifiers": [
+            "l"
+        ]
+    },
+    {
+        "Name": "blt",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Less Than",
+        "Usage": "blt crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[LT]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bltctr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Less Than",
+        "Usage": "bltctr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[LT]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bltlr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Less Than",
+        "Usage": "bltlr crfS",
+        "Description": "The {LR} specifies the target address, which will only occur if the {crfS[LT]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bne",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch Not Equal",
+        "Usage": "bne crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[EQ]} flag is not set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bnectr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Not Equal",
+        "Usage": "bnectr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[EQ]} flag is not set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bnelr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch to Link Register if Not Equal",
+        "Usage": "bnelr crfS",
+        "Description": "The {LR} specifies the target address, which will only occur if the {crfS[EQ]} flag is not set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bns",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Not Summary Overflow",
+        "Usage": "bns crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[SO]} flag is not set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bnsctr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Not Summary Overflow",
+        "Usage": "bnsctr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[SO]} flag is not set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bnslr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch To Link Register if Not Summary Overflow",
+        "Usage": "bnslr crfS",
+        "Description": "The {LR} specifies the branch target address, which will only occur if the {crfS[SO]} flag is not set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bso",
+        "ParentOpcode": "bc",
+        "DescriptiveName": "Branch if Summary Overflow",
+        "Usage": "bso crfS, BD",
+        "Description": "{BD} specifies the branch target address, which will only occur if the {crfS[SO]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bsoctr",
+        "ParentOpcode": "bcctr",
+        "DescriptiveName": "Branch to Count Register if Summary Overflow",
+        "Usage": "bsoctr crfS",
+        "Description": "Branch to the value in the {CTR} if the {crfS[SO]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "bsolr",
+        "ParentOpcode": "bclr",
+        "DescriptiveName": "Branch To Link Register if Summary Overflow",
+        "Usage": "bsolr crfS",
+        "Description": "The {LR} specifies the branch target address, which will only occur if the {crfS[SO]} flag is set.",
+        "Modifiers": []
+    },
+    {
+        "Name": "clrlslwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Clear Left Shift Left Word Immediate",
+        "Usage": "clrlslwi rA, rS, MB, SH",
+        "Description": "equivalent to rlwinm {rA}, {rS}, {SH}, {MB}-{SH}, 31-{SH}",
+        "Modifiers": []
+    },
+    {
+        "Name": "clrlwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Clear Left Word Immediate",
+        "Usage": "clrlwi rA, rS, MB",
+        "Description": "equivalent to rlwinm {rA}, {rS}, 0, {MB}, 31",
+        "Modifiers": []
+    },
+    {
+        "Name": "clrrwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Clear Right Word Ommediate",
+        "Usage": "clrrwi rA, rS, ME",
+        "Description": "equivalent to rlwinm {rA}, {rS}, 0, 0, 31-{ME}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmp",
+        "DescriptiveName": "Compare",
+        "Usage": "cmp crfD, L, rA, rB",
+        "Description": "The contents of {rA} are compared with the contents of {rB}, treating the operands as signed integers. The result of the comparison is placed into CR field {crfD}. {L} is used to signify the type of comparison.",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpd",
+        "ParentOpcode": "cmp",
+        "DescriptiveName": "Compare Double Word",
+        "Usage": "cmpd crfD, rA, rB",
+        "Description": "The contents of {rA} are compared with the contents of {rB}, treating the operands as douhble word integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpdi",
+        "ParentOpcode": "cmpi",
+        "DescriptiveName": "Compare Double Word Immediate",
+        "Usage": "cmpdi crfD, rA, simm",
+        "Description": "The contents of {rA} are compared with the sign extended {simm}, treating the operands as douhble word integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpi",
+        "DescriptiveName": "Compare Immediate",
+        "Usage": "cmpi crfD, L, rA, simm",
+        "Description": "The contents of {rA} are compared with the sign-extended value of {simm}, treating the operands as signed integers. The result of the comparison is placed into CR field {crfD}. {L} is used to signify the type of comparison.",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpl",
+        "DescriptiveName": "Compare Logical",
+        "Usage": "cmpl crfD, L, rA, rB",
+        "Description": "The contents of {rA} are compared with the contents of {rB}, treating the operands as unsigned integers. The result of the comparison is placed into CR field {crfD}. {L} is used to signify the type of comparison.",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpld",
+        "ParentOpcode": "cmpl",
+        "DescriptiveName": "Compare Logical Double Word",
+        "Usage": "cmpld crfD, rA, rB",
+        "Description": "The contents of {rA} are compared with the contents of {rB}, treating the operands as unsigned double word integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpldi",
+        "ParentOpcode": "cmpli",
+        "DescriptiveName": "Compare Logical Double Word Immediate",
+        "Usage": "cmpldi crfD, rA, uimm",
+        "Description": "The contents of {rA} are compared with ({uimm} & 0xFFFF), treating the operands as unsigned double word integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpli",
+        "DescriptiveName": "Compare Logical Immediate",
+        "Usage": "cmpli crfD, L, rA, uimm",
+        "Description": "The contents of {rA} are compared with ({uimm} & 0xFFFF), treating the operands as unsigned integers. The result of the comparison is placed into CR field {crfD}. {L} is used to signify the type of comparison.",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmplw",
+        "ParentOpcode": "cmpl",
+        "DescriptiveName": "Compare Logical Word",
+        "Usage": "cmplw crfD, rA, rB",
+        "Description": "The contents of {rA} are compared with the contents of {rB}, treating the operands as unsigned integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmplwi",
+        "ParentOpcode": "cmpli",
+        "DescriptiveName": "Compare Logical Word Immediate",
+        "Usage": "cmplwi crfD, rA, uimm",
+        "Description": "The contents of {rA} are compared with the value of ({uimm} & 0xFFFF), treating the operands as unsigned integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpw",
+        "ParentOpcode": "cmp",
+        "DescriptiveName": "Compare Word",
+        "Usage": "cmpw crfD, rA, rB",
+        "Description": "The contents of {rA} are compared with the contents of {rB}, treating the operands as signed integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cmpwi",
+        "ParentOpcode": "cmpi",
+        "DescriptiveName": "Compare Word Immediate",
+        "Usage": "cmpwi crfD, rA, simm",
+        "Description": "The contents of {rA} are compared with the sign-extended value of {simm}, treating the operands as signed integers. The result of the comparison is placed into CR field {crfD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cntlzw",
+        "DescriptiveName": "Count Leading Zeros Word",
+        "Usage": "cntlzw rA, rS",
+        "Description": "A count of the number of consecutive zero bits starting at bit 0 of {rS} is placed into {rA}. This number ranges from 0 to 32, inclusive.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "crand",
+        "DescriptiveName": "Condition Register AND",
+        "Usage": "crand crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is ANDed with the bit in the condition register {crbB}. The result is placed into the condition register {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crandc",
+        "DescriptiveName": "Condition Register AND with Complement",
+        "Usage": "crandc crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is ANDed with the complement of the bit in the condition register {crbB} and the result is placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crclr",
+        "ParentOpcode": "crxor",
+        "DescriptiveName": "Condition Register Clear",
+        "Usage": "crclr crbD",
+        "Description": "Clears all flags in the condition register {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "creqv",
+        "DescriptiveName": "Condition Register Equivalent",
+        "Usage": "creqv crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is XORed with the bit in the condition register {crbB} and the complemented result is placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crmove",
+        "ParentOpcode": "cror",
+        "DescriptiveName": "Condition Register Move",
+        "Usage": "crmove crbD, crbA",
+        "Description": "Moves the contents of the Condition Register {crbA} into Condition Register {crbD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "crnand",
+        "DescriptiveName": "Condition Register NAND",
+        "Usage": "crnand crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is ANDed with the bit in the condition register {crbB} and the complemented result is placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crnor",
+        "DescriptiveName": "Condition Register NOR",
+        "Usage": "crnor crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is ORed with the bit in the condition register {crbB} and the complemented result is placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crnot",
+        "ParentOpcode": "crnor",
+        "DescriptiveName": "Condition Register NOT",
+        "Usage": "crnot crbD, crbA",
+        "Description": "The bit in the condition register {crbA} is inverted and placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "cror",
+        "DescriptiveName": "Condition Register OR",
+        "Usage": "cror crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is ORed with the bit in the condition register {crbB} and the complemented result is placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crorc",
+        "DescriptiveName": "Condition Register OR with Complement",
+        "Usage": "crorc crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is ORed with the complement of the condition register bit {crbB} and the result is placed into the condition register bit {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crset",
+        "ParentOpcode": "creqv",
+        "DescriptiveName": "Condition Register Set",
+        "Usage": "crset crbD",
+        "Description": "Sets the bit in the Condition Register {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "crxor",
+        "DescriptiveName": "Condition Register XOR",
+        "Usage": "crxor crbD, crbA, crbB",
+        "Description": "The bit in the condition register {crbA} is XORed with the bit in the condition register {crbB} and the result is placed into the condition register {crbD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbf",
+        "DescriptiveName": "Data Cache Block Flush",
+        "Usage": "dcbf rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The dcbf instruction invalidates the block in the data cache addressed by EA, copying the block to memory first, if there is any dirty data in it. Unmodified block - Invalidates the block in the processor's data cache",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbi",
+        "DescriptiveName": "Data Cache Block Invalidate",
+        "Usage": "dcbi rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The action taken is dependent on the memory mode associated with the block containing the byte addressed by EA and on the state of that block. The list below describes the action taken if the block containing the byte addressed by EA is or is not in the cache. Unmodified block -> Invalidates the block in the processor's data cache. Modified block -> Invalidates the block in the processor's data cache. (Discards the modified contents.) Absent block (target block not in cache) -> No action is taken",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbst",
+        "DescriptiveName": "Data Cache Block Store",
+        "Usage": "dcbst rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). If the block containing the byte addressed by EA is in coherency-not-required mode, and a block containing the byte addressed by EA is in the data cache of this processor and has been modified, the writing of it to main memory is initiated",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbt",
+        "DescriptiveName": "Data Cache Block Touch",
+        "Usage": "dcbt rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). This instruction is a hint that performance will possibly be improved if the block containing the byte addressed by EA is fetched into the data cache, because the program will probably soon load from the addressed byte",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbtst",
+        "DescriptiveName": "Data Cache Block Touch for Store",
+        "Usage": "dcbtst rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). This instruction is a hint that performance will possibly be improved if the block containing the byte addressed by EA is fetched into the data cache, because the program will probably soon store from the addressed byte",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbz",
+        "DescriptiveName": "Data Cache Block Clear to Zero",
+        "Usage": "dcbz rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). This instruction is treated as a store to the addressed byte with respect to address translation, memory protection, referenced and changed recording. It is also treated as a store with respect to the ordering enforced by {eieio} and the ordering enforced by the combination of caching-inhibited and guarded attributes for a page (or block)",
+        "Modifiers": []
+    },
+    {
+        "Name": "dcbz_l",
+        "DescriptiveName": "Data Cache Block Set to Zero Locked",
+        "Usage": "dcbz_l rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). If the cache block containing the byte addressed by EA is neither in the \"locked\" nor in the \"normal\" data cache, the block is allocated in the \"locked\" data cache without fetching the block from main memory. All bytes are cleared and the block is marked as M (modified). Cache block allocation is done using the psudo-LRU used rule among the four ways in the locked cache",
+        "Modifiers": []
+    },
+    {
+        "Name": "divw",
+        "DescriptiveName": "Divide Word",
+        "Usage": "divw rD, rA, rB",
+        "Description": "The dividend is the contents of {rA}. The divisor is the contents of {rB}. The remainder is not supplied as a result. Both the operands and the quotient are interpreted as signed integers. The quotient is the unique signed integer that satisfies the equation -> dividend = (quotient x divisor) + r where 0 <= r < |divisor| (if the dividend is non-negative), and -|divisor| < r <= 0 (if the dividend is negative). The result of the division is stored in {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "divwu",
+        "DescriptiveName": "Divide Word Unsigned",
+        "Usage": "divwu rD, rA, rB",
+        "Description": "The dividend is the contents of {rA}. The divisor is the contents of {rB}. The remainder is not supplied as a result. Both operands and the quotient are interpreted as unsigned integers, except that if {Rc} = 1 the first three bits of CR0 field are set by signed comparison of the result to zero. The quotient is the unique unsigned integer that satisfies the equation-dividend = (quotient * divisor) + r (where 0 <= r < divisor). The result of the division is stored in {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "eciwx",
+        "DescriptiveName": "External Control In Word Indexed",
+        "Usage": "eciwx rD, rA, rB",
+        "Description": "The eciwx instruction and the {EAR} register can be very efficient when mapping special devices such as graphics devices that use addresses as pointers. EA is the sum ({rA}) + ({rB}). A load word request for the physical address (referred to as real address in the architecture specification) corresponding to EA is sent to the device identified by {EAR[RID]}, bypassing the cache. The word returned by the device is placed in {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "ecowx",
+        "DescriptiveName": "External Control Out Word Indexed",
+        "Usage": "ecowx rS, rA, rB",
+        "Description": "The ecowx instruction and the EAR register can be very efficient when mapping special devices such as graphics devices that use addresses as pointers. EA is the sum ({rA}) + ({rB}). A store word request for the physical address corresponding to EA and the contents of {rS} are sent to the device identified by {EAR[RID]}, bypassing the cache.",
+        "Modifiers": []
+    },
+    {
+        "Name": "eieio",
+        "DescriptiveName": "Enforce In-Order Execution of I/O",
+        "Usage": "eieio",
+        "Description": "The eieio instruction provides an ordering function for the effects of load and store instructions executed by a processor. These loads and stores are divided into two sets, which are ordered separately. The memory accesses caused by a {dcbz} or a {dcba} instruction are ordered like a store.",
+        "Modifiers": []
+    },
+    {
+        "Name": "eqv",
+        "DescriptiveName": "Equivalent",
+        "Usage": "eqv rA, rS, rB",
+        "Description": "The contents of {rS} are XORed with the contents of {rB} and the complemented result is placed into {rA}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "extlwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Extract and Left justify Immediate",
+        "Usage": "extlwi rA, rS, ME, SH",
+        "Description": "equivalent to rlwinm {rA}, {rS}, {SH}, 0, {ME}-1",
+        "Modifiers": []
+    },
+    {
+        "Name": "extrwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Extract and Right justify Immediate",
+        "Usage": "extrwi rA, rS, MB, SH",
+        "Description": "equivalent to rlwinm {rA}, {rS}, {SH} + {MB}, 32-{MB}, 31",
+        "Modifiers": []
+    },
+    {
+        "Name": "extsb",
+        "DescriptiveName": "Extend Sign Byte",
+        "Usage": "extsb rA, rS",
+        "Description": "The contents of the low-order eight bits of {rS} are placed into the low-order eight bits of {rA}. Bit 24 of {rS} is placed into the remaining bits of {rA}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "extsh",
+        "DescriptiveName": "Extend Sign Half Word",
+        "Usage": "extsh rA, rS",
+        "Description": "The contents of the low-order 16 bits of {rS} are placed into the low-order 16 bits of {rA}[16-31]. Bit 16 of {rS} is placed into the remaining bits of {rA}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fabs",
+        "DescriptiveName": "Floating Absolute Value",
+        "Usage": "fabs frD, frB",
+        "Description": "The contents of {frB} with bit 0 cleared are placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fadd",
+        "DescriptiveName": "Floating Add (Double-Precision)",
+        "Usage": "fadd frD, frA, frB",
+        "Description": "The floating-point operand in {frA} is added to the floating-point operand in {frB}. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fadds",
+        "DescriptiveName": "Floating Add Single",
+        "Usage": "fadds frD, frA, frB",
+        "Description": "The floating-point operand in {frA} is added to the floating-point operand in {frB}. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to the single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fcmpo",
+        "DescriptiveName": "Floating Compare Ordered",
+        "Usage": "fcmpo crfD, frA, frB",
+        "Description": "The floating-point operand in {frA} is compared to the floating-point operand in {frB}. The result of the compare is placed into CR field {crfD} and the {FPCC}",
+        "Modifiers": []
+    },
+    {
+        "Name": "fcmpu",
+        "DescriptiveName": "Floating Compare Unordered",
+        "Usage": "fcmpu crfD, frA, frB",
+        "Description": "The floating-point operand in register {frA} is compared to the floating-point operand in register {frB}. The result of the compare is placed into CR field {crfD} and the {FPCC}",
+        "Modifiers": []
+    },
+    {
+        "Name": "fctiw",
+        "DescriptiveName": "Floating Convert to Integer Word",
+        "Usage": "fctiw frD, frB",
+        "Description": "The floating-point operand in register {frB} is converted to a 32-bit signed integer, using the rounding mode specified by {FPSCR[RN]}, and placed in bits 32-63 of {frD}. Bits 0-31 of {frD} are undefined. If the operand in {frB} are greater than 2^31 - 1, bits 32-63 of {frD} are set to 0x7FFF_FFFF. If the operand in {frB} are less than -2^31 , bits 32-63 of {frD} are set to 0x8000_0000.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fctiwz",
+        "DescriptiveName": "Floating Convert to Integer Word with Round toward Zero",
+        "Usage": "fctiwz frD, frB",
+        "Description": "The floating-point operand in register {frB} is converted to a 32-bit signed integer, using the rounding mode round toward zero, and placed in bits 32-63 of {frD}. Bits 0-31 of {frD} are undefined. If the operand in {frB} are greater than 2^31 - 1, bits 32-63 of {frD} are set to 0x7FFF_FFFF. If the operand in {frB} are less than -2^31 , bits 32-63 of {frD} are set to 0x8000_0000.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fdiv",
+        "DescriptiveName": "Floating Divide (Double-Precision)",
+        "Usage": "fdiv frD, frA, frB",
+        "Description": "The floating-point operand in register {frA} is divided by the floating-point operand in register {frB}. The remainder is not supplied as a result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fdivs",
+        "DescriptiveName": "Floating Divide Single",
+        "Usage": "fdivs frD, frA, frB",
+        "Description": "The floating-point operand in register {frA} is divided by the floating-point operand in register {frB}. The remainder is not supplied as a result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmadd",
+        "DescriptiveName": "Floating Multiply-Add (Double-Precision)",
+        "Usage": "fmadd frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is added to this intermediate result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmadds",
+        "DescriptiveName": "Floating Multiply-Add Single",
+        "Usage": "fmadds frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is added to this intermediate result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field FPSCR[RN] and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmr",
+        "DescriptiveName": "Floating Move Register(Double-Precision)",
+        "Usage": "fmr frD, frB",
+        "Description": "The content of register {frB} is placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmsub",
+        "DescriptiveName": "Floating Multiply-Subtract (Double-Precision)",
+        "Usage": "fmsub frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is subtracted from this intermediate result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmsubs",
+        "DescriptiveName": "Floating Multiply-Subtract Single",
+        "Usage": "fmsubs frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is subtracted from this intermediate result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmul",
+        "DescriptiveName": "Floating Multiply (Double-Precision)",
+        "Usage": "fmul frD, frA, frC",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fmuls",
+        "DescriptiveName": "Floating Multiply Single",
+        "Usage": "fmuls frD, frA, frC",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fnabs",
+        "DescriptiveName": "Floating Negative Absolute Value",
+        "Usage": "fnabs frD, frB",
+        "Description": "The contents of register {frB} with bit 0 set are placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fneg",
+        "DescriptiveName": "Floating Negate",
+        "Usage": "fneg frD, frB",
+        "Description": "The contents of register {frB} with bit 0 inverted are placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fnmadd",
+        "DescriptiveName": "Floating Negative Multiply-Add (Double-Precision)",
+        "Usage": "fnmadd frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is added to this intermediate result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]}, then negated and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fnmadds",
+        "DescriptiveName": "Floating Negative Multiply-Add Single",
+        "Usage": "fnmadds frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is added to this intermediate result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]}, then negated and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fnmsub",
+        "DescriptiveName": "Floating Negative Multiply-Subtract (Double-Precision)",
+        "Usage": "fnmsub frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is subtracted from this intermediate result. If the most-significant bit of the resultant significand is not one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]}, then negated and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fnmsubs",
+        "DescriptiveName": "Floating Negative Multiply-Subtract Single",
+        "Usage": "fnmsubs frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is multiplied by the floating-point operand in register {frC}. The floating-point operand in register {frB} is subtracted from this intermediate result. If the most-significant bit of the resultant significand is not one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]}, then negated and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fres",
+        "DescriptiveName": "Floating Reciprocal Estimate Single",
+        "Usage": "fres frD, frB",
+        "Description": "A single-precision estimate of the reciprocal of the floating-point operand in register {frB} is placed into register {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "frsp",
+        "DescriptiveName": "Floating Round to Single",
+        "Usage": "frsp frD, frB",
+        "Description": "The floating-point operand in register {frB} is rounded to single-precision using the rounding mode specified by {FPSCR[RN]} and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "frsqrte",
+        "DescriptiveName": "Floating Reciprocal Square Root Estimate",
+        "Usage": "frsqrte frD, frB",
+        "Description": "A double-precision estimate of the reciprocal of the square root of the floating-point operand in register {frB} is placed into register {frD}. ",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fsel",
+        "DescriptiveName": "Floating Select",
+        "Usage": "fsel frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA} is compared to the value zero. If the operand is greater than or equal to zero, register {frD} is set to the contents of register {frC}. If the operand is less than zero or is a NaN, register {frD} is set to the contents of register {frB}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fsub",
+        "DescriptiveName": "Floating Subtract (Double-Precision)",
+        "Usage": "fsub frD, frA, frB",
+        "Description": "The floating-point operand in register {frB} is subtracted from the floating-point operand in register {frA}. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to double-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "fsubs",
+        "DescriptiveName": "Floating Subtract Single",
+        "Usage": "fsubs frD, frA, frB",
+        "Description": "The floating-point operand in register {frB} is subtracted from the floating-point operand in register {frA}. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "icbi",
+        "DescriptiveName": "Instruction Cache Block Invalidate",
+        "Usage": "icbi rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). If the block containing the byte addressed by EA is in coherency-required mode, and a block containing the byte addressed by EA is in the instruction cache of any processor, the block is made invalid in all such instruction caches, so that subsequent references cause the block to be refetched",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "isync",
+        "DescriptiveName": "Instruction Cache Block Invalidate",
+        "Usage": "isync",
+        "Description": "The isync instruction provides an ordering function for the effects of all instructions executed by a processor. Executing an isync instruction ensures that all instructions preceding the isync instruction have completed before the isync instruction completes. It also ensures that no subsequent instructions are initiated by the processor until after the isync instruction completes",
+        "Modifiers": []
+    },
+    {
+        "Name": "lbz",
+        "DescriptiveName": "Instruction Cache Block Invalidate",
+        "Usage": "lbz rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The byte in memory addressed by EA is loaded into the low-order eight bits of {rD}. The remaining bits in {rD} are cleared.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lbzu",
+        "DescriptiveName": "Load Byte and Zero with Update",
+        "Usage": "lbzu rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The byte in memory addressed by EA is loaded into the low-order eight bits of {rD}. The remaining bits in {rD} are cleared. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lbzux",
+        "DescriptiveName": "Load Byte and Zero with Update Indexed",
+        "Usage": "lbzux rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The byte in memory addressed by EA is loaded into the low-order eight bits of {rD}. The remaining bits in {rD} are cleared. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lbzx",
+        "DescriptiveName": "Load Byte and Zero Indexed",
+        "Usage": "lbzx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The byte in memory addressed by EA is loaded into the low-order eight bits of {rD}. The remaining bits in {rD} are cleared.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfd",
+        "DescriptiveName": "Load Floating-Point Double",
+        "Usage": "lfd frD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The double word in memory addressed by EA is placed into {frD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfdu",
+        "DescriptiveName": "Load Floating-Point Double with Update",
+        "Usage": "lfdu frD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The double word in memory addressed by EA is placed into {frD}. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfdux",
+        "DescriptiveName": "Load Floating-Point Double with Update Indexed",
+        "Usage": "lfdux frD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The double word in memory addressed by EA is placed into {frD}. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfdx",
+        "DescriptiveName": "Load Floating-Point Double Indexed",
+        "Usage": "lfdx frD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The double word in memory addressed by EA is placed into {frD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfs",
+        "DescriptiveName": "Load Floating-Point Single",
+        "Usage": "lfs frD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The word in memory addressed by EA is interpreted as a single-precision floation-point and placed into {frD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfsu",
+        "DescriptiveName": "Load Floating-Point Single with Update",
+        "Usage": "lfsu frD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The word in memory addressed by EA is interpreted as a single-precision floation-point and placed into {frD}. EA is placed into {rA}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfsux",
+        "DescriptiveName": "Load Floating-Point Single with Update Indexed",
+        "Usage": "lfsux frD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The word in memory addressed by EA is interpreted as a single-precision floation-point and placed into {frD}. EA is placed into {rA}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lfsx",
+        "DescriptiveName": "Load Floating-Point Single Indexed",
+        "Usage": "lfsx frD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The word in memory addressed by EA is interpreted as a single-precision floation-point and placed into {frD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lha",
+        "DescriptiveName": "Load Half Word Algebraic",
+        "Usage": "lha rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are filled with a copy of the most-significant bit of the loaded half word.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhau",
+        "DescriptiveName": "Load Half Word Algebraic with Update",
+        "Usage": "lhau rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are filled with a copy of the most-significant bit of the loaded half word. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhaux",
+        "DescriptiveName": "Load Half Word Algebraic with Update Indexed",
+        "Usage": "lhaux rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are filled with a copy of the most-significant bit of the loaded half word. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhax",
+        "DescriptiveName": "Load Half Word Algebraic Indexed",
+        "Usage": "lhax rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are filled with a copy of the most-significant bit of the loaded half word.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhbrx",
+        "DescriptiveName": "Load Half Word Byte-Reverse Indexed",
+        "Usage": "lhbrx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). Bits 0-7 of the half word in memory addressed by EA are loaded into the low-order eight bits of {rD}. Bits 8-15 of the half word in memory addressed by EA are loaded into the subsequent low-order eight bits of {rD}. The remaining bits in {rD} are cleared",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhz",
+        "DescriptiveName": "Load Half Word and Zero",
+        "Usage": "lhz rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are cleared.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhzu",
+        "DescriptiveName": "Load Half Word and Zero with Update",
+        "Usage": "lhzu rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are cleared. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhzux",
+        "DescriptiveName": "Load Half Word and Zero with Update Indexed",
+        "Usage": "lhzux rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are cleared. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lhzx",
+        "DescriptiveName": "Load Half Word and Zero Indexed",
+        "Usage": "lhzx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The half word in memory addressed by EA is loaded into the low-order 16 bits of {rD}. The remaining bits in {rD} are cleared. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "li",
+        "ParentOpcode": "addi",
+        "DescriptiveName": "Load Immediate",
+        "Usage": "li rD, simm",
+        "Description": "The sign-extended value {simm} is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lis",
+        "ParentOpcode": "addis",
+        "DescriptiveName": "Load Immediate Shifted",
+        "Usage": "lis rD, uimm",
+        "Description": "The value ({uimm} << 16) is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "lmw",
+        "DescriptiveName": "Load Multiple Word",
+        "Usage": "lmw rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. n = (32 - {rD}). n consecutive words starting at EA are loaded into GPRs {rD} through r31.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lswi",
+        "DescriptiveName": "Load String Word Immediate",
+        "Usage": "lswi rD, rA, NB",
+        "Description": "EA is ({rA}). Let n = {NB} if {NB} != 0, n = 32 if {NB} == 0; n is the number of bytes to load. Let nr = CEIL(n / 4); nr is the number of registers to be loaded with data. n consecutive bytes starting at EA are loaded into GPRs {rD} through {rD} + nr - 1.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lswx",
+        "DescriptiveName": "Load String Word Indexed",
+        "Usage": "lswx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). Let n = XER[25-31]; n is the number of bytes to load. Let nr = CEIL(n / 4); nr is the number of registers to receive data. If n > 0, n consecutive bytes starting at EA are loaded into GPRs {rD} through ({rD} + nr - 1). Bytes are loaded left to right in each register. The sequence of registers wraps around through r0 if required. If the four bytes of {rD} + nr - 1 are only partially filled, the unfilled low-order byte(s) of that register are cleared. If n = 0, the contents of {rD} are undefined.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lwarx",
+        "DescriptiveName": "Load Word and Reserve Indexed",
+        "Usage": "lwarx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The word in memory addressed by EA is loaded into {rD}. This instruction creates a reservation for use by a store word conditional indexed ({stwcx.})instruction. The physical address computed from EA is associated with the reservation, and replaces any address previously associated with the reservation.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lwbrx",
+        "DescriptiveName": "Load Word and Reserve Indexed",
+        "Usage": "lwbrx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + {rB}. Bits 0-7 of the word in memory addressed by EA are loaded into the low-order 8 bits of {rD}. Bits 8-15 of the word in memory addressed by EA are loaded into the subsequent low-order 8 bits of {rD}. Bits 16-23 of the word in memory addressed by EA are loaded into the subsequent low-order eight bits of {rD}. Bits 24-31 of the word in memory addressed by EA are loaded into the subsequent low-order 8 bits of {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lwz",
+        "DescriptiveName": "Load Word and Zero",
+        "Usage": "lwz rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The word in memory addressed by EA is loaded into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lwzu",
+        "DescriptiveName": "Load Word and Zero with Update",
+        "Usage": "lwzu rD, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The word in memory addressed by EA is loaded into {rD}. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lwzux",
+        "DescriptiveName": "Load Word and Zero with Update Indexed",
+        "Usage": "lwzux rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The word in memory addressed by EA is loaded into {rD}. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "lwzx",
+        "DescriptiveName": "Load Word and Zero Indexed",
+        "Usage": "lwzx rD, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The word in memory addressed by EA is loaded into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mcrf",
+        "DescriptiveName": "Move Condition Register Field",
+        "Usage": "mcrf crfD, crfS",
+        "Description": "The contents of condition register field {crfS} are copied into condition register field {crfD}. All other condition register fields remain unchanged.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mcrfs",
+        "DescriptiveName": "Move to Condition Register from FPSCR",
+        "Usage": "mcrfs crfD, crfS",
+        "Description": "The contents of FPSCR field {crfS} are copied to CR field {crfD}. All exception bits copied (except {FPSCR[FEX]} and {FPSCR[VX]}) are cleared in the FPSCR.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mcrxr",
+        "DescriptiveName": "Move to Condition Register from XER",
+        "Usage": "mcrxr crfD",
+        "Description": "The contents of XER[0-3] are copied into the condition register field designated by {crfD}. All other fields of the condition register remain unchanged. XER[0-3] is cleared.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfcr",
+        "DescriptiveName": "Move from Condition Register",
+        "Usage": "mfcr rD",
+        "Description": "The contents of the condition register (CR) are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfctr",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Count Register",
+        "Usage": "mfctr rD",
+        "Description": "The contents of the Count register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfdar",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register DAR",
+        "Usage": "mfdar rD",
+        "Description": "The contents of the designated special purpose register DAR are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfdbatl",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register DBATL",
+        "Usage": "mfdbatl rD, spr_BAT",
+        "Description": "The contents of the DBAT{spr_BAT}L special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfdbatu",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register DBATU",
+        "Usage": "mfdbatu rD, spr_BAT",
+        "Description": "The contents of the DBAT{spr_BAT}U special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfdec",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move to Special-Purpose Register DEC",
+        "Usage": "mfdec rD",
+        "Description": "The contents of the {DEC} special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfdsisr",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register DSISR",
+        "Usage": "mfdsisr rD",
+        "Description": "The contents of the {DSISR} special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfear",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register EAR",
+        "Usage": "mfear rD",
+        "Description": "The contents of the EAR special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mffs",
+        "DescriptiveName": "Move from FPSCR",
+        "Usage": "mffs frD",
+        "Description": "The contents of the floating-point status and control register (FPSCR) are placed into the low-order bits of register {frD}. The high-order bits of register {frD} are undefined.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mfibatl",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register IBATL",
+        "Usage": "mfibatl rD, spr_BAT",
+        "Description": "The contents of the IBAT{spr_BAT}L special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfibatu",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register IBATU",
+        "Usage": "mfibatu rD, spr_BAT",
+        "Description": "The contents of the IBAT{spr_BAT}U special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mflr",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Link Register",
+        "Usage": "mflr rD",
+        "Description": "The contents of the {LR} are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfmsr",
+        "DescriptiveName": "Move from Machine State Register",
+        "Usage": "mfmsr rD",
+        "Description": "The contents of the {MSR} are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfsdr1",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register SDR1",
+        "Usage": "mfsdr1 rD",
+        "Description": "The contents of the {SDR1} special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register",
+        "Usage": "mfspr rD, spr",
+        "Description": "The contents of the designated Special-Purpose register {spr} are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfsprg",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register SRPG",
+        "Usage": "mfsprg rD, spr_SPRG",
+        "Description": "The contents of the designated special purpose register SPRG{spr_SPRG} are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfsr",
+        "DescriptiveName": "Move from Segment Register",
+        "Usage": "mfsr rD, sr",
+        "Description": "The contents of the Segment Register {sr} are copied into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfsrin",
+        "DescriptiveName": "Move from Segment Register Indirect",
+        "Usage": "mfsrin rD, rB",
+        "Description": "The contents of the segment register selected by bits 0-3 of {rB} are copied into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfsrr0",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register SRR0",
+        "Usage": "mfsrr0 rD",
+        "Description": "The contents of the designated special purpose register SRR0 are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfsrr1",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from Special-Purpose Register SRR1",
+        "Usage": "mfsrr1 rD",
+        "Description": "The contents of the SRR1 special purpose register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mftb",
+        "DescriptiveName": "Move from Time Base",
+        "Usage": "mftb rD, tbr",
+        "Description": "The contents of TBL or TBU are copied into {rD}, as designated by the value {tbr}",
+        "Modifiers": []
+    },
+    {
+        "Name": "mfxer",
+        "ParentOpcode": "mfspr",
+        "DescriptiveName": "Move from XER Register",
+        "Usage": "mfxer rD",
+        "Description": "The contents of the Integer exception register are placed into {rD}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mr",
+        "ParentOpcode": "or",
+        "DescriptiveName": "Move Register",
+        "Usage": "mr rA, rS",
+        "Description": "The contents of {rS} are placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtcrf",
+        "DescriptiveName": "Move to Condition Register Fields",
+        "Usage": "mtcrf crm, rS",
+        "Description": "The contents of {rS} are placed into the Condition Register under control of the field mask {crm}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtctr",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Count Register",
+        "Usage": "mtctr rS",
+        "Description": "The contents of {rS} are placed into the {CTR}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtdar",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register DAR",
+        "Usage": "mtdar rS",
+        "Description": "The contents of {rS} are placed into the DAR special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtdbatl",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register DBATL",
+        "Usage": "mtdbatl spr_BAT, rS",
+        "Description": "The contents of {rS} are placed into the DBAT{spr_BAT}L special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtdbatu",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register DBATU",
+        "Usage": "mtdbatu spr_BAT, rS",
+        "Description": "The contents of {rS} are placed into the DBAT{spr_BAT}U special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtdec",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register DEC",
+        "Usage": "mtdec rS",
+        "Description": "The contents of {rS} are placed into the DEC special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtdsisr",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register DSISR",
+        "Usage": "mtdsisr rS",
+        "Description": "The contents of {rS} are placed into the DSISR special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtear",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register EAR",
+        "Usage": "mtear rS",
+        "Description": "The contents of {rS} are placed into the EAR special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtfsb0",
+        "DescriptiveName": "Move to FPSCR Bit 0",
+        "Usage": "mtfsb0 crbD",
+        "Description": "Bit {crbD} of the FPSCR is cleared.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mtfsb1",
+        "DescriptiveName": "Move to FPSCR Bit 1",
+        "Usage": "mtfsb1 crbD",
+        "Description": "Bit {crbD} of the FPSCR is set.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mtfsf",
+        "DescriptiveName": "Move to FPSCR Fields",
+        "Usage": "mtfsf mtfsf_FM, frB",
+        "Description": "The low-order 32 bits of {frB} are placed into the FPSCR under control of the field mask {mtfsf_FM}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mtfsfi",
+        "DescriptiveName": "Move to FPSCR Field Immediate",
+        "Usage": "mtfsfi crfD, mtfsf_IMM",
+        "Description": "The value of the {mtfsf_IMM} field is placed into FPSCR field {crfD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mtibatl",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register IBATL",
+        "Usage": "mtibatl spr_BAT, rS",
+        "Description": "The contents of {rS} are placed into the IBAT{spr_BAT}L special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtibatu",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register IBATxU",
+        "Usage": "mtibatu spr_BAT, rS",
+        "Description": "The contents of {rS} are placed into the IBAT{spr_BAT}U special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtlr",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Link Register",
+        "Usage": "mtlr rS",
+        "Description": "The contents of {rS} are placed into the {LR}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtmsr",
+        "DescriptiveName": "Move to Machine State Register",
+        "Usage": "mtmsr rS",
+        "Description": "The contents of {rS} are placed into the {MSR}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtsdr1",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register SDR1",
+        "Usage": "mtsdr1 rS",
+        "Description": "The contents of {rS} are placed into the SDR1 special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register",
+        "Usage": "mtspr spr, rS",
+        "Description": "The contents of {rS} are placed into the Special-Purpose Register {spr}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtsprg",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register SPRGx",
+        "Usage": "mtsprg spr_SPRG, rS",
+        "Description": "The contents of {rS} are placed into the designated special purpose register SPRG{spr_SPRG}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtsr",
+        "DescriptiveName": "Move to Segment Register",
+        "Usage": "mtsr sr, rS",
+        "Description": "The contents of {rS} are placed into Segment Register {sr}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtsrin",
+        "DescriptiveName": "Move to Segment Register Indirect",
+        "Usage": "mtsrin rS, rB",
+        "Description": "The contents of {rS} are copied to the segment register selected by bits 0-3 of {rB}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtsrr0",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register SRR0",
+        "Usage": "mtsrr0 rS",
+        "Description": "The contents of {rS} are placed into the SRR0 special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtsrr1",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register SRR1",
+        "Usage": "mtsrr1 rS",
+        "Description": "The contents of {rS} are placed into the SRR1 special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mttbl",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register TBL",
+        "Usage": "mttbl rS",
+        "Description": "The contents of {rS} are placed into the TBL special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mttbu",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to Special-Purpose Register TBU",
+        "Usage": "mttbu rS",
+        "Description": "The contents of {rS} are placed into the TBU special purpose register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mtxer",
+        "ParentOpcode": "mtspr",
+        "DescriptiveName": "Move to XER Register",
+        "Usage": "mtxer rS",
+        "Description": "The contents of {rS} are placed into the Integer exception register.",
+        "Modifiers": []
+    },
+    {
+        "Name": "mulhw",
+        "DescriptiveName": "Multiply High Word",
+        "Usage": "mulhw rD, rA, rB",
+        "Description": "The 32-bit product is formed from the contents {rA} and {rB}. The high-order 32 bits of the 64-bit product of the operands are placed into {rD}. Both the operands and the product are interpreted as signed integers.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mulhwu",
+        "DescriptiveName": "Multiply High Word Unsigned",
+        "Usage": "mulhwu rD, rA, rB",
+        "Description": "The 32-bit operands are the contents {rA} and {rB}. The high-order 32 bits of the 64-bit product of the operands are placed into {rD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mulli",
+        "DescriptiveName": "Multiply Low Immediate",
+        "Usage": "mulli rD, rA, simm",
+        "Description": "The first operand is {rA}. The second operand is {simm}. The low-order 32-bits of the 48-bit product of the operands are placed into {rD}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "mullw",
+        "DescriptiveName": "Multiply Low Word",
+        "Usage": "mullw rD, rA, rB",
+        "Description": "The 32-bit operands are the contents of {rA} and {rB}. The low-order of the 64-bit product ({rA}) * ({rB}) are placed into {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "nand",
+        "DescriptiveName": "NAND",
+        "Usage": "nand rA, rS, rB",
+        "Description": "The contents of {rS} are ANDed with the contents of {rB} and the complemented result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "neg",
+        "DescriptiveName": "Negate",
+        "Usage": "neg rD, rA",
+        "Description": "The value 1 is added to the complement of the value in {rA}, and the resulting two's complement is placed into {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "nop",
+        "ParentOpcode": "ori",
+        "DescriptiveName": "No-Operation",
+        "Usage": "nop",
+        "Description": "Do Nothing.",
+        "Modifiers": []
+    },
+    {
+        "Name": "nor",
+        "DescriptiveName": "NOR",
+        "Usage": "nor rA, rS, rB",
+        "Description": "The contents of {rS} are ORed with the contents of {rB} and the complemented result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "or",
+        "DescriptiveName": "OR",
+        "Usage": "or rA, rS, rB",
+        "Description": "The contents of {rS} are ORed with the contents of {rB} and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "orc",
+        "DescriptiveName": "OR with Complement",
+        "Usage": "orc rA, rS, rB",
+        "Description": "The contents of {rS} are ORed with the complement of the contents of {rB} and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ori",
+        "DescriptiveName": "OR Immediate",
+        "Usage": "ori rA, rS, uimm",
+        "Description": "The contents of {rS} are ORed with ({uimm} & 0xFFFF) and the result is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "oris",
+        "DescriptiveName": "OR Immediate Shifted",
+        "Usage": "oris rA, rS, uimm",
+        "Description": "The contents of {rS} are ORed with ({uimm} << 16) and the result is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "ps_abs",
+        "DescriptiveName": "Paired Single Absolute Value",
+        "Usage": "ps_abs frD, frB",
+        "Description": "The contents of {frB}(ps0) with bit 0 cleared are placed into {frD}(ps0). The contents of {frB}(ps1) with bit 0 cleared are placed into {frD}(ps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_add",
+        "DescriptiveName": "Paired Single Add",
+        "Usage": "ps_add frD, frA, frB",
+        "Description": "The floating-point operand in {frA}(ps0) is added to the floating-point operand in {frB}(psps0). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in {frA}(ps1) is added to the floating-point operand in {frB}(psps1). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_cmpo0",
+        "DescriptiveName": "Paired Singles Compare Ordered High",
+        "Usage": "ps_cmpo0 crfD, frA, frB",
+        "Description": "The floating-point operand in {frA}(ps0) is compared to the floating-point operand in {frB}(psps0). The result of the compare is placed into CR field {crfD} and the FPCC.",
+        "Modifiers": []
+    },
+    {
+        "Name": "ps_cmpo1",
+        "DescriptiveName": "Paired Singles Compare Ordered Low",
+        "Usage": "ps_cmpo1 crfD, frA, frB",
+        "Description": "The floating-point operand in {frA}(ps1) is compared to the floating-point operand in {frB}(psps1). The result of the compare is placed into CR field {crfD} and the FPCC.",
+        "Modifiers": []
+    },
+    {
+        "Name": "ps_cmpu0",
+        "DescriptiveName": "Paired Singles Compare Unordered High",
+        "Usage": "ps_cmpu0 crfD, frA, frB",
+        "Description": "The floating-point operand in {frA}(ps0) is compared to the floating-point operand in {frB}(psps0). The result of the compare is placed into CR field {crfD} and the FPCC.",
+        "Modifiers": []
+    },
+    {
+        "Name": "ps_cmpu1",
+        "DescriptiveName": "Paired Singles Compare Unordered Low",
+        "Usage": "ps_cmpu1 crfD, frA, frB",
+        "Description": "The floating-point operand in {frA}(ps1) is compared to the floating-point operand in {frB}(psps1). The result of the compare is placed into CR field {crfD} and the FPCC.",
+        "Modifiers": []
+    },
+    {
+        "Name": "ps_div",
+        "DescriptiveName": "Paired Single Divide",
+        "Usage": "ps_div frD, frA, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is divided by the floating-point operand in register {frB}(psps0). The remainder is not supplied as a result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is divided by the floating-point operand in register {frB}(psps1). The remainder is not supplied as a result. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_madd",
+        "DescriptiveName": "Paired Single Divide",
+        "Usage": "ps_madd frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). The floating-point operand in register {frB}(psps0) is added to this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). The floating-point operand in register {frB}(psps1) is added to this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_madds0",
+        "DescriptiveName": "Paired Single Multiply-Add Scalar high",
+        "Usage": "ps_madds0 frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). The floating-point operand in register {frB}(psps0) is added to this intermediate result, if the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and is placed into {frD}(psps0).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_madds1",
+        "DescriptiveName": "Paired Single Multiply-Add Scalar low",
+        "Usage": "ps_madds1 frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). The floating-point operand in register {frB}(psps1) is added to this intermediate result, if the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and is placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_merge00",
+        "DescriptiveName": "Paired Single MERGE high",
+        "Usage": "ps_merge00 frD, frA, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is moved to register {frD}(psps0) and floating-point operand in register {frB}(psps0) is moved to register {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_merge01",
+        "DescriptiveName": "Paired Single MERGE direct",
+        "Usage": "ps_merge01 frD, frA, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is moved to register {frD}(psps0) and floating-point operand in register {frB}(psps1) is moved to register {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_merge10",
+        "DescriptiveName": "Paired Single MERGE swapped",
+        "Usage": "ps_merge10 frD, frA, frB",
+        "Description": "The floating-point operand in register {frA}(ps1) is moved to register {frD}(psps0) and floating-point operand in register {frB}(psps0) is moved to register {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_merge11",
+        "DescriptiveName": "Paired Single MERGE low",
+        "Usage": "ps_merge11 frD, frA, frB",
+        "Description": "The floating-point operand in register {frA}(ps1) is moved to register {frD}(psps0) and floating-point operand in register {frB}(psps1) is moved to register {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_mr",
+        "DescriptiveName": "Paired Single Move Register",
+        "Usage": "ps_mr frD, frB",
+        "Description": "The contents of register {frB}(ps0) are placed into {frD}(psps0). The contents of register {frB}(ps1) are placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_msub",
+        "DescriptiveName": "Paired Single Multiply-Subtract",
+        "Usage": "ps_msub frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). The floating-point operand in register {frB}(psps0) is subtracted from this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). The floating-point operand in register {frB}(psps1) is subtracted from this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_mul",
+        "DescriptiveName": "Paired Single Multiply-Subtract",
+        "Usage": "ps_mul frD, frA, frC",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). The floating-point operand in register {frB}(psps0) is subtracted from this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). The floating-point operand in register {frB}(psps1) is subtracted from this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_muls0",
+        "DescriptiveName": "Paired Single Multiply Scalar high",
+        "Usage": "ps_muls0 frD, frA, frC",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps0). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_muls1",
+        "DescriptiveName": "Paired Single Multiply Scalar low",
+        "Usage": "ps_muls1 frD, frA, frC",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps1). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and are placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and are placed into {frD}(psps1)",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_nabs",
+        "DescriptiveName": "Paired Single Negative Absolute Value",
+        "Usage": "ps_nabs frD, frB",
+        "Description": "The contents of register {frB}(psps0) with bit 0 set are placed into {frD}(psps0). The contents of register {frB}(psps1) with bit 0 set are placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_neg",
+        "DescriptiveName": "Paired Single Negate",
+        "Usage": "ps_neg frD, frB",
+        "Description": "The contents of register {frB}(psps0) with bit 0 inverted are placed into {frD}(psps0). The contents of register {frB}(psps1) with bit 0 inverted are placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_nmadd",
+        "DescriptiveName": "Paired Single Negative Multiply-Add",
+        "Usage": "ps_nmadd frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). The floating-point operand in register {frB}(psps0) is added to this intermediate product and the result is negated. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). The floating-point operand in register {frB}(psps1) is added to this intermediate product and the result is negated. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_nmsub",
+        "DescriptiveName": "Paired Single Negative Multiply-Subtract",
+        "Usage": "ps_nmsub frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is multiplied by the floating-point operand in register {frC}(ps0). The floating-point operand in register {frB}(psps0) is subtracted from this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]}, then negated and placed into {frD}(psps0). The floating-point operand in register {frA}(ps1) is multiplied by the floating-point operand in register {frC}(ps1). The floating-point operand in register {frB}(psps1) is subtracted from this intermediate product. If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]}, then negated and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_res",
+        "DescriptiveName": "Paired Single Reciprocal Estimate",
+        "Usage": "ps_res frD, frB",
+        "Description": "A single-precision estimate of the reciprocal of the floating-point operand in register {frB}(psps0) is placed into register {frD}(psps0) and a single-precision estimate of the reciprocal of the floating-point operand in register {frB}(psps1) is placed into register {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_rsqrte",
+        "DescriptiveName": "Paired Single Reciprocal Square Root Estimate",
+        "Usage": "ps_rsqrte frD, frB",
+        "Description": "A single-precision estimate of the reciprocal of the square root of the floating-point operand in register {frB}(psps0) is placed into register {frD}(psps0). A single-precision estimate of the reciprocal of the square root of the floating-point operand in register {frB}(psps1) is placed into register {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_sel",
+        "DescriptiveName": "Paired Single Select",
+        "Usage": "ps_sel frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is compared to the value zero. If the operand is greater than or equal to zero, register {frD}(psps0) is set to the contents of register {frC}(ps0). If the operand is less than zero or is a NaN, register {frD}(psps0) is set to the contents of register {frB}(psps0). The floating-point operand in register {frA}(ps1) is compared to the value zero. If the operand is greater than or equal to zero, register {frD}(psps1) is set to the contents of register {frC}(ps1). If the operand is less than zero or is a NaN, register {frD}(psps1) is set to the contents of register {frB}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_sub",
+        "DescriptiveName": "Paired Single Subtract",
+        "Usage": "ps_sub frD, frA, frB",
+        "Description": "The floating-point operand in register {frB}(psps0) is subtracted from the floating-point operand in register {frA}(ps0). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frB}(psps1) is subtracted from the floating-point operand in register {frA}(ps1). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_sum0",
+        "DescriptiveName": "Paired Single vector SUM high",
+        "Usage": "ps_sum0 frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frA}(ps0) is added to the floating-point operand from register {frB}(psps1). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps0). The floating-point operand in register {frC}(ps1) is placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "ps_sum1",
+        "DescriptiveName": "Paired Single vector SUM low",
+        "Usage": "ps_sum1 frD, frA, frC, frB",
+        "Description": "The floating-point operand in register {frC}(ps0) is placed into {frD}(psps0). The floating-point operand in register {frA}(ps0) is added to the floating-point operand from register {frB}(psps1). If the most-significant bit of the resultant significand is not a one, the result is normalized. The result is rounded to single-precision under control of the floating-point rounding control field {FPSCR[RN]} and placed into {frD}(psps1).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "psq_l",
+        "DescriptiveName": "Paired Single Quantized Load",
+        "Usage": "psq_l frD, ps_offset, rA, ps_W, ps_I",
+        "Description": "EA is the sum ({rA}) + {ps_offset}. PS0 and PS1 in {frD} are loaded with a pair of single precision floating point numbers from the memory addressed by EA. {ps_W} and {ps_I} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_lu",
+        "DescriptiveName": "Paired Single Quantized Load with Update",
+        "Usage": "psq_lu frD, ps_offset, rA, ps_W, ps_I",
+        "Description": "EA is the sum ({rA}) + {ps_offset}. PS0 and PS1 in {frD} are loaded with a pair of single precision floating point numbers from the memory addressed by EA. EA is placed into {rA}. {ps_W} and {ps_I} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_lux",
+        "DescriptiveName": "Paired Single Quantized Load with Update Indexed",
+        "Usage": "psq_lux frD, rA, rB, ps_WX, ps_IX",
+        "Description": "EA is the sum ({rA}) + ({rB}). PS0 and PS1 in {frD} are loaded with a pair of single precision floating point numbers from the memory addressed by EA. EA is placed into {rA}. {ps_WX} and {ps_IX} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_lx",
+        "DescriptiveName": "Paired Single Quantized Load Indexed",
+        "Usage": "psq_lx frD, rA, rB, ps_WX, ps_IX",
+        "Description": "EA is the sum ({rA}) + ({rB}). PS0 and PS1 in {frD} are loaded with a pair of single precision floating point numbers from the memory addressed by EA. {ps_WX} and {ps_IX} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_st",
+        "DescriptiveName": "Paired Single Quantized Store",
+        "Usage": "psq_st frS, ps_offset, rA, ps_W, ps_I",
+        "Description": "EA is the sum ({rA}) + {ps_offset}. The pair of floating point numbers from {frS}(ps0) and {frS}(ps1) are quantized and stored to memory starting at EA. {ps_W} and {ps_I} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_stu",
+        "DescriptiveName": "Paired Single Quantized Store with Update",
+        "Usage": "psq_stu frS, ps_offset, rA, ps_W, ps_I",
+        "Description": "EA is the sum ({rA}) + {ps_offset}. The pair of floating point numbers from {frS}(ps0) and {frS}(ps1) are quantized and stored to memory starting at EA. EA is placed into {rA}. {ps_W} and {ps_I} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_stux",
+        "DescriptiveName": "Paired Single Quantized Store with Update Indexed",
+        "Usage": "psq_stux frS, rA, rB, ps_WX, ps_IX",
+        "Description": "EA is the sum ({rA}) + ({rB}). The pair of floating point numbers from {frS}(ps0) and {frS}(ps1) are quantized and stored to memory starting at EA. EA is placed into {rA}. {ps_WX} and {ps_IX} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "psq_stx",
+        "DescriptiveName": "Paired Single Quantized Store Indexed",
+        "Usage": "psq_stx frS, rA, rB, ps_WX, ps_IX",
+        "Description": "EA is the sum ({rA}) + ({rB}). The pair of floating point numbers from {frS}(ps0) and {frS}(ps1) are quantized and stored to memory starting at EA. {ps_WX} and {ps_IX} are used to specify quantization information.",
+        "Modifiers": []
+    },
+    {
+        "Name": "rfi",
+        "DescriptiveName": "Return from Interrupt",
+        "Usage": "rfi",
+        "Description": "Returns from interrupt.",
+        "Modifiers": []
+    },
+    {
+        "Name": "rlwimi",
+        "DescriptiveName": "Rotate Left Word Immediate then Mask Insert",
+        "Usage": "rlwimi rA, rS, SH, MB, ME",
+        "Description": "The contents of {rS} are rotated left the number of bits specified by operand {SH}. A mask is generated having 1 bits from bit {MB} through bit {ME} and 0 bits elsewhere. The rotated data is inserted into {rA} under control of the generated mask.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "rlwinm",
+        "DescriptiveName": "Rotate Left Word Immediate then AND with Mask",
+        "Usage": "rlwinm rA, rS, SH, MB, ME",
+        "Description": "The contents of {rS} are rotated left the number of bits specified by operand {SH}. A mask is generated having 1 bits from bit {MB} through bit {ME} and 0 bits elsewhere. The rotated data is ANDed with the generated mask and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "rlwnm",
+        "DescriptiveName": "Rotate Left Word then AND with Mask",
+        "Usage": "rlwnm rA, rS, rB, MB, ME",
+        "Description": "The contents of {rS} are rotated left the number of bits specified by the low-order five bits of {rB}. A mask is generated having 1 bits from bit {MB} through bit {ME} and 0 bits elsewhere. The rotated data is ANDed with the generated mask and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "rotlw",
+        "ParentOpcode": "rlwnm",
+        "DescriptiveName": "Rotate Left Word",
+        "Usage": "rotlw rA, rS, rB",
+        "Description": "equivalent to rlwnm {rA}, {rS}, {rB}, 0, 31",
+        "Modifiers": []
+    },
+    {
+        "Name": "rotlwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Rotate Left Word Immediate",
+        "Usage": "rotlwi rA, rS, SH",
+        "Description": "equivalent to rlwinm {rA}, {rS}, {SH}, 0, 31",
+        "Modifiers": []
+    },
+    {
+        "Name": "rotrwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Rotate Right Word Immediate",
+        "Usage": "rotrwi rA, rS, SH",
+        "Description": "equivalent to rlwinm {rA}, {rS}, 32-{SH}, 0, 31",
+        "Modifiers": []
+    },
+    {
+        "Name": "sc",
+        "DescriptiveName": "System Call",
+        "Usage": "sc",
+        "Description": "The sc instruction calls the operating system to perform a service. When control is returned to the program that executed the system call, the content of the registers depends on the register conventions used by the program providing the system service",
+        "Modifiers": []
+    },
+    {
+        "Name": "slw",
+        "DescriptiveName": "Shift Left Word",
+        "Usage": "slw rA, rS, rB",
+        "Description": "The contents of {rS} are shifted left the number of bits specified by the low-order five bits of {rB}. Bits shifted out of position 0 are lost. Zeros are supplied to the vacated positions on the right. The 32-bit result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "slwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Shift Left Word Immediate",
+        "Usage": "slwi rA, rS, SH",
+        "Description": "equivalent to rlwinm {rA}, {rS}, {SH}, 0, 31-{SH}",
+        "Modifiers": []
+    },
+    {
+        "Name": "sraw",
+        "DescriptiveName": "Shift Right Algebraic Word",
+        "Usage": "sraw rA, rS, rB",
+        "Description": "The contents of {rS} are shifted right the number of bits specified by the low-order five bits of {rB} (shift amounts between 0-31). Bits shifted out of position 31 are lost. Bit 0 of {rS} is replicated to fill the vacated positions on the left. The 32-bit result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "srawi",
+        "DescriptiveName": "Shift Right Algebraic Word Immediate",
+        "Usage": "srawi rA, rS, SH",
+        "Description": "The contents of {rS} are shifted right {SH} bits. Bits shifted out of position 31 are lost. Bit 0 of {rS} is replicated to fill the vacated positions on the left. The result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "srw",
+        "DescriptiveName": "Shift Right Word",
+        "Usage": "srw rA, rS, rB",
+        "Description": "The contents of {rS} are shifted right the number of bits specified by the low-order five bits of {rB} (shift amounts between 0-31). Bits shifted out of position 31 are lost. Zeros are supplied to the vacated positions on the left. The 32-bit result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "srwi",
+        "ParentOpcode": "rlwinm",
+        "DescriptiveName": "Shift Right Word Immediate",
+        "Usage": "srwi rA, rS, MB",
+        "Description": "equivalent to rlwinm {rA}, {rS}, 32-{MB}, {MB}, 31",
+        "Modifiers": []
+    },
+    {
+        "Name": "stb",
+        "DescriptiveName": "Store Byte",
+        "Usage": "stb rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of the low-order eight bits of {rS} are stored into the byte in memory addressed by EA",
+        "Modifiers": []
+    },
+    {
+        "Name": "stbu",
+        "DescriptiveName": "Store Byte with Update",
+        "Usage": "stbu rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of the low-order eight bits of {rS} are stored into the byte in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stbux",
+        "DescriptiveName": "Store Byte with Update Indexed",
+        "Usage": "stbux rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order eight bits of {rS} are stored into the byte in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stbx",
+        "DescriptiveName": "Store Byte Indexed",
+        "Usage": "stbx rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order eight bits of {rS} are stored into the byte in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfd",
+        "DescriptiveName": "Store Floating-Point Double",
+        "Usage": "stfd frS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of register {frS} are stored into the double word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfdu",
+        "DescriptiveName": "Store Floating-Point Double with Update",
+        "Usage": "stfdu frS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of register {frS} are stored into the double word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfdux",
+        "DescriptiveName": "Store Floating-Point Double with Update Indexed",
+        "Usage": "stfdux frS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of register {frS} are stored into the double word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfdx",
+        "DescriptiveName": "Store Floating-Point Double Indexed",
+        "Usage": "stfdx frS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of register {frS} are stored into the double word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfiwx",
+        "DescriptiveName": "Store Floating-Point as Integer Word Indexed",
+        "Usage": "stfiwx frS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order 32 bits of register {frS} are stored, without conversion, the word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfs",
+        "DescriptiveName": "Store Floating-Point Single",
+        "Usage": "stfs frS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of register {frS} are converted to single-precision and stored into the word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfsu",
+        "DescriptiveName": "Store Floating-Point Single with Update",
+        "Usage": "stfsu frS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of register {frS} are converted to single-precision and stored into the word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfsux",
+        "DescriptiveName": "Store Floating-Point Single with Update Indexed",
+        "Usage": "stfsux frS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of register {frS} are converted to single-precision and stored into the word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stfsx",
+        "DescriptiveName": "Store Floating-Point Single Indexed",
+        "Usage": "stfsx frS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of register {frS} are converted to single-precision and stored into the word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "sth",
+        "DescriptiveName": "Store Half Word",
+        "Usage": "sth rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of the low-order 16 bits of {rS} are stored into the half word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "sthbrx",
+        "DescriptiveName": "Store Half Word Byte-Reverse Indexed",
+        "Usage": "sthbrx rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order eight bits (24-31) of {rS} are stored into bits 0-7 of the half word in memory addressed by EA. The contents of the subsequent low-order eight bits (16-23) of {rS} are stored into bits 8-15 of the half word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "sthu",
+        "DescriptiveName": "Store Half Word with Update",
+        "Usage": "sthu rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of the low-order 16 bits of {rS} are stored into the half word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "sthux",
+        "DescriptiveName": "Store Half Word with Update Indexed",
+        "Usage": "sthux rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order 16 bits of {rS} are stored into the half word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "sthx",
+        "DescriptiveName": "Store Half Word Indexed",
+        "Usage": "sthx rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order 16 bits of {rS} are stored into the half word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stmw",
+        "DescriptiveName": "Store Multiple Word",
+        "Usage": "stmw rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. n = (32 - rS). n consecutive words starting at  EA are stored from the GPRs {rS} through r31. For example, if {rS} = 30, 2 words are stored.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stswi",
+        "DescriptiveName": "Store String Word Immediate",
+        "Usage": "stswi rS, rA, NB",
+        "Description": "EA is ({rA}). Let n = {NB} if {NB} != 0, n = 32 if {NB} == 0; n is the number of bytes to store. Let nr = CEIL(n / 4); nr is the number of registers to supply data. n consecutive bytes starting at EA are stored from GPRs {rS} through {rS} + nr - 1 Bytes are stored left to right from each register. The sequence of registers wraps around through r0 if required.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stswx",
+        "DescriptiveName": "Store String Word Indexed",
+        "Usage": "stswx rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). Let n = XER[25-31]; n is the number of bytes to store. Let nr = CEIL(n / 4); nr is the number of registers to supply data. n consecutive bytes starting at EA are stored from GPRs {rS} through {rS} + nr - 1. Bytes are stored left to right from each register. The sequence of registers wraps around through r0 if required. If n = 0, no bytes are stored.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stw",
+        "DescriptiveName": "Store Word",
+        "Usage": "stw rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of {rS} are stored into the word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stwbrx",
+        "DescriptiveName": "Store Word Byte-Reverse Indexed",
+        "Usage": "stwbrx rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of the low-order eight bits (24-31) of {rS} are stored into bits 0-7 of the word in memory addressed by EA. The contents of the subsequent eight low-order bits (16-23) of {rS} are stored into bits 8-15 of the word in memory addressed by EA. The contents of the subsequent eight low-order bits (8-15) of {rS} are stored into bits 16-23 of the word in memory addressed by EA. The contents of the subsequent eight low-order bits (0-7) of {rS} are stored into bits 24-31 of the word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stwcx.",
+        "DescriptiveName": "Store Word Conditional Indexed",
+        "Usage": "stwcx. rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). If the reserved bit is set, the stwcx. instruction stores {rS} to effective address (rA + rB), clears the reserved bit, and sets CR0[EQ]. If the reserved bit is not set, the stwcx. instruction does not do a store; it leaves the reserved bit cleared and clears CR0[EQ]. Software must look at CR0[EQ] to see if the stwcx. was successful.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stwu",
+        "DescriptiveName": "Store Word with Update",
+        "Usage": "stwu rS, offset, rA",
+        "Description": "EA is the sum ({rA}) + {offset}. The contents of {rS} are stored into the word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stwux",
+        "DescriptiveName": "Store Word with Update Indexed",
+        "Usage": "stwux rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of {rS} are stored into the word in memory addressed by EA. EA is placed into {rA}.",
+        "Modifiers": []
+    },
+    {
+        "Name": "stwx",
+        "DescriptiveName": "Store Word Indexed",
+        "Usage": "stwx rS, rA, rB",
+        "Description": "EA is the sum ({rA}) + ({rB}). The contents of {rS} are stored into the word in memory addressed by EA.",
+        "Modifiers": []
+    },
+    {
+        "Name": "subf",
+        "DescriptiveName": "Subtract From",
+        "Usage": "subf rD, rA, rB",
+        "Description": "The sum ~({rA}) + ({rB}) + 1 is placed into {rD}. (equivalent to ({rB})-({rA}))",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "subfc",
+        "DescriptiveName": "Subtract From Carrying",
+        "Usage": "subfc rD, rA, rB",
+        "Description": "The sum ~({rA}) + ({rB}) + 1 is placed into {rD}. (equivalent to ({rB})-({rA}))",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "subfe",
+        "DescriptiveName": "Subtract From Extended",
+        "Usage": "subfe rD, rA, rB",
+        "Description": "The sum ~({rA}) + ({rB}) + XER[CA] is placed into {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "subfic",
+        "DescriptiveName": "Subtract From Immediate Carrying",
+        "Usage": "subfic rD, rA, simm",
+        "Description": "The sum ~({rA}) + {simm} + 1 is placed into {rD} (Equivalent to {simm}-({rA})).",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "subfme",
+        "DescriptiveName": "Subtract from Minus One Extended",
+        "Usage": "subfme rD, rA",
+        "Description": "The sum ~({rA}) + XER[CA] + (32)1 is placed into {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "subfze",
+        "DescriptiveName": "Subtract from Zero Extended",
+        "Usage": "subfze rD, rA",
+        "Description": "The sum ~({rA}) + XER[CA] is placed into {rD}.",
+        "Modifiers": [
+            "o",
+            "."
+        ]
+    },
+    {
+        "Name": "subi",
+        "ParentOpcode": "addi",
+        "DescriptiveName": "Subtract Immediate",
+        "Usage": "subi rD, rA, simm",
+        "Description": "The difference ({rA}) - sign extended {simm}) is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "subic",
+        "ParentOpcode": "addic",
+        "DescriptiveName": "Subtract Immediate Carrying",
+        "Usage": "subic rD, rA, simm",
+        "Description": "The difference ({rA}) - sign extended {simm})) is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "subic.",
+        "ParentOpcode": "addic.",
+        "DescriptiveName": "Subtract Immediate Carrying and Record",
+        "Usage": "subic. rD, rA, simm",
+        "Description": "The difference ({rA}) - sign extended {simm}) is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "subis",
+        "ParentOpcode": "addis",
+        "DescriptiveName": "Subtract Immediate Shifted",
+        "Usage": "subis rD, rA, simm",
+        "Description": "The difference ({rA}) - sign extended ({simm} << 16) is placed into {rD}",
+        "Modifiers": []
+    },
+    {
+        "Name": "sync",
+        "DescriptiveName": "Synchronize",
+        "Usage": "sync",
+        "Description": "The sync instruction provides an ordering function for the effects of all instructions executed by a given processor. Executing a sync instruction ensures that all instructions preceding the sync instruction appear to have completed before the sync instruction completes, and that no subsequent instructions are initiated by the processor until after the sync instruction completes.",
+        "Modifiers": []
+    },
+    {
+        "Name": "tlbie",
+        "DescriptiveName": "Translation Lookaside Buffer Invalidate Entry",
+        "Usage": "tlbie rB",
+        "Description": "EA is the contents of {rB}. If the translation lookaside buffer (TLB) contains an entry corresponding to EA, that entry is made invalid (that is, removed from the TLB).",
+        "Modifiers": []
+    },
+    {
+        "Name": "tlbsync",
+        "DescriptiveName": "TLB Synchronize",
+        "Usage": "tlbsync",
+        "Description": "Executing a tlbsync instruction ensures that all tlbie instructions previously executed by the processor executing the tlbsync instruction have completed on all other processors.",
+        "Modifiers": []
+    },
+    {
+        "Name": "trap",
+        "ParentOpcode": "tw",
+        "DescriptiveName": "Trap Unconditionally",
+        "Usage": "trap",
+        "Description": "The contents of {rA} are compared arithmetically with the contents {rB} for TO[0, 1, 2]. The contents of {rA} are compared logically with the contents {rB} for TO[3, 4]. If any bit in the TO field is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "tw",
+        "DescriptiveName": "Trap Word",
+        "Usage": "tw TO, rA, rB",
+        "Description": "The contents of {rA} are compared arithmetically with the contents {rB} for TO[0, 1, 2]. The contents of {rA} are compared logically with the contents {rB} for TO[3, 4]. If any bit in {TO} is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "tweq",
+        "ParentOpcode": "tw",
+        "DescriptiveName": "Trap Word if Equal",
+        "Usage": "tweq rA, rB",
+        "Description": "The contents of {rA} are compared arithmetically with the contents {rB} for TO[0, 1, 2]. The contents of {rA} are compared logically with the contents {rB} for TO[3, 4]. If any bit in the TO field is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "twgti",
+        "ParentOpcode": "twi",
+        "DescriptiveName": "Trap if Greater than Immediate",
+        "Usage": "twgti rA, simm",
+        "Description": "The contents of {rA} are compared arithmetically with the sign-extended value of the SIMM field for TO[0, 1, 2]. The contents of {rA} are compared logically with the sign-extended {simm} for TO[3, 4]. If any bit in the TO field is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "twi",
+        "DescriptiveName": "Trap Word Immediate",
+        "Usage": "twi TO, rA, simm",
+        "Description": "The contents of {rA} are compared arithmetically with the sign-extended value of the SIMM field for TO[0, 1, 2]. The contents of {rA} are compared logically with the sign-extended {simm} for TO[3, 4]. If any bit in {TO} is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "twlge",
+        "ParentOpcode": "tw",
+        "DescriptiveName": "Trap if Logically Greater than or Equal",
+        "Usage": "twlge rA, rB",
+        "Description": "The contents of {rA} are compared arithmetically with the contents {rB} for TO[0, 1, 2]. The contents of {rA} are compared logically with the contents {rB} for TO[3, 4]. If any bit in the TO field is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "twllei",
+        "ParentOpcode": "twi",
+        "DescriptiveName": "Trap if Logically Less than or Equal Immediate",
+        "Usage": "twllei rA, simm",
+        "Description": "The contents of {rA} are compared arithmetically with the sign-extended value of the SIMM field for TO[0, 1, 2]. The contents of {rA} are compared logically with the sign-extended {simm} for TO[3, 4]. If any bit in the TO field is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "twui",
+        "ParentOpcode": "twi",
+        "DescriptiveName": "Trap Word Unconditionally with Parameters",
+        "Usage": "twui rA, simm",
+        "Description": "The contents of {rA} are compared arithmetically with the sign-extended value of the SIMM field for TO[0, 1, 2]. The contents of {rA} are compared logically with the sign-extended {simm} for TO[3, 4]. If any bit in the TO field is set and its corresponding condition is met by the result of the comparison, then the system trap handler is invoked.",
+        "Modifiers": []
+    },
+    {
+        "Name": "xor",
+        "DescriptiveName": "XOR",
+        "Usage": "xor rA, rS, rB",
+        "Description": "The contents of {rS} are XORed with the contents of {rB} and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "xori",
+        "DescriptiveName": "XOR Immediate",
+        "Usage": "xori rA, rS, uimm",
+        "Description": "The contents of {rS} are XORed with ({uimm} & 0xFFFF) and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    },
+    {
+        "Name": "xoris",
+        "DescriptiveName": "XOR Immediate Shifted",
+        "Usage": "xoris rA, rS, uimm",
+        "Description": "The contents of {rS} are XORed with ({uimm} << 16) and the result is placed into {rA}.",
+        "Modifiers": [
+            "."
+        ]
+    }
+]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   DiffRowVM,
   Overview,
@@ -67,10 +67,186 @@ function segClass(s: Seg): string {
   }
 }
 
-function Line({ segs }: { segs: Seg[] | null }) {
-  if (!segs) return <span className="select-none text-line-strong">·</span>;
+// ---- Instruction glossary: hover an instruction to see what it does, with the
+// {rA}/{rD}/{simm} placeholders filled in from the hovered line's own operands ----
+
+interface InsnDoc {
+  name: string;
+  descriptiveName: string;
+  usage: string;
+  description: string;
+}
+type RawEntry = { Name: string; DescriptiveName: string; Usage: string; Description: string };
+
+let glossaryMap: Map<string, InsnDoc> | null = null;
+let glossaryPromise: Promise<Map<string, InsnDoc>> | null = null;
+
+function loadGlossary(): Promise<Map<string, InsnDoc>> {
+  if (!glossaryPromise) {
+    glossaryPromise = import("@/lib/asm/ppc-instructions.json").then((m) => {
+      const map = new Map<string, InsnDoc>();
+      for (const e of m.default as RawEntry[]) {
+        map.set(e.Name, {
+          name: e.Name,
+          descriptiveName: e.DescriptiveName,
+          usage: e.Usage,
+          description: e.Description,
+        });
+      }
+      glossaryMap = map;
+      return map;
+    });
+  }
+  return glossaryPromise;
+}
+
+/** Warm the instruction glossary ahead of the first hover. */
+export function preloadGlossary(): void {
+  void loadGlossary();
+}
+
+// Resolve a printed mnemonic to a glossary entry, tolerating the suffixes objdiff
+// prints: branch-prediction (+/-), record (.), overflow (o), and simplified branch
+// forms (bl/bla/ba -> b).
+function lookupInsn(map: Map<string, InsnDoc>, mnemonic: string): InsnDoc | null {
+  const direct = map.get(mnemonic);
+  if (direct) return direct;
+  let s = mnemonic.replace(/[+-]$/, "");
+  if (s.endsWith(".")) s = s.slice(0, -1);
+  if (s.endsWith("o")) s = s.slice(0, -1);
+  const stripped = map.get(s);
+  if (stripped) return stripped;
+  if (mnemonic.startsWith("b")) {
+    const b = mnemonic.replace(/(la|l|a)$/, "");
+    const branch = map.get(b);
+    if (branch) return branch;
+  }
+  return null;
+}
+
+// Operand names from the Usage template, e.g. "add rD, rA, rB" -> ["rD","rA","rB"].
+function usagePlaceholders(usage: string): string[] {
+  const sp = usage.indexOf(" ");
+  if (sp < 0) return [];
+  return usage.slice(sp + 1).split(",").map((p) => p.trim()).filter(Boolean);
+}
+
+// The hovered instruction's actual operands, e.g. segs for "add r3, r3, r4" -> ["r3","r3","r4"].
+function instructionOperands(segs: Seg[]): string[] {
+  const mi = segs.findIndex((s) => s.tok === "mnemonic");
+  if (mi < 0) return [];
+  const after = segs
+    .slice(mi + 1)
+    .map((s) => s.text)
+    .join("")
+    .replace(/~>/g, "")
+    .trim();
+  return after ? after.split(",").map((p) => p.trim()).filter(Boolean) : [];
+}
+
+// Substitute {placeholder} tokens in the description with this instruction's
+// operands (positionally, per the Usage template). Also splits displacement forms
+// like "d(rA)" <-> "8(r4)". Unmatched placeholders fall back to their bare name.
+function fillDescription(doc: InsnDoc, operands: string[]): string {
+  const ph = usagePlaceholders(doc.usage);
+  const subs: Record<string, string> = {};
+  // Compares (and similar) print a simplified form that omits the leading CR-field
+  // operand, which then defaults to cr0 — so shift the mapping by one.
+  let offset = 0;
+  if (ph.length === operands.length + 1 && /^crf?[DS]/.test(ph[0])) {
+    subs[ph[0]] = "cr0";
+    offset = 1;
+  }
+  for (let i = 0; i < operands.length && i + offset < ph.length; i++) {
+    const p = ph[i + offset];
+    const o = operands[i];
+    const pm = p.match(/^(\w+)\((\w+)\)$/);
+    const om = o.match(/^(-?[\w@.+-]+)\((\w+)\)$/);
+    if (pm && om) {
+      subs[pm[1]] = om[1];
+      subs[pm[2]] = om[2];
+    } else {
+      subs[p] = o;
+    }
+  }
+  // Placeholders may carry a subfield, e.g. {crfS[LT]}: substitute the base name
+  // and keep the suffix ("crfS" -> "cr0" gives "cr0[LT]").
+  return doc.description.replace(/\{([^}]+)\}/g, (_, name) => {
+    const br = name.indexOf("[");
+    if (br >= 0) return (subs[name.slice(0, br)] ?? name.slice(0, br)) + name.slice(br);
+    return subs[name] ?? name;
+  });
+}
+
+interface InsnTipState {
+  x: number;
+  y: number;
+  doc: InsnDoc;
+  description: string;
+}
+const InsnTipContext = createContext<{
+  show: (mnemonic: string, operands: string[], x: number, y: number) => void;
+  hide: () => void;
+} | null>(null);
+
+/** Wraps instruction lines so hovering one shows its meaning. */
+function InsnTipLayer({ children }: { children: ReactNode }) {
+  const [map, setMap] = useState<Map<string, InsnDoc> | null>(glossaryMap);
+  useEffect(() => {
+    if (!map) loadGlossary().then(setMap).catch(() => {});
+  }, [map]);
+  const [tip, setTip] = useState<InsnTipState | null>(null);
+  const show = useCallback(
+    (mnemonic: string, operands: string[], x: number, y: number) => {
+      const doc = map ? lookupInsn(map, mnemonic) : null;
+      setTip(doc ? { x, y, doc, description: fillDescription(doc, operands) } : null);
+    },
+    [map],
+  );
+  const hide = useCallback(() => setTip(null), []);
+  const ctx = useMemo(() => ({ show, hide }), [show, hide]);
   return (
-    <span className="whitespace-pre">
+    <InsnTipContext.Provider value={ctx}>
+      {children}
+      {tip && <InsnDocTooltip tip={tip} />}
+    </InsnTipContext.Provider>
+  );
+}
+
+function InsnDocTooltip({ tip }: { tip: InsnTipState }) {
+  return (
+    <div
+      className="pointer-events-none fixed z-50 max-w-sm rounded-md border border-line bg-bg-inset/95 px-3 py-2 shadow-lg backdrop-blur-sm"
+      style={{ left: tip.x + 14, top: tip.y + 16 }}
+    >
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-sm font-semibold text-syntax-mnemonic">{tip.doc.name}</span>
+        <span className="text-xs text-content-secondary">{tip.doc.descriptiveName}</span>
+      </div>
+      {tip.doc.usage && (
+        <div className="mt-0.5 font-mono text-2xs text-content-faint">{tip.doc.usage}</div>
+      )}
+      <div className="mt-1 text-xs leading-relaxed text-content-muted">{tip.description}</div>
+    </div>
+  );
+}
+
+function Line({ segs }: { segs: Seg[] | null }) {
+  const tip = useContext(InsnTipContext);
+  if (!segs) return <span className="select-none text-line-strong">·</span>;
+  const mnemonic = segs.find((s) => s.tok === "mnemonic")?.text.trim();
+  const hover =
+    mnemonic && tip
+      ? {
+          onMouseEnter: (e: { clientX: number; clientY: number }) =>
+            tip.show(mnemonic, instructionOperands(segs), e.clientX, e.clientY),
+          onMouseMove: (e: { clientX: number; clientY: number }) =>
+            tip.show(mnemonic, instructionOperands(segs), e.clientX, e.clientY),
+          onMouseLeave: tip.hide,
+        }
+      : undefined;
+  return (
+    <span className={mnemonic ? "cursor-help whitespace-pre" : "whitespace-pre"} {...hover}>
       {segs.map((s, i) => (
         <span key={i} className={segClass(s)}>
           {s.text}
@@ -91,7 +267,7 @@ const ROW_META: Record<RowKind, { bg: string; mark: string; markColor: string; l
 
 export function ObjDiff({ rows }: { rows: DiffRowVM[] }) {
   return (
-    <>
+    <InsnTipLayer>
       {/* Side-by-side once there's room; unified single-column on phones. */}
       <div className="hidden sm:block">
         <SideBySideDiff rows={rows} />
@@ -99,7 +275,7 @@ export function ObjDiff({ rows }: { rows: DiffRowVM[] }) {
       <div className="sm:hidden">
         <UnifiedDiff rows={rows} />
       </div>
-    </>
+    </InsnTipLayer>
   );
 }
 
@@ -351,15 +527,17 @@ export function ObjOverview({
 /** Plain single-column listing of one side's instructions (Target / Your asm tabs). */
 export function AsmList({ rows }: { rows: Seg[][] }) {
   return (
-    <div className="overflow-auto px-3 py-2 font-mono text-asm">
-      {rows.map((segs, i) => (
-        <div key={i} className="flex">
-          <span className="w-8 select-none text-right text-content-ghost">{i}</span>
-          <span className="whitespace-pre pl-4">
-            <Line segs={segs} />
-          </span>
-        </div>
-      ))}
-    </div>
+    <InsnTipLayer>
+      <div className="overflow-auto px-3 py-2 font-mono text-asm">
+        {rows.map((segs, i) => (
+          <div key={i} className="flex">
+            <span className="w-8 select-none text-right text-content-ghost">{i}</span>
+            <span className="whitespace-pre pl-4">
+              <Line segs={segs} />
+            </span>
+          </div>
+        ))}
+      </div>
+    </InsnTipLayer>
   );
 }

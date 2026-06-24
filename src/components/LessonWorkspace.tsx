@@ -20,7 +20,7 @@ import {
   IconFileCode,
   IconStack2,
 } from "@tabler/icons-react";
-import { ObjDiff, AsmList, ObjOverview } from "./AsmDiff";
+import { ObjDiff, AsmList, ObjOverview, preloadGlossary } from "./AsmDiff";
 import {
   analyze,
   preloadObjdiff,
@@ -241,6 +241,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     setMobilePane("brief");
     if (lesson.concept) return;
     preloadObjdiff();
+    preloadGlossary();
 
     fetch(`/api/target?lesson=${lesson.id}`)
       .then((r) => r.json())
