@@ -14,12 +14,14 @@ export const floats: LessonSource[] = [
 Integers ride in \`r3\`, \`r4\`, … — but floating-point values get their own bank,
 \`f1\` through \`f13\`. The first \`float\` argument arrives in **\`f1\`**, the second in
 **\`f2\`**, and the result comes back in **\`f1\`** (the way \`r3\` works for ints).
+Further float arguments continue in \`f3\`, \`f4\`, … just as integer arguments march
+up \`r5\`, \`r6\` — so a three-\`float\` function takes its third argument in \`f3\`.
 
 A \`float\` is **single-precision** (32-bit), and PowerPC has single-precision
 arithmetic that ends in **\`s\`**. Addition is \`fadds\`:
 
 \`\`\`asm
-fadds f1, f1, f2   ; f1 = a + b, single precision
+fadds f1, f1, f2   # f1 = a + b, single precision
 blr
 \`\`\`
 
@@ -56,7 +58,7 @@ Write \`add_f\`, returning the sum of two \`f32\`s.
 Multiplication of two \`f32\`s is the single-precision **\`fmuls\`**:
 
 \`\`\`asm
-fmuls f1, f1, f2   ; f1 = a * b
+fmuls f1, f1, f2   # f1 = a * b
 blr
 \`\`\`
 
@@ -98,7 +100,7 @@ floating-point unit has a real **\`fsubs\`** that computes \`fD = fA - fB\` in t
 natural order:
 
 \`\`\`asm
-fsubs f1, f1, f2   ; f1 = a - b
+fsubs f1, f1, f2   # f1 = a - b
 blr
 \`\`\`
 
@@ -139,7 +141,7 @@ division has no such trick — \`fdivs\` is a genuine hardware divide and the
 compiler emits it directly:
 
 \`\`\`asm
-fdivs f1, f1, f2   ; f1 = a / b
+fdivs f1, f1, f2   # f1 = a / b
 blr
 \`\`\`
 
@@ -166,6 +168,49 @@ Write \`div_f\`, returning \`a / b\` for two \`f32\`s.
     ],
   },
   {
+    id: "floats-div-const-reciprocal",
+    chapter: "floats",
+    order: 4.5,
+    title: "Dividing by a Constant Becomes a Multiply",
+    difficulty: 2,
+    concepts: ["floating-point", "divide", "reciprocal", "strength-reduction"],
+    brief: `
+# A float divide that isn't a divide
+
+\`fdivs\` only shows up when the divisor is a *runtime* value. Divide by a
+**constant** and MWCC strength-reduces it the float way: it folds in the
+reciprocal and emits a single \`fmuls\`. So \`x / 4.0f\` compiles as \`x * 0.25f\`:
+
+\`\`\`asm
+lfs   f0, ...      # load the reciprocal constant 0.25f from the pool
+fmuls f1, f1, f0   # x * 0.25f  — no fdivs in sight
+blr
+\`\`\`
+
+The \`0.25f\` lives in a read-only float pool (loaded with \`lfs\`), and the divide
+is gone entirely. When you see a lone \`lfs\` + \`fmuls\` where the source
+"obviously" divides, this reciprocal fold is why — and writing \`x / 4.0f\` in C
+reproduces it exactly; you don't hand-write the \`0.25f\`.
+
+## Your task
+
+Write \`quarter\`, taking an \`f32 x\` and returning \`x / 4.0f\`.
+`,
+    symbol: "quarter",
+    starter: `f32 quarter(f32 x) {
+    return 0.0f;
+}
+`,
+    solution: `f32 quarter(f32 x) {
+    return x / 4.0f;
+}
+`,
+    hints: [
+      "Dividing by a compile-time constant doesn't use `fdivs` — it folds to a reciprocal multiply.",
+      "Expect an `lfs` of the reciprocal then a single `fmuls`, no division.",
+    ],
+  },
+  {
     id: "floats-double-add",
     chapter: "floats",
     order: 5,
@@ -180,7 +225,7 @@ hardware has a parallel set of instructions *without* the trailing \`s\`. The sa
 \`a + b\`, typed as \`f64\`, compiles to \`fadd\` instead of \`fadds\`:
 
 \`\`\`asm
-fadd f1, f1, f2    ; f1 = a + b, double precision
+fadd f1, f1, f2    # f1 = a + b, double precision
 blr
 \`\`\`
 
@@ -217,12 +262,12 @@ Write \`add_d\`, returning \`a + b\` for two \`f64\`s.
     brief: `
 # Why the parameter type matters
 
-Here is one of the most common decompilation mistakes. Suppose the target is a
+Here is a common decompilation pitfall worth recognizing. Suppose the target is a
 small single-precision helper:
 
 \`\`\`asm
-lfs   f0, ...      ; load 0.5f
-fmuls f1, f0, f1   ; x * 0.5f
+lfs   f0, ...      # load 0.5f
+fmuls f1, f0, f1   # x * 0.5f
 blr
 \`\`\`
 
@@ -230,9 +275,9 @@ Three instructions. Now watch what happens if you write the helper taking a
 \`double\` and returning a \`float\` — \`f32 fn(double x){ return x * 0.5; }\`:
 
 \`\`\`asm
-lfd   f0, ...      ; load 0.5 as a *double*
-fmul  f1, f0, f1   ; double multiply
-frsp  f1, f1       ; ROUND result back down to single  ← spurious!
+lfd   f0, ...      # load 0.5 as a *double*
+fmul  f1, f0, f1   # double multiply
+frsp  f1, f1       # ROUND result back down to single  ← spurious!
 blr
 \`\`\`
 
@@ -241,8 +286,8 @@ single precision) to produce the \`f32\` return value. That extra \`frsp\` — a
 \`fmul\`/\`lfd\` instead of \`fmuls\`/\`lfs\` — will never match a target built from a
 clean single-precision helper.
 
-**The rule:** write \`f32 fn(f32)\`, not \`f32 fn(double)\` (or \`double fn(double)\`),
-for single-precision helpers. Keeping everything in \`f32\` keeps the math single
+**A good default:** for single-precision helpers, write \`f32 fn(f32)\` rather than
+\`f32 fn(double)\` (or \`double fn(double)\`). Keeping everything in \`f32\` keeps the math single
 precision and the \`frsp\` disappears.
 
 ## Your task
@@ -280,14 +325,16 @@ encoded inline. Instead MWCC parks the value in the **small data area (SDA)** an
 loads it with **\`lfs\`** (load floating single), addressed relative to \`r2\`/\`r13\`:
 
 \`\`\`asm
-lfs   f0, ...      ; load the constant 0.25f from the SDA
-fmuls f1, f0, f1   ; x * 0.25f
+lfs   f0, ...      # load the constant 0.25f from the SDA
+fmuls f1, f0, f1   # x * 0.25f
 blr
 \`\`\`
 
-The \`...\` is a relocation the linker fills in; in the disassembler you'll see an
-SDA-relative offset. When you spot \`lfs\` feeding straight into an \`fmuls\`/\`fadds\`,
-the original C almost certainly had a literal like \`0.25f\` in the expression.
+The \`...\` is a relocation the linker fills in; in the disassembler you'll see a
+concrete SDA-relative offset off \`r2\`, e.g. \`lfs f0, 0x25f0(r2)\` (or a symbolic
+\`lfs f0, lit@sda21(r2)\`). When you spot \`lfs\` feeding straight into an
+\`fmuls\`/\`fadds\`, the original C almost certainly had a literal like \`0.25f\` in
+the expression.
 
 ## Your task
 
@@ -322,7 +369,7 @@ rounding step. With \`fp_contract\` **on** (it is, in this environment), MWCC wi
 contract a \`multiply followed by add\` into one **\`fmadds\`**:
 
 \`\`\`asm
-fmadds f1, f1, f2, f3   ; f1 = a * b + c, single precision, one rounding
+fmadds f1, f1, f2, f3   # f1 = a * b + c, single precision, one rounding
 blr
 \`\`\`
 
@@ -330,8 +377,8 @@ Read the operand order carefully: \`fmadds fD, fA, fC, fB\` computes
 \`fD = (fA * fC) + fB\`. So in \`fmadds f1, f1, f2, f3\`, the multiply is \`f1 * f2\`
 and \`f3\` is the addend.
 
-This is **the** floating-point idiom to recognize. If you write the three steps
-as separate \`fmuls\` + \`fadds\`, you will *not* match a contracted target — and
+This is a key floating-point idiom to recognize. If you write the three steps
+as separate \`fmuls\` + \`fadds\`, you won't match a contracted target — and
 vice versa. The double-precision cousin is \`fmadd\` (no \`s\`); related forms are
 \`fmsubs\` (\`a*b - c\`), \`fnmadds\`, and \`fnmsubs\`.
 
@@ -370,19 +417,24 @@ bit pattern is \`0x43300000:(x ^ 0x80000000)\` and then subtracts the matching b
 constant \`0x4330000000000000\`, leaving the integer value as a float:
 
 \`\`\`asm
-xoris r3, r3, 0x8000   ; flip the sign bit (handle signedness)
-lis   r0, 0x4330       ; high half of the magic double
-lfd   f1, ...          ; load the bias constant 0x4330000000000000
-stw   r3, 12(r1)       ; assemble  0x43300000:(x ^ 0x80000000) on the stack
+xoris r3, r3, 0x8000   # flip the sign bit (handle signedness)
+lis   r0, 0x4330       # high half of the magic double
+lfd   f1, ...          # load the bias constant 0x4330000000000000
+stw   r3, 12(r1)       # assemble  0x43300000:(x ^ 0x80000000) on the stack
 stw   r0, 8(r1)
-lfd   f0, 8(r1)        ; reload it as a double
-fsubs f1, f0, f1       ; subtract the bias → the converted value
+lfd   f0, 8(r1)        # reload it as a double
+fsubs f1, f0, f1       # subtract the bias → the converted value
 blr
 \`\`\`
 
-You don't write any of this — \`(f32)x\` produces the whole dance. The point is to
-**recognize** the \`xoris … 0x4330 … lfd … stw/stw … lfd … fsubs\` pattern as a cast
-from \`int\` to floating point.
+PowerPC is **big-endian**, so the high word sits at the *lower* address: \`8(r1)\`
+holds \`0x43300000\` and \`12(r1)\` holds \`x ^ 0x80000000\`. The two \`stw\`s together
+lay down the 8-byte double \`0x43300000:(x ^ 0x80000000)\`, which \`lfd f0, 8(r1)\`
+then reads back.
+
+You don't write any of this — \`(f32)x\` produces the whole dance. When you see the
+\`xoris … 0x4330 … lfd … stw/stw … lfd … fsubs\` pattern in disassembly, that's the
+signature of a cast from \`int\` to floating point.
 
 ## Your task
 
@@ -418,15 +470,17 @@ register, and there is no direct FPR→GPR move. So MWCC stores the FPR to the
 stack and loads the low word back into a GPR:
 
 \`\`\`asm
-fctiwz f0, f1        ; convert x, result in low half of f0
-stfd   f0, 8(r1)     ; spill the FPR to the stack
-lwz    r3, 12(r1)    ; reload the low word into the return register
+fctiwz f0, f1        # convert x, result in low half of f0
+stfd   f0, 8(r1)     # spill the 8-byte FPR to the stack
+lwz    r3, 12(r1)    # +4 from the stfd base = low word = the int result
 blr
 \`\`\`
 
-That \`fctiwz\` → \`stfd\` → \`lwz\` (loading the **+4 / low half**) is the unmistakable
-signature of a \`(int)\` cast from a float. The round-toward-zero \`fctiwz\` matches
-C's truncating conversion semantics.
+That \`fctiwz\` → \`stfd\` → \`lwz\` is the unmistakable signature of a \`(int)\` cast
+from a float. The integer result lands in the **low 32-bit word** of the 64-bit
+FPR; because PowerPC is big-endian, that low word lives at the *higher* address,
+so the \`lwz\` reads \`12(r1)\` — i.e. **+4** past the \`stfd\` base at \`8(r1)\`. The
+round-toward-zero \`fctiwz\` matches C's truncating conversion semantics.
 
 ## Your task
 
@@ -461,18 +515,22 @@ ordered) to set a condition register, then branches on it. Comparing against
 \`0.0f\` first loads the constant with \`lfs\`:
 
 \`\`\`asm
-lfs   f0, ...        ; load 0.0f
-fcmpo cr0, f1, f0    ; compare x against 0.0
-bgelr-               ; if x >= 0, return x as-is
-fmr   f1, f0         ; else result = 0.0
+lfs   f0, ...        # load 0.0f
+fcmpo cr0, f1, f0    # compare x against 0.0
+bgelr-               # if x >= 0, return x as-is
+fmr   f1, f0         # else result = 0.0
 blr
 \`\`\`
 
-The key decompiler rule (from real SFA work): **a float compare that feeds a
+A reliable rule of thumb: **a float compare that feeds a
 branch is just the plain operator** — write \`if (x < 0.0f)\` and you get
 \`fcmpo\` + branch. (A float comparison whose *boolean result is stored or
-returned* compiles to a different, messier form — so reach for the plain branch
-shape first.) "Ordered" (\`fcmpo\`) vs "unordered" matters only for NaN handling;
+returned* compiles to a different, messier form — the compiler still does the
+\`fcmpo\`, but then *materializes* the 0/1 result into a GPR, typically with an
+\`mfcr\` plus \`rlwinm\` to extract and shift the condition bit. If you see the
+compare's result land in a general register rather than steer a branch, the
+original C stored or returned the boolean — so reach for the plain branch shape
+first.) "Ordered" (\`fcmpo\`) vs "unordered" matters only for NaN handling;
 normal C comparisons use \`fcmpo\`.
 
 ## Your task
@@ -514,15 +572,20 @@ Two tiny, single-instruction operations round out the chapter. Floating-point
 straight to \`fabs\`:
 
 \`\`\`asm
-fabs f0, f1        ; |x|  (clear sign bit)
-fneg f1, f0        ; -|x| (flip sign bit)
+fabs f0, f1        # |x|  (clear sign bit)
+fneg f1, f0        # -|x| (flip sign bit)
 blr
 \`\`\`
 
+Unlike \`fadds\`/\`fmuls\`, the sign-bit instructions have **no \`s\` variant**: they
+appear as \`fabs\`/\`fneg\` even on an \`f32\`. This is one of the few exceptions to
+the single/double suffix rule from earlier — flipping a sign bit is bit-identical
+at single and double precision, so there's nothing to round and no need for a
+separate form.
+
 So \`-__fabsf(x)\` is "absolute value, then negate", and you see the two sign-bit
 ops back to back. Neither rounds or touches the magnitude bits — they're as cheap
-as a register move. Note these don't carry the \`s\` suffix even for \`f32\`, because
-flipping a sign bit is identical at single and double precision.
+as a register move.
 
 ## Your task
 

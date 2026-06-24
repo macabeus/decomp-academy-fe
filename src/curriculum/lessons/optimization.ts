@@ -15,7 +15,9 @@ Every lesson on this site is compiled at **\`-O4,p\`** — the most aggressive
 setting MWCC GC/2.0 has. The \`4\` is the optimization *level* (full
 inlining, common-subexpression elimination, strength reduction, loop work). The
 \`,p\` means **optimize for the pipeline** — schedule instructions for the
-Gekko's execution units rather than just for size.
+Gekko's execution units rather than just for size. (The \`,p\` is an MWCC-specific
+sub-flag; if you know GCC's \`-O\` levels, this comma syntax has no GCC
+equivalent.)
 
 This changes the whole game. At \`-O0\` the assembly mirrors your C line by line.
 At \`-O4,p\` the compiler is allowed to **reorder**, **fuse**, **delete**, and
@@ -30,13 +32,13 @@ Two things follow:
 Here are two independent loads-and-adds, then a multiply of the results:
 
 \`\`\`asm
-lwz   r6, 0(r3)    ; all four loads hoisted to the top...
+lwz   r6, 0(r3)    # all four loads hoisted to the top...
 lwz   r5, 4(r3)
 lwz   r4, 8(r3)
 lwz   r0, 12(r3)
-add   r3, r6, r5   ; ...then the two adds...
+add   r3, r6, r5   # ...then the two adds...
 add   r0, r4, r0
-mullw r3, r3, r0   ; ...then the dependent multiply
+mullw r3, r3, r0   # ...then the dependent multiply
 blr
 \`\`\`
 
@@ -46,8 +48,8 @@ dissect it next lesson.
 
 ## Your task
 
-Write \`combine(int *p)\` returning \`(p[0] + p[1]) * (p[2] + p[3])\`. Don't try to
-reorder anything yourself — write the natural C and let \`-O4,p\` schedule it.
+Write \`combine(int *p)\` returning \`(p[0] + p[1]) * (p[2] + p[3])\`. Write the
+natural C and let \`-O4,p\` schedule it.
 `,
     symbol: "combine",
     starter: `int combine(int *p) {
@@ -87,10 +89,10 @@ scheduling **off**, MWCC emits them in source order — compute \`a\`, then \`b\
 \`\`\`asm
 lwz   r4, 0(r3)
 lwz   r0, 4(r3)
-add   r5, r4, r0   ; a = p[0]+p[1]
+add   r5, r4, r0   # a = p[0]+p[1]
 lwz   r4, 8(r3)
 lwz   r0, 12(r3)
-add   r0, r4, r0   ; b = p[2]+p[3]
+add   r0, r4, r0   # b = p[2]+p[3]
 mullw r3, r5, r0
 \`\`\`
 
@@ -100,37 +102,44 @@ first so their latencies overlap, *then* the adds run back to back:
 \`\`\`asm
 lwz   r6, 0(r3)
 lwz   r5, 4(r3)
-lwz   r4, 8(r3)    ; loads batched — latencies overlap
+lwz   r4, 8(r3)    # loads batched — latencies overlap
 lwz   r0, 12(r3)
 add   r3, r6, r5
 add   r0, r4, r0
 mullw r3, r3, r0
 \`\`\`
 
-Same instructions, **different order and register coloring**. When a target's
-order looks "interleaved" like this, it's the scheduler — not a clue about the
-source. Your C stays simple; the scheduler produces the shape.
+Same instructions, **different order and register coloring**. The coloring
+isn't random: MWCC assigns registers *after* it has reordered, so a different
+schedule yields a different live-range layout and therefore different register
+numbers. When a target's order looks "interleaved" like this, it's the
+scheduler — not a clue about the source. Your C stays simple; the scheduler
+produces the shape.
 
 ## Your task
 
-Write \`combine2(int *p)\` returning \`(p[0] + p[1]) * (p[2] + p[3])\`. Match the
-scheduled (loads-first) form the optimizer produces.
+The body is the same \`combine2(int *p)\` returning
+\`(p[0] + p[1]) * (p[2] + p[3])\` — but this time **reproduce the unscheduled,
+source-order form** (the first listing above). You can't get there by rewriting
+the C; the lever is the pragma. Put \`#pragma scheduling off\` before the
+function so the loads stay next to the adds that consume them.
 `,
     symbol: "combine2",
     starter: `int combine2(int *p) {
     return 0;
 }
 `,
-    solution: `int combine2(int *p) {
+    solution: `#pragma scheduling off
+int combine2(int *p) {
     int a = p[0] + p[1];
     int b = p[2] + p[3];
     return a * b;
 }
 `,
     hints: [
-      "The C is identical in spirit to the previous lesson.",
-      "Don't reorder the loads yourself — the scheduler batches them.",
-      "Trust the optimizer: write the two sums, multiply, return.",
+      "The C body is identical to the previous lesson — two sums, then a multiply.",
+      "To freeze the loads in source order, add `#pragma scheduling off` on the line before the function.",
+      "With scheduling off, each `add` sits right after its own pair of loads — matching the first listing in the brief.",
     ],
   },
   {
@@ -155,8 +164,8 @@ peephole optimizer folds the \`cmpwi ...,0\` **into** the masking instruction by
 flipping it to its dot form:
 
 \`\`\`asm
-clrlwi. r0, r3, 24   ; r0 = x & 0xFF, AND set cr0 from the result
-beq-    L            ; branch on that cr0 — no separate compare!
+clrlwi. r0, r3, 24   # r0 = x & 0xFF, AND set cr0 from the result
+beq-    L            # branch on that cr0 — no separate compare!
 add     r5, r4, r0
 \`\`\`
 
@@ -213,16 +222,24 @@ With the pragma in force, the very same body that merged before now keeps the
 compare split out:
 
 \`\`\`asm
-clrlwi  r0, r3, 24    ; mask — NOT the dot form
-cmpwi   r0, 0         ; explicit compare the peephole would have absorbed
+clrlwi  r0, r3, 24    # mask — NOT the dot form
+cmpwi   r0, 0         # explicit compare the peephole would have absorbed
 beq-    L
 add     r3, r4, r0
 \`\`\`
 
-Compare that against the previous lesson's single \`clrlwi.\`: the \`.\` is gone
-and a whole \`cmpwi\` reappears. This is the canonical \`peephole off\` signature.
-In real decomp you bracket a function (or a run of them) and pair every \`off\`
-with a \`reset\`.
+Side by side, the only difference is the dot-merge:
+
+\`\`\`asm
+# peephole ON (lesson 3)   # peephole OFF (this lesson)
+clrlwi. r0, r3, 24         clrlwi  r0, r3, 24
+                           cmpwi   r0, 0
+beq-    L                  beq-    L
+\`\`\`
+
+The \`.\` is gone and a whole \`cmpwi\` reappears. This is the canonical
+\`peephole off\` signature. In real decomp you bracket a function (or a run of
+them) and pair every \`off\` with a \`reset\`.
 
 > The \`#pragma peephole off\` / \`reset\` lines are part of **both** the starter and
 > the solution here, so you can focus on the body. They apply to the reference
@@ -274,10 +291,10 @@ Same two-sums-times body as lesson 1, but with scheduling disabled:
 \`\`\`asm
 lwz   r4, 0(r3)
 lwz   r0, 4(r3)
-add   r5, r4, r0    ; a computed immediately after its loads
+add   r5, r4, r0    # a computed immediately after its loads
 lwz   r4, 8(r3)
 lwz   r0, 12(r3)
-add   r0, r4, r0    ; b computed immediately after its loads
+add   r0, r4, r0    # b computed immediately after its loads
 mullw r3, r5, r0
 \`\`\`
 
@@ -328,25 +345,31 @@ int combine3(int *p) {
 
 Floating-point loads and \`fmuls\` have multi-cycle latencies, so the \`,p\`
 scheduler is most visibly active on FP code. Take a two-element dot product
-\`a[0]*b[0] + a[1]*b[1]\`. Written naively it would load a[0],b[0], multiply,
+\`a[0]*b[0] + a[1]*b[1]\`. Written the obvious way it would load a[0],b[0], multiply,
 load a[1],b[1], multiply-add. The scheduler instead hoists a later load and
 starts the second product *early*, weaving the two computations together:
 
 \`\`\`asm
-lfs    f1, 4(r3)     ; a[1] loaded first
-lfs    f0, 4(r4)     ; b[1]
-lfs    f2, 0(r3)     ; a[0] slotted in behind
-fmuls  f0, f1, f0    ; a[1]*b[1] started before a[0]*b[0]
-lfs    f1, 0(r4)     ; b[0]
+lfs    f1, 4(r3)     # a[1] loaded first
+lfs    f0, 4(r4)     # b[1]
+lfs    f2, 0(r3)     # a[0] slotted in behind
+fmuls  f0, f1, f0    # a[1]*b[1] started before a[0]*b[0]
+lfs    f1, 0(r4)     # b[0]
 fmadds f1, f2, f1, f0
 blr
 \`\`\`
 
 The loads and the two FP ops are **interleaved**, not grouped per term. This is
 the same scheduler from lesson 2, but the payoff is larger because FP stalls are
-longer. (\`fmadds\` also fuses the multiply-add — that's the next lesson.) When an
-FP target's loads look shuffled across the multiplies, suspect the scheduler
-before you suspect an exotic source expression.
+longer.
+
+Note that the \`fmadds\` here comes from \`fp_contract\` fusion, *not* from the
+scheduler — they're two independent mechanisms that happen to both be on at
+\`-O4,p\`. The next lesson covers \`fp_contract\` in detail; for now just notice it
+exists so you don't attribute the fused multiply-add to scheduling.
+
+When an FP target's loads look shuffled across the multiplies, suspect the
+scheduler before you suspect an exotic source expression.
 
 ## Your task
 
@@ -364,7 +387,7 @@ plain sum of two products and let the scheduler interleave.
 `,
     hints: [
       "Just write `a[0]*b[0] + a[1]*b[1]` — one expression.",
-      "Don't introduce temporaries to force an order; the scheduler interleaves the loads.",
+      "Let the scheduler interleave the loads — no need to introduce temporaries to force an order.",
       "The `+` of two products becomes an `fmuls` plus an `fmadds`, with loads woven between them.",
     ],
   },
@@ -384,7 +407,7 @@ The Gekko has a **fused multiply-add**: \`fmadds f1, fA, fC, fB\` computes
 into exactly that:
 
 \`\`\`asm
-fmadds f1, f1, f2, f3   ; a*b + c, fused
+fmadds f1, f1, f2, f3   # a*b + c, fused
 blr
 \`\`\`
 
@@ -392,8 +415,8 @@ Turn \`fp_contract\` **off** and the compiler is forbidden from fusing; you get
 the multiply and the add as **two** instructions with two roundings:
 
 \`\`\`asm
-fmuls f0, f1, f2        ; a*b
-fadds f1, f3, f0        ; + c
+fmuls f0, f1, f2        # a*b
+fadds f1, f3, f0        # + c
 blr
 \`\`\`
 
@@ -425,7 +448,7 @@ f32 madd(f32 a, f32 b, f32 c) {
 `,
     hints: [
       "The body is simply `return a*b + c;`.",
-      "Don't reorder to `c + a*b` hoping to dodge fusion — the pragma is what splits it.",
+      "Reordering to `c + a*b` won't dodge fusion — the pragma is what controls the split.",
       "With contraction off you get `fmuls` then `fadds`; with it on you'd get one `fmadds`.",
     ],
   },
@@ -446,13 +469,19 @@ each pass — turning a multiply into a single add. (At \`-O4,p\` MWCC also unro
 the hot path eight-wide, so the full function is large; the *idea* lives in the
 remainder loop at the end.)
 
+Don't be alarmed when your output runs to dozens of instructions: MWCC emits a
+prologue that picks the eight-wide path when \`n\` is large, an unrolled body that
+stores eight elements per pass under a \`bdnz\`, and then the short tail loop below
+that handles the leftover \`0..7\` elements one at a time. It's the tail loop where
+the strength-reduced \`+= 12\` is cleanest, so that's what we show.
+
 For \`dst[i] = i * 12\`, the tail loop shows the reduced form clearly:
 
 \`\`\`asm
 L:
-  stw   r6, 0(r3)     ; store the running product
-  addi  r6, r6, 12    ; product += 12  (was i*12, now just +12)
-  addi  r3, r3, 4     ; dst pointer also strength-reduced (+= 4)
+  stw   r6, 0(r3)     # store the running product
+  addi  r6, r6, 12    # product += 12  (was i*12, now just +12)
+  addi  r3, r3, 4     # dst pointer also strength-reduced (+= 4)
   bdnz+ L
 \`\`\`
 
@@ -479,7 +508,7 @@ Write \`fill(int *dst, int n)\` that sets \`dst[i] = i * 12\` for \`i\` in
 `,
     hints: [
       "A simple `for (i = 0; i < n; i++) dst[i] = i * 12;` is all you write.",
-      "Don't hand-reduce it to an accumulator — the optimizer does that, and matching it requires the natural multiply form.",
+      "Let the optimizer reduce it — matching the target requires the natural multiply form you'd write by hand.",
       "Expect heavy unrolling plus a tail loop that increments by 12 with no `mulli`.",
     ],
   },
@@ -498,13 +527,13 @@ its value, \`-O4\` computes it **once** and reuses the result. This is
 **common-subexpression elimination (CSE)**. It's why a target may contain *fewer*
 arithmetic instructions than your source literally spelled out.
 
-Write \`a / b\` twice in one expression and a naive compiler would emit two
+Write \`a / b\` twice in one expression and a simpler compiler would emit two
 \`divw\`s (division is expensive). MWCC emits exactly one:
 
 \`\`\`asm
-divw  r3, r3, r4    ; q = a / b   — computed ONCE
-mulli r0, r3, 7     ; q * 7
-add   r3, r3, r0    ; q + q*7
+divw  r3, r3, r4    # q = a / b   — computed ONCE
+mulli r0, r3, 7     # q * 7
+add   r3, r3, r0    # q + q*7
 blr
 \`\`\`
 
@@ -512,6 +541,13 @@ The second \`a / b\` reused \`r3\`; there is no second \`divw\`. When a target h
 copy of an expensive op but your C "uses it twice," don't add a temporary to
 force two — write it naturally and trust CSE to collapse the duplicate, exactly
 as the original author relied on it to.
+
+One precondition, though: CSE only fires when nothing between the two uses can
+change the value. An intervening store, a \`volatile\`, or a write through a
+possibly-aliasing pointer all block it, and you'll see the expensive op appear
+twice. So a single \`divw\` standing in for two source uses tells you the region
+was side-effect-free between them — don't over-generalize the pattern to loops
+or pointer writes where the compiler can't prove that.
 
 ## Your task
 
@@ -528,8 +564,8 @@ write \`a / b\` twice, the result must contain a single \`divw\`.
 }
 `,
     hints: [
-      "Write the expression literally with `a / b` appearing twice.",
-      "CSE will fold the two divides into one `divw` — you don't introduce a temporary.",
+      "Reading direction: one `divw` whose result is used twice means the source had two uses of `a / b` that CSE folded into one.",
+      "So write the expression literally with `a / b` appearing twice — don't introduce a temporary.",
       "The single quotient is then reused by the `* 7` and the final add.",
     ],
   },
@@ -558,15 +594,15 @@ At our default \`-O4,p\` with \`fp_contract on\`, the two lerps come out woven
 together:
 
 \`\`\`asm
-lfs    f4, 0(r3)      ; a[0]
-lfs    f2, 0(r4)      ; b[0]
-lfs    f3, 4(r3)      ; a[1]   — loads batched up front
-lfs    f0, 4(r4)      ; b[1]
-fsubs  f2, f2, f4     ; b[0]-a[0]
-fsubs  f0, f0, f3     ; b[1]-a[1]   — interleaved with the first
-fmadds f2, f1, f2, f4 ; a[0] + (b[0]-a[0])*t   (fused)
-fmadds f0, f1, f0, f3 ; a[1] + (b[1]-a[1])*t   (fused)
-fadds  f1, f2, f0
+lfs    f4, 0(r3)      # a[0]
+lfs    f2, 0(r4)      # b[0]
+lfs    f3, 4(r3)      # a[1]   — loads batched up front
+lfs    f0, 4(r4)      # b[1]
+fsubs  f2, f2, f4     # lerp0: b[0]-a[0]
+fsubs  f0, f0, f3     # lerp1: b[1]-a[1]   — interleaved with lerp0
+fmadds f2, f1, f2, f4 # lerp0: a[0] + (b[0]-a[0])*t   (fused)
+fmadds f0, f1, f0, f3 # lerp1: a[1] + (b[1]-a[1])*t   (fused)
+fadds  f1, f2, f0     # lerp0 + lerp1
 blr
 \`\`\`
 
@@ -593,8 +629,8 @@ and let the optimizer fuse and interleave.
 `,
     hints: [
       "Write each lerp as `a[i] + (b[i] - a[i]) * t` and sum the two.",
-      "fp_contract turns each `... * t + a[i]` into an `fmadds`; don't split it yourself.",
-      "Let the scheduler batch the four loads and interleave the two lerps — write the math, not the order.",
+      "fp_contract turns each `... * t + a[i]` into an `fmadds` — let the compiler do the fusion.",
+      "The scheduler batches the four loads and interleaves the two lerps — write the math naturally, and the order will follow.",
     ],
   },
 ];

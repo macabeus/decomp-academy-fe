@@ -17,13 +17,18 @@ A register is 32 bits wide, but memory comes in bytes, halfwords, and words. The
 the upper 24 bits:
 
 \`\`\`asm
-lbz  r3, 0(r3)   ; r3 = (u32) p[0], high 24 bits = 0
+lbz  r3, 0(r3)   # r3 = (u32) p[0], high 24 bits = 0
 blr
 \`\`\`
 
 The "z" in \`lbz\` is the whole story: an unsigned byte is **zero-extended**, so no
 extra instruction is needed to clean up the register. The pointer arrives in
 \`r3\`; the loaded value lands right back in \`r3\` ready to return.
+
+One flag to plant early: the GameCube is **big-endian**. Multi-byte values are
+stored most-significant byte first, so the byte at offset 0 of a word is its
+*high* byte — the opposite of x86. It doesn't matter for a lone \`u8\`, but it will
+the moment you read fields out of a struct, so keep it in mind.
 
 ## Your task
 
@@ -57,7 +62,7 @@ A **\`u16\`** is two bytes — a *halfword*. Reading one uses **\`lhz\`** — *l
 halfword and zero* — the 16-bit sibling of \`lbz\`. It clears the top 16 bits:
 
 \`\`\`asm
-lhz  r3, 0(r3)   ; r3 = (u32) p[0], high 16 bits = 0
+lhz  r3, 0(r3)   # r3 = (u32) p[0], high 16 bits = 0
 blr
 \`\`\`
 
@@ -99,7 +104,7 @@ a dedicated **\`lha\`** (*load halfword algebraic*) that sign-extends a halfword
 it loads:
 
 \`\`\`asm
-lha  r3, 0(r3)   ; r3 = (s32) p[0], sign-extended
+lha  r3, 0(r3)   # r3 = (s32) p[0], sign-extended
 blr
 \`\`\`
 
@@ -110,7 +115,7 @@ an \`int\`:
 
 \`\`\`asm
 lbz   r3, 0(r3)
-extsb r3, r3     ; sign-extend the byte to 32 bits
+extsb r3, r3     # sign-extend the byte to 32 bits
 blr
 \`\`\`
 
@@ -148,7 +153,7 @@ Storing is simpler than loading: there is no signed/unsigned distinction, only
 only the **low 8 bits** of the source register to memory:
 
 \`\`\`asm
-stb  r4, 0(r3)   ; p[0] = (u8) v   (high bits of r4 ignored)
+stb  r4, 0(r3)   # p[0] = (u8) v   (high bits of r4 ignored)
 blr
 \`\`\`
 
@@ -187,7 +192,7 @@ The halfword store is **\`sth\`** (*store halfword*), writing the **low 16 bits*
 of a register:
 
 \`\`\`asm
-sth  r4, 0(r3)   ; p[0] = (u16) v
+sth  r4, 0(r3)   # p[0] = (u16) v
 blr
 \`\`\`
 
@@ -221,7 +226,7 @@ Write \`store_u16\`, taking a \`u16*\` and a \`u16\` value, writing it to \`p[0]
     difficulty: 3,
     concepts: ["signed", "char", "sign-extension", "matching-idiom"],
     brief: `
-# The single most common byte-matching mistake
+# A common byte-matching mix-up: char vs u8
 
 In MWCC's world, a plain **\`char\` is signed**. That one fact bites constantly.
 Whenever a \`char\` value is *promoted* — passed to a function, used in arithmetic,
@@ -233,7 +238,7 @@ Watch what happens when a byte is loaded and handed to a function that takes an
 
 \`\`\`asm
 lbz   r3, 0(r4)
-extsb r3, r3      ; <-- spurious: char promotes to signed int
+extsb r3, r3      # <-- spurious: char promotes to signed int
 bl    scale
 stb   r3, 0(r31)
 \`\`\`
@@ -242,13 +247,18 @@ With **\`u8\`**, the loaded byte feeds the call directly — the \`extsb\` is **
 
 \`\`\`asm
 lbz   r3, 0(r4)
-bl    scale       ; no extsb: u8 is already zero-extended
+bl    scale       # no extsb: u8 is already zero-extended
 stb   r3, 0(r31)
 \`\`\`
 
+The trailing \`stb\` needs no cleanup either way: a *store* only ever copies the
+low 8 bits, so writing \`scale\`'s \`int\` result back through a byte pointer
+truncates for free — don't reach for \`& 0xFF\`, which would add a \`clrlwi\` the
+target doesn't have.
+
 If your output has one stray \`extsb\` the target doesn't, the cause is almost
-always a \`char\` that should have been a \`u8\`. This is the golden rule of this
-chapter: **use \`u8\` for a raw byte, never \`char\`.**
+always a \`char\` that should have been a \`u8\`. That's the key takeaway of this
+chapter: **for a raw byte, prefer \`u8\` over \`char\`.**
 
 ## Your task
 
@@ -287,20 +297,24 @@ rotate-mask, printed as **\`clrlwi\`** (clear left word immediate) — here clea
 the top 24 bits:
 
 \`\`\`asm
-clrlwi r3, r3, 24   ; keep low 8 bits, zero the rest
+clrlwi r3, r3, 24   # keep low 8 bits, zero the rest
 blr
 \`\`\`
 
 A signed **\`s8 → s32\`** widen instead sign-extends with **\`extsb\`**:
 
 \`\`\`asm
-extsb r3, r3        ; replicate bit 7 into the top 24 bits
+extsb r3, r3        # replicate bit 7 into the top 24 bits
 blr
 \`\`\`
 
 \`clrlwi r3, r3, 24\` and \`extsb r3, r3\` differ only in whether the high bits become
 zeros or copies of the sign bit — exactly the unsigned-vs-signed choice. (For
 this lesson we widen the *unsigned* case.)
+
+\`clrlwi\` is just a readable spelling of an \`rlwinm\` rotate-mask: \`clrlwi r3, r3,
+24\` is the same instruction as \`rlwinm r3, r3, 0, 24, 31\`. Some disassemblers
+print the raw \`rlwinm\` form, so treat the two as identical when reading a diff.
 
 ## Your task
 
@@ -337,14 +351,19 @@ register. \`x & 0xFF\` keeps the low 8 bits and clears the rest, which is again 
 \`clrlwi\` rotate-mask:
 
 \`\`\`asm
-clrlwi r3, r3, 24   ; x & 0xFF
+clrlwi r3, r3, 24   # x & 0xFF
 blr
 \`\`\`
 
 This is the *register-resident* twin of the truncating store from earlier: \`stb\`
 truncates on its way to memory, while \`& 0xFF\` truncates a value staying in a
-register. Both keep the low 8 bits; recognizing \`clrlwi ..., 24\` as "really"
-\`& 0xFF\` (and \`..., 16\` as \`& 0xFFFF\`) is a core reading skill.
+register. Recognizing the mask width from the shift amount is a core reading
+skill — the shift is just how many high bits get cleared:
+
+\`\`\`text
+clrlwi r3, r3, 24   = x & 0xFF     (keep low 8 bits)
+clrlwi r3, r3, 16   = x & 0xFFFF   (keep low 16 bits)
+\`\`\`
 
 ## Your task
 
@@ -380,7 +399,7 @@ sign-extending from the cast width. \`(s8)x\` keeps the low byte but re-spreads 
 sign bit, exactly **\`extsb\`**:
 
 \`\`\`asm
-extsb r3, r3        ; (s8) x, then widened back to int
+extsb r3, r3        # (s8) x, then widened back to int
 blr
 \`\`\`
 
@@ -388,7 +407,7 @@ The halfword cast \`(s16)x\` is the same idea one size up — **\`extsh\`** (*ex
 sign halfword*):
 
 \`\`\`asm
-extsh r3, r3        ; (s16) x
+extsh r3, r3        # (s16) x
 blr
 \`\`\`
 
@@ -430,14 +449,22 @@ and since the byte is the narrower type, that's an **\`extsb\`** (the halfword
 result still carries the correct sign in its low 16 bits):
 
 \`\`\`asm
-extsb r3, r3        ; s8 -> s16, sign preserved
+extsb r3, r3        # s8 -> s16, sign preserved
 blr
 \`\`\`
 
 The rule generalizes: when the *source* is signed, a widening conversion
 sign-extends from the source width. When the source is unsigned, the same
-conversion would zero-extend (a \`clrlwi\`) instead. The signedness of the value
-you start from is what picks \`extsb\`/\`extsh\` versus a mask.
+conversion would zero-extend (a \`clrlwi\`) instead — a \`u8 → u16\` widen keeps the
+low 8 bits and clears the rest:
+
+\`\`\`asm
+clrlwi r3, r3, 24   # u8 -> u16, zero-extended (no sign to preserve)
+blr
+\`\`\`
+
+The signedness of the value you start from is what picks \`extsb\`/\`extsh\` versus a
+mask.
 
 ## Your task
 
@@ -473,8 +500,8 @@ An **unsigned** operand (like a \`u16\`) compares with **\`cmplwi\`** — *compa
 **l**ogical word immediate* — after being zero-extended to clear the high bits:
 
 \`\`\`asm
-clrlwi r0, r3, 16   ; zero-extend the u16
-cmplwi r0, 256      ; unsigned compare
+clrlwi r0, r3, 16   # zero-extend the u16
+cmplwi r0, 256      # unsigned compare
 bne-   skip
 bl     act
 \`\`\`
@@ -484,8 +511,8 @@ A **signed narrow** operand of the same width (an \`s16\`) compares with
 \`int\` is already full-width, so it gets the \`cmpwi\` with *no* extend.)
 
 \`\`\`asm
-extsh  r0, r3       ; sign-extend the s16
-cmpwi  r0, 256      ; signed compare
+extsh  r0, r3       # sign-extend the s16
+cmpwi  r0, 256      # signed compare
 bne-   skip
 bl     act
 \`\`\`
@@ -496,12 +523,14 @@ match the local or field to the field's actual width and sign.
 
 ## Your task
 
-\`act\` is a function. Write \`maybe_act\` taking a **\`u16 x\`** that calls \`act()\`
-when \`x == 256\`. The unsigned type must produce \`cmplwi\`.
+\`act\` is a function. The starter below declares the parameter as **\`s16 x\`**,
+which produces \`extsh\` + \`cmpwi\` (the signed compare). Change the parameter to
+the type that makes the comparison emit \`cmplwi\` — the target uses the *logical*
+(unsigned) compare, so pick the type whose zero-extend feeds it.
 `,
     symbol: "maybe_act",
     context: `void act(void);`,
-    starter: `void maybe_act(u16 x) {
+    starter: `void maybe_act(s16 x) {
     if (x == 256) {
         act();
     }
@@ -515,7 +544,7 @@ when \`x == 256\`. The unsigned type must produce \`cmplwi\`.
 `,
     hints: [
       "An unsigned operand feeding a branch compares with `cmplwi`, not `cmpwi`.",
-      "Keeping the parameter as `u16` yields `clrlwi` then `cmplwi r0, 256`.",
+      "Change the parameter from `s16` to `u16`; that yields `clrlwi` then `cmplwi r0, 256`.",
     ],
   },
   {
@@ -533,19 +562,21 @@ ties this chapter together. \`(*p)++\` on a \`u8*\` loads the byte, adds one, an
 stores it back:
 
 \`\`\`asm
-lbz   r4, 0(r3)   ; load the current count (zero-extended, no extsb)
-addi  r0, r4, 1   ; increment
-stb   r0, 0(r3)   ; truncate back to a byte and store
+lbz   r4, 0(r3)   # load the current count (zero-extended, no extsb)
+addi  r0, r4, 1   # increment
+stb   r0, 0(r3)   # truncate back to a byte and store
 blr
 \`\`\`
 
 Three details to absorb: the load is \`lbz\` (unsigned byte, zero-extended), the
 arithmetic is a plain \`addi\` in a 32-bit register, and the store is \`stb\`, which
 truncates the sum back into one byte — so \`255 + 1\` correctly wraps to \`0\`.
-Here the byte is loaded, incremented, and stored straight back, so even \`char\`
-wouldn't add an \`extsb\` — but the moment a \`char\` value flows into a wider signed
-context, that spurious \`extsb\` appears (you saw it two lessons ago). The habit
-stands: **\`u8\` for a raw byte.**
+Here the byte is loaded, incremented, and stored straight back — it never escapes
+into a wider signed context — so even a \`char*\` counter would compile to this
+exact sequence with no \`extsb\`. But the moment a \`char\` value *is* widened to
+\`int\` (passed to a function, used in 32-bit arithmetic), that spurious \`extsb\`
+appears (you saw it in the u8-vs-char lesson). The habit stands: **\`u8\` for a raw
+byte.**
 
 ## Your task
 

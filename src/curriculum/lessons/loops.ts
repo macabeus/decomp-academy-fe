@@ -13,22 +13,25 @@ export const loops: LessonSource[] = [
 
 Until now every function ran straight down to its \`blr\`. A loop adds one new
 idea: a **branch that jumps backwards** so the same instructions run again. The
-classic shape MWCC emits for a \`for\` loop is a **bottom-tested** loop — the body
-sits in the middle, the comparison and the conditional branch sit at the
-*bottom*, and a single unconditional \`b\` at the top jumps *into* that test first
-to handle the zero-iteration case:
+classic shape MWCC emits for a \`for\` loop puts the **test at the bottom**: the
+body sits in the middle, the comparison and the conditional branch sit at the
+*bottom*, and a single unconditional \`b\` at the top jumps *into* that test
+first. That leading \`b\` is what makes the loop behave as **pre-tested** — the
+condition is checked before the body ever runs, so the zero-iteration case is
+handled. (Two names, one shape: the test is *physically* at the bottom, but
+*behaviorally* the loop is pre-tested thanks to that jump-to-test at the top.)
 
 \`\`\`asm
-li   r0, 0          ; s = 0
-li   r4, 0          ; i = 0
-b    test           ; jump straight to the test (pre-test)
+li   r0, 0          # s = 0
+li   r4, 0          # i = 0
+b    test           # jump straight to the test (pre-test)
 body:
-add  r0, r0, r4     ; s += i
-addi r4, r4, 1      ; i++
+add  r0, r0, r4     # s += i
+addi r4, r4, 1      # i++
 test:
-cmpw r4, r3         ; i < n ?
-blt+ body           ; if so, go round again
-mr   r3, r0         ; return s
+cmpw r4, r3         # i < n ?
+blt+ body           # if so, go round again
+mr   r3, r0         # return s
 blr
 \`\`\`
 
@@ -82,22 +85,25 @@ The compiler erases the distinction completely — both produce the exact same
 **pre-tested, bottom-branching** skeleton:
 
 \`\`\`asm
-li   r4, 0          ; i = 0
-li   r0, 0          ; s = 0
-b    test           ; pre-test
+li   r4, 0          # i = 0
+li   r0, 0          # s = 0
+b    test           # pre-test
 body:
-add  r0, r0, r4     ; s += i
-addi r4, r4, 1      ; i++
+add  r0, r0, r4     # s += i
+addi r4, r4, 1      # i++
 test:
-cmpw r4, r3         ; i < n ?
+cmpw r4, r3         # i < n ?
 blt+ body
 mr   r3, r0
 blr
 \`\`\`
 
 This is worth internalizing as a decompiler: when you see this shape you cannot
-tell from the asm alone whether the dev wrote \`for\` or \`while\`. Pick whichever
-reads more naturally — the match is identical either way.
+tell from the asm alone whether the dev wrote \`for\` or \`while\`. A simple rule:
+prefer \`for\` when a counter is explicit (\`for (i = 0; i < n; i++)\`), and
+\`while\` when the condition reads more naturally as a standalone predicate. The
+compiler does not care and neither does the diff tool — the match is identical
+either way.
 
 > Same as before, we keep \`#pragma optimization_level 1\` so the loop stays
 > rolled instead of being unrolled.
@@ -147,21 +153,29 @@ doesn't need the pre-test. That leading \`b test\` from the \`for\`/\`while\` sh
 — a single conditional branch and nothing else:
 
 \`\`\`asm
-li   r4, 0          ; i = 0
-li   r0, 0          ; s = 0
+li   r4, 0          # i = 0
+li   r0, 0          # s = 0
 body:
-add  r0, r0, r4     ; s += i
-addi r4, r4, 1      ; i++
-cmpw r4, r3         ; i < n ?
-blt+ body           ; only branch in the whole loop
+add  r0, r0, r4     # s += i
+addi r4, r4, 1      # i++
+cmpw r4, r3         # i < n ?
+blt+ body           # only branch in the whole loop
 mr   r3, r0
 blr
 \`\`\`
 
 Because this form is so clean, MWCC at full \`-O4,p\` is happy to leave it rolled —
 no \`#pragma\` needed here. When you spot a loop with **no pre-test branch at the
-top**, the original was almost certainly a \`do\`/\`while\` (or a loop the dev knew
-would always iterate at least once).
+top**, the original was almost certainly a \`do\`/\`while\` — or a loop where the
+author had reason to guarantee the body would run.
+
+> **A caution on semantics.** A \`do\`/\`while\` runs the body even when the guard
+> is false on entry. For this sum that happens to be harmless — \`n == 0\` runs
+> the body once (\`s += 0\`, \`i\` becomes 1), then \`1 < 0\` is false and we return
+> 0, which is still correct, but only by accident of the arithmetic. In real
+> decompilation you choose \`do\`/\`while\` only when you can confirm the loop is
+> always entered at least once — often because a caller-side check guarantees
+> \`n\` is positive. Don't reach for it just to drop the pre-test branch.
 
 ## Your task
 
@@ -206,13 +220,13 @@ compiler compare against the constant 0 instead, using the immediate form
 cheaper and the variable can double as both counter and value:
 
 \`\`\`asm
-li   r0, 0          ; s = 0
+li   r0, 0          # s = 0
 b    test
 body:
-add  r0, r0, r3     ; s += n
-addi r3, r3, -1     ; n--
+add  r0, r0, r3     # s += n
+addi r3, r3, -1     # n--
 test:
-cmpwi r3, 0         ; n > 0 ?  (compare against immediate 0)
+cmpwi r3, 0         # n > 0 ?  (compare against immediate 0)
 bgt+ body
 mr   r3, r0
 blr
@@ -221,6 +235,12 @@ blr
 This is why hand-tuned 2002 game code so often counts down: \`cmpwi rX, 0\` needs
 no register for the limit. Recognizing a downward-counting loop and rewriting it
 as \`for (i = n; i > 0; i--)\` is a common matching move.
+
+> A count-down in the asm does **not** always mean the developer wrote one.
+> Optimizing compilers will sometimes flip a count-up loop into count-down form
+> for exactly this reason, so don't reflexively assume the source counted down —
+> match what the asm shows, and reach for count-down in your own C only when it
+> is what reproduces the target.
 
 > \`#pragma optimization_level 1\` again keeps the loop from unrolling.
 
@@ -264,16 +284,16 @@ scales the index with \`slwi r0, r5, 2\` (\`i * 4\`) and then uses the **indexed
 load** \`lwzx rD, rA, rB\`, which loads from \`rA + rB\` in one instruction:
 
 \`\`\`asm
-li   r6, 0          ; s = 0
-li   r5, 0          ; i = 0
+li   r6, 0          # s = 0
+li   r5, 0          # i = 0
 b    test
 body:
-slwi r0, r5, 2      ; i * 4
-addi r5, r5, 1      ; i++
-lwzx r0, r3, r0     ; load a[i]  (from a + i*4)
-add  r6, r6, r0     ; s += a[i]
+slwi r0, r5, 2      # i * 4
+addi r5, r5, 1      # i++
+lwzx r0, r3, r0     # load a[i]  (from a + i*4)
+add  r6, r6, r0     # s += a[i]
 test:
-cmpw r5, r4         ; i < n ?
+cmpw r5, r4         # i < n ?
 blt+ body
 mr   r3, r6
 blr
@@ -329,26 +349,27 @@ itself is data-dependent (it only updates \`m\` when \`a[i] > m\`), so the loop 
 rolled even at full \`-O4,p\`:
 
 \`\`\`asm
-addi r0, r4, -1     ; trip count = n - 1
-addi r5, r3, 4      ; p = &a[1]
-lwz  r3, 0(r3)      ; m = a[0]
-mtctr r0            ; CTR = n - 1
+addi r0, r4, -1     # trip count = n - 1
+addi r5, r3, 4      # p = &a[1]
+lwz  r3, 0(r3)      # m = a[0]
+mtctr r0            # CTR = n - 1
 cmpwi r4, 1
-blelr-              ; if n <= 1, return a[0]
+blelr-              # if n <= 1, return a[0]
 body:
-lwz  r0, 0(r5)      ; x = a[i]
-cmpw r0, r3         ; x > m ?
+lwz  r0, 0(r5)      # x = a[i]
+cmpw r0, r3         # x > m ?
 ble- skip
-mr   r3, r0         ;   m = x
+mr   r3, r0         #   m = x
 skip:
-addi r5, r5, 4      ; advance pointer
-bdnz+ body          ; CTR--, loop while non-zero
+addi r5, r5, 4      # advance pointer
+bdnz+ body          # CTR--, loop while non-zero
 blr
 \`\`\`
 
 Two idioms to bank: \`mtctr\`/\`bdnz\` is *the* signature of a counted loop with a
 precomputed trip count, and \`blelr-\` is "compare-then-return" fused into the
-early exit.
+early exit. Keep the \`mtctr\`/\`bdnz\` pair in mind — it returns in the break
+lesson, where the same count register drives a loop that also has an early exit.
 
 ## Your task
 
@@ -391,14 +412,14 @@ induction integer; the pointer in \`r3\` *is* the loop state. Each iteration loa
 a byte with \`lbz\` (load byte, zero-extended), tests it, and bumps the pointer:
 
 \`\`\`asm
-li   r4, 0          ; n = 0
+li   r4, 0          # n = 0
 b    test
 body:
-addi r4, r4, 1      ; n++
-addi r3, r3, 1      ; p++
+addi r4, r4, 1      # n++
+addi r3, r3, 1      # p++
 test:
-lbz  r0, 0(r3)      ; *p
-cmplwi r0, 0        ; *p != 0 ?   (unsigned compare)
+lbz  r0, 0(r3)      # *p
+cmplwi r0, 0        # *p != 0 ?   (unsigned compare)
 bne+ body
 mr   r3, r4
 blr
@@ -407,6 +428,12 @@ blr
 Two things to notice. The byte load is \`lbz\` because the data is \`u8\`, and the
 test is \`cmplwi\` — an *unsigned* compare, because \`u8\` is unsigned. Typing the
 pointer as \`u8*\` (not \`char*\`) is what keeps the load clean with no sign-extend.
+
+\`u8\` is the project's own name for an unsigned byte — \`typedef unsigned char
+u8;\` from a shared header, the same \`u8\`/\`u16\`/\`u32\` convention nearly every GC
+decompilation uses. It matters here: \`char\` would invite a sign-extending load,
+giving subtly different asm, so reach for the exact project type the target was
+built with.
 
 ## Your task
 
@@ -451,19 +478,19 @@ A \`break\` gives a loop a *second* exit. This linear search runs a counted loop
 same \`mr r3, r6\` that returns the index \`i\`:
 
 \`\`\`asm
-li   r6, 0          ; i = 0
-mtctr r4            ; CTR = n
+li   r6, 0          # i = 0
+mtctr r4            # CTR = n
 cmpwi r4, 0
-ble- done           ; n <= 0: skip loop entirely
+ble- done           # n <= 0: skip loop entirely
 body:
-lwz  r0, 0(r3)      ; a[i]
-cmpw r5, r0         ; a[i] == k ?
-beq- done           ; break: jump out early
-addi r3, r3, 4      ; advance pointer
-addi r6, r6, 1      ; i++
-bdnz+ body          ; otherwise keep counting
+lwz  r0, 0(r3)      # a[i]
+cmpw r5, r0         # a[i] == k ?
+beq- done           # break: jump out early
+addi r3, r3, 4      # advance pointer
+addi r6, r6, 1      # i++
+bdnz+ body          # otherwise keep counting
 done:
-mr   r3, r6         ; return i (the found index, or n)
+mr   r3, r6         # return i (the found index, or n)
 blr
 \`\`\`
 
@@ -478,7 +505,7 @@ Write \`find\`, returning the index of the first element of \`a\` equal to \`k\`
 `,
     symbol: "find",
     starter: `int find(int *a, int n, int k) {
-    int i;
+    int i;  /* the for loop you write below sets i; it holds the answer */
     // return the first index where a[i] == k, else n
     return i;
 }
@@ -498,6 +525,78 @@ Write \`find\`, returning the index of the first element of \`a\` equal to \`k\`
     ],
   },
   {
+    id: "loops-anatomy-model",
+    chapter: "loops",
+    order: 8.5,
+    title: "A Mental Model: The Five Parts of a Loop",
+    difficulty: 2,
+    concepts: ["control-flow", "break", "continue", "mental-model"],
+    concept: true,
+    brief: `
+# One model for every loop
+
+The earlier lessons matched specific \`for\`/\`while\`/\`do\` loops. Once you've seen a
+few, it pays to carry a single mental model: **any** compiled loop decomposes
+into the same five labelled regions. Name them and a wall of branches turns into
+a flowchart.
+
+- **\`pre_loop\`** — runs once before the loop: initialise the induction variable,
+  then (for a pre-tested loop) an unconditional \`b loop_cond\` so the condition is
+  checked *before* the first body.
+- **\`loop_body\`** — the work. This is where \`break\` and \`continue\` originate.
+- **\`loop_incrementer\`** — where the induction variable advances. A \`for\` loop
+  has one; a \`while\`/\`do\` folds the step into the body.
+- **\`loop_cond\`** — the test plus the backward branch to \`loop_body\`.
+- **\`post_loop\`** — the first instruction *after* the loop: control lands here
+  when the condition finally fails, or when a \`break\` jumps out.
+
+## break and continue are just branches
+
+\`\`\`asm
+loop_body:
+    cmpwi r3, 0
+    bne-  skip_continue
+    b     loop_incrementer   # 'continue' -> jump to the step, then re-test
+skip_continue:
+    cmpwi r3, 2
+    bne-  skip_break
+    b     post_loop          # 'break' -> leave the loop entirely
+skip_break:
+    ...
+\`\`\`
+
+A **\`continue\`** branches forward to \`loop_incrementer\` (in a \`for\`) or straight
+to \`loop_cond\` (in a \`while\`); a **\`break\`** branches to \`post_loop\`. That's the
+whole trick — once you can label the five regions, every \`break\`/\`continue\`
+target is obvious.
+
+## The three forms differ only in wiring
+
+- **\`do/while\`** — no jump-to-test in \`pre_loop\`; the body always runs once, then
+  \`loop_cond\` at the bottom decides whether to repeat. The simplest shape.
+- **\`while\`** — \`pre_loop\` adds the leading \`b loop_cond\` so a zero-iteration case
+  is handled; \`continue\` targets \`loop_cond\`.
+- **\`for\`** — same as \`while\` but with a distinct \`loop_incrementer\`; \`continue\`
+  now targets the incrementer, *not* the condition.
+
+## The count-register variant
+
+When the compiler can precompute the trip count, it may track it in the **count
+register** and merge \`loop_incrementer\` and \`loop_cond\` into a single
+**\`bdnz\`** ("branch if decremented CTR is not zero"). The explicit compare
+disappears, which is why Ghidra and IDA often mis-label these as an
+\`if\`-guarded \`do/while\` — but it's still just the same five-part loop with two
+of its parts fused into one instruction.
+
+There's no exercise here — keep the five-part map in your head and the next time
+a loop's control flow looks like spaghetti, label the regions first.
+`,
+    symbol: "",
+    starter: "",
+    solution: "",
+    hints: [],
+  },
+  {
     id: "loops-nested",
     chapter: "loops",
     order: 9,
@@ -513,22 +612,22 @@ outer counter \`i\` only advances after the inner loop completes. Each shape is 
 same pre-tested loop you already know:
 
 \`\`\`asm
-li   r6, 0          ; s = 0
-li   r4, 0          ; i = 0
+li   r6, 0          # s = 0
+li   r4, 0          # i = 0
 b    otest
 obody:
-li   r5, 0          ; j = 0   (reset every outer pass)
+li   r5, 0          # j = 0   (reset every outer pass)
 b    itest
 ibody:
-mullw r0, r4, r5    ; i * j
-addi r5, r5, 1      ; j++
-add  r6, r6, r0     ; s += i*j
+mullw r0, r4, r5    # i * j
+addi r5, r5, 1      # j++
+add  r6, r6, r0     # s += i*j
 itest:
-cmpw r5, r3         ; j < n ?
+cmpw r5, r3         # j < n ?
 blt+ ibody
-addi r4, r4, 1      ; i++
+addi r4, r4, 1      # i++
 otest:
-cmpw r4, r3         ; i < n ?
+cmpw r4, r3         # i < n ?
 blt+ obody
 mr   r3, r6
 blr
@@ -555,9 +654,11 @@ int grid(int n) {
     solution: `#pragma optimization_level 1
 int grid(int n) {
     int i, j, s = 0;
-    for (i = 0; i < n; i++)
-        for (j = 0; j < n; j++)
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < n; j++) {
             s += i * j;
+        }
+    }
     return s;
 }
 `,
@@ -585,24 +686,33 @@ keeps a *pointer* and advances it by 4. The multiply disappears entirely, leavin
 a plain \`lwz 0(r3)\` and an \`addi r3, r3, 4\`:
 
 \`\`\`asm
-li   r4, 0          ; n = 0
+li   r4, 0          # n = 0
 b    test
 body:
-addi r3, r3, 4      ; p += 1  (advance by sizeof(int))
-addi r4, r4, 1      ; n++
+addi r3, r3, 4      # p++  (one int = 4 bytes)
+addi r4, r4, 1      # n++
 test:
-lwz  r0, 0(r3)      ; a[n]  -> just *p, no scaling
-cmpwi r0, 0         ; a[n] != 0 ?
+lwz  r0, 0(r3)      # a[n]  -> just *p, no scaling
+cmpwi r0, 0         # a[n] != 0 ?
 bne+ body
 mr   r3, r4
 blr
 \`\`\`
 
 Even though the C source still *indexes* with \`a[n]\`, there is no \`slwi\` and no
-\`lwzx\` — the address advances by a constant 4 each pass. This is the single most
-important loop idiom to recognize: when you see a pointer marching by a fixed
+\`lwzx\` — the address advances by a constant 4 each pass. This is one of the most
+useful loop idioms to recognize: when you see a pointer marching by a fixed
 stride with no per-iteration multiply, the original C was very likely an
 *indexed* array access that the compiler strength-reduced.
+
+One detail surprises people: the \`addi r3, r3, 4\` sits *above* the \`lwz\`, so it
+looks like the pointer advances *before* the load. It does — but only on
+repeat passes. This is the same bottom-tested shape from lesson 1: the leading
+\`b test\` jumps **past** that \`addi\` on first entry, so iteration 0 loads
+\`a[0]\` with \`r3\` still pointing at the array head. Only when \`bne+\` branches
+back to \`body\` does the increment run, advancing to \`a[1]\`, \`a[2]\`, and so on.
+Read top-to-bottom it is "advance, load, test, branch"; the first iteration just
+skips the advance.
 
 ## Your task
 

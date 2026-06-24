@@ -31,28 +31,31 @@ thing the function does is chase it: \`lwz r5, 0(r3)\`. The \`state\` field is a
 \`u8\`, hence \`lbz\`/\`stb\`. Setting \`state == 2\` adds a rise amount to \`posY\`:
 
 \`\`\`asm
-lwz     r5, 0(r3)          ; extra = obj->state
-cmpwi   r4, 2              ; state == 2 ?
-lbz     r6, 0(r5)          ; oldState = extra->state
-stb     r4, 0(r5)          ; extra->state = state
+lwz     r5, 0(r3)          # extra = obj->state
+cmpwi   r4, 2              # state == 2 ?
+lbz     r6, 0(r5)          # oldState = extra->state
+stb     r4, 0(r5)          # extra->state = state
 bne-    .skip
-lfs     f1, 8(r3)          ; obj->posY
+lfs     f1, 8(r3)          # obj->posY
 lfs     f0, lbl_riseAmount
 fadds   f0, f1, f0
 stfs    f0, 8(r3)
 .skip:
-subfic  r3, r6, 1          ; \\
-addi    r0, r6, -1         ;  | the "oldState != 1" boolean
-or      r0, r3, r0         ;  |
-srwi    r3, r0, 31         ; /
+subfic  r3, r6, 1          # \\
+addi    r0, r6, -1         #  | the "oldState != 1" boolean
+or      r0, r3, r0         #  |
+srwi    r3, r0, 31         # /
 blr
 \`\`\`
 
 The payoff is that last quartet. \`return oldState != 1;\` does **not** compile to
 a compare-and-branch — MWCC computes \`!= \` *branchlessly* with
 \`subfic\`/\`addi\`/\`or\`/\`srwi\`. That four-instruction "is-nonzero" pattern is a
-signature you will meet constantly; recognize it as a boolean \`x != k\` return,
-not as four separate arithmetic steps.
+signature you'll see often; it reads as a boolean \`x != k\` return, not as four
+separate arithmetic steps. This exact quartet appears because \`oldState\` is a
+\`u8\` (already zero-extended in its register); an \`int\` \`oldState\` would still
+return the right boolean but through a slightly different sequence — the type is
+what fixes the shape.
 
 ## Your task
 
@@ -123,14 +126,14 @@ which adds the bias:
 \`\`\`asm
 li      r5, 250
 li      r0, 1
-stb     r5, 14(r3)         ; obj->fadeTimer = 0xfa
-stb     r0, 15(r3)         ; obj->triggered = 1
-lfs     f0, 0(r4)          ; hitObj->posX
-stfs    f0, 0(r3)          ; obj->posX = ...
+stb     r5, 14(r3)         # obj->fadeTimer = 0xfa
+stb     r0, 15(r3)         # obj->triggered = 1
+lfs     f0, 0(r4)          # hitObj->posX
+stfs    f0, 0(r3)          # obj->posX = ...
 lfs     f1, lbl_yBias
-lfs     f0, 4(r4)          ; hitObj->posY
+lfs     f0, 4(r4)          # hitObj->posY
 fadds   f0, f1, f0
-stfs    f0, 4(r3)          ; obj->posY = lbl_yBias + hitObj->posY
+stfs    f0, 4(r3)          # obj->posY = lbl_yBias + hitObj->posY
 lfs     f0, 8(r4)
 stfs    f0, 8(r3)
 blr
@@ -140,6 +143,11 @@ Note that a plain field-to-field float copy is just \`lfs\` then \`stfs\` — no
 float register math at all. Only the biased \`Y\` brings in an \`fadds\`. Watch the
 operand order MWCC picks: \`lbl_yBias + hitObj->posY\` puts the constant in \`f1\`
 first, exactly as written.
+
+Statement order matters: the two \`stb\` byte stores come *first* because that's
+how the original ordered them. Write the position copies first and MWCC reorders
+the byte stores to the tail (and reschedules around them) — a functional but
+non-matching layout. Match the source statement order to the instruction order.
 
 ## Your task
 
@@ -193,13 +201,13 @@ extern int timerCountDown(f32* t);
 extern void ObjHits_EnableObject(CrFuelTankObject* o);
 \`\`\`
 
-The two flag writes are the heart of it. Per the SFA playbook, a **single-bit
-clear** should be written \`flags & ~0x4000\` so MWCC emits an \`rlwinm\` mask, not
-an \`andi\`; the **set** is a plain \`| 0x4000\` → \`ori\`. The \`(s16)\` cast keeps the
+The two flag writes are the heart of it. A **single-bit clear** written as
+\`flags & ~0x4000\` leads MWCC to emit an \`rlwinm\` mask rather than an \`andi\`; the
+**set** is a plain \`| 0x4000\` → \`ori\`. The \`(s16)\` cast keeps the
 field at halfword width (\`lha\`/\`sth\`):
 
 \`\`\`asm
-stwu    r1, -16(r1)        ; prologue — we make a call
+stwu    r1, -16(r1)        # prologue — we make a call
 mflr    r0
 ...
 bl      timerCountDown
@@ -208,20 +216,24 @@ beq-    .else
 bl      ObjHits_EnableObject
 lha     r3, 4(r31)
 li      r0, 255
-rlwinm  r3, r3, 0, 18, 16  ; flags &= ~0x4000   (clear one bit)
+rlwinm  r3, r3, 0, 18, 16  # flags &= ~0x4000   (clear one bit)
 sth     r3, 4(r31)
-stb     r0, 6(r31)         ; fadeTimer = 0xff
+stb     r0, 6(r31)         # fadeTimer = 0xff
 b       .end
 .else:
 lha     r0, 4(r31)
-ori     r0, r0, 16384      ; flags |= 0x4000     (set one bit)
+ori     r0, r0, 16384      # flags |= 0x4000     (set one bit)
 sth     r0, 4(r31)
 .end:
 \`\`\`
 
-The contrast \`rlwinm\` (clear) vs \`ori\` (set) is the lesson: same flag, two
-different mask idioms, and choosing the wrong C expression (\`&= 0xbfff\`) would
-emit \`andi\` and mismatch forever.
+Reading \`rlwinm r3, r3, 0, 18, 16\` back: the fields are
+\`rlwinm rA, rS, SH, MB, ME\` — rotate by \`SH\`=0 (no rotate), then keep the bits
+from \`MB\`=18 through \`ME\`=16 *wrapping* (because MB > ME), which is every bit
+except the one at MSB-position 17, i.e. \`0x4000\`. So this is exactly
+\`flags &= ~0x4000\`. The contrast \`rlwinm\` (clear) vs \`ori\` (set) is the lesson:
+same flag, two different mask idioms, and a different C expression like
+\`&= 0xbfff\` would emit \`andi\` and miss the match.
 
 ## Your task
 
@@ -278,19 +290,19 @@ and "replace the value" is the register-move \`fmr\`. No memory round-trips
 between the clamps — the candidate stays live in \`f1\`:
 
 \`\`\`asm
-lfs     f0, 0(r3)          ; a->health
+lfs     f0, 0(r3)          # a->health
 lfs     f2, lbl_zero
-fadds   f1, f0, f1         ; h = health + amount
-fcmpo   cr0, f1, f2        ; h < 0 ?
+fadds   f1, f0, f1         # h = health + amount
+fcmpo   cr0, f1, f2        # h < 0 ?
 bge-    .lo_ok
-fmr     f1, f2             ;   h = 0
+fmr     f1, f2             #   h = 0
 .lo_ok:
-lfs     f0, 4(r3)          ; a->maxHealth
-fcmpo   cr0, f1, f0        ; h > max ?
+lfs     f0, 4(r3)          # a->maxHealth
+fcmpo   cr0, f1, f0        # h > max ?
 ble-    .hi_ok
-fmr     f1, f0             ;   h = max
+fmr     f1, f0             #   h = max
 .hi_ok:
-stfs    f1, 0(r3)          ; a->health = h
+stfs    f1, 0(r3)          # a->health = h
 blr
 \`\`\`
 
@@ -298,6 +310,13 @@ Two things to internalize. First, \`h < lbl_zero\` compiles to \`fcmpo\` + \`bge
 (the *opposite* condition skips the assignment) — that inversion is normal.
 Second, \`fmr\` is just "this float now equals that one"; a lone \`fmr\` guarded by
 a float compare is almost always a clamp arm.
+
+One trap: the floor here is the *external* \`lbl_zero\`, not the literal \`0.0f\`.
+The original loads the floor from a named label (\`lfs f2, lbl_zero\`); writing
+\`0.0f\` instead makes MWCC synthesize the zero from its own constant pool — a
+different load (and a different register assignment) that looks cleaner but will
+not match. Always use \`lbl_zero\` where the data tells you the constant lived in
+a named symbol.
 
 ## Your task
 
@@ -357,31 +376,36 @@ register and the counter in another; the element fetch is the indexed load
 \`lwzx\`. MWCC emits the classic "jump to the test first" loop layout:
 
 \`\`\`asm
-lwz     r3, 0(r3)          ; state = obj->state
+lwz     r3, 0(r3)          # state = obj->state
 lwz     r0, 0(r3)
-ori     r0, r0, 64         ; state->flags |= 0x40
+ori     r0, r0, 64         # state->flags |= 0x40
 stw     r0, 0(r3)
 b       .test
 .body:
-lwz     r3, 4(r29)         ; upd->eventIds
-lwzx    r0, r3, r31        ; eventIds[i]   (r31 = i*4)
+lwz     r3, 4(r29)         # upd->eventIds
+lwzx    r0, r3, r31        # eventIds[i]   (r31 = i*4)
 cmpwi   r0, 18
 bne-    .next
-li      r3, 115            ; GameBit_Set(0x73, 1)
-...                        ; three helper calls
+li      r3, 115            # GameBit_Set(0x73, 1)
+...                        # three helper calls
 .next:
-addi    r31, r31, 4        ; cursor += 4
-addi    r30, r30, 1        ; i++
+addi    r31, r31, 4        # cursor += 4
+addi    r30, r30, 1        # i++
 .test:
-lwz     r0, 0(r29)         ; upd->eventCount
+lwz     r0, 0(r29)         # upd->eventCount
 cmpw    r30, r0
 blt+    .body
 \`\`\`
 
-The takeaways: \`lwzx rD, rA, rB\` is the array-element load with a *scaled
-cursor* rather than a recomputed \`mulli\`; and the loop condition is checked at
-the **bottom** with the body reached by an initial \`b .test\`. That entry jump is
-how MWCC compiles a \`for\` whose count might be zero.
+The takeaways: \`lwzx rD, rA, rB\` is the array-element load whose index register
+\`r31\` holds the *byte* offset \`i*4\`, not \`i\` itself. From the plain C
+\`upd->eventIds[i]\`, MWCC manufactures a second induction variable — a byte
+cursor it bumps with \`addi r31, r31, 4\` — alongside the real counter
+\`addi r30, r30, 1\`, precisely to avoid a \`mulli\` every iteration. That's why you
+see *two* increments at \`.next\` for a loop with one visible variable. The loop
+condition is then checked at the **bottom** with the body reached by an initial
+\`b .test\`. That entry jump is how MWCC compiles a \`for\` whose count might be
+zero.
 
 ## Your task
 
@@ -461,19 +485,19 @@ into a single fused \`fmadds\`. **(3)** Advancing the angle divides a float and
 converts to int with \`fdivs\` then \`fctiwz\`:
 
 \`\`\`asm
-psq_st  f31, 56(r1), 0, 0  ; save callee float regs (paired-single)
+psq_st  f31, 56(r1), 0, 0  # save callee float regs (paired-single)
 ...
-fdivs   f0, f0, f1         ; lbl_orbitStep / radius
-fctiwz  f0, f0             ; -> integer
+fdivs   f0, f0, f1         # lbl_orbitStep / radius
+fctiwz  f0, f0             # -> integer
 ...
 fmuls   f1, f1, f31
-lfs     f0, 4(r31)         ; anchor->posX
-fmadds  f0, f30, f1, f0    ; posX = radius*sin*cos + anchor->posX
+lfs     f0, 4(r31)         # anchor->posX
+fmadds  f0, f30, f1, f0    # posX = radius*sin*cos + anchor->posX
 stfs    f0, 4(r29)
 ...
 \`\`\`
 
-Two helper-call hygiene notes from the SFA playbook: declare the trig helpers as
+Two helper-call hygiene notes worth keeping in mind: declare the trig helpers as
 \`f32 fn(...)\`, **not** \`double\` — a \`double\` return would inject a stray
 \`frsp\`. And keep the call order exactly as written: each \`fsin/fcos/s32AsFloat\`
 result is consumed before the next call, so the compiler reloads radius between
@@ -486,7 +510,10 @@ add each \`rotStep*\` into the matching \`rot*\`; advance \`orbitAngle\` by
 \`(u16)(lbl_orbitStep / s32AsFloat(orbitRadius))\`; then set
 \`posX = radius*sin(angle)*cos(tilt) + anchor->posX\` and
 \`posZ = radius*cos(angle) + anchor->posZ\`, where \`radius = s32AsFloat(orbitRadius)\`.
-Mirror the call order shown.
+Crucially, **recompute \`radius = s32AsFloat(orbitRadius)\` immediately before each of
+\`posX\` and \`posZ\`**: register pressure across the intervening trig calls means the
+compiler reloads it (you'll see a second \`bl s32AsFloat\` rather than a cached value),
+and caching it in one local will mismatch. Mirror the call order shown.
 `,
     symbol: "asteroid_orbit",
     context: `typedef struct {
@@ -531,6 +558,7 @@ extern u16 lbl_tilt;`,
       "Declare the trig/convert helpers as `f32 fn(...)` so no spurious `frsp` appears.",
       "`a + b * c` written in that order fuses into one `fmadds`.",
       "Recompute `radius = s32AsFloat(...)` before each position component, matching the call sequence.",
+      "The `psq_st`/`psq_l` pairs in the prologue/epilogue are MWCC saving the callee `f30`/`f31` as one 64-bit paired-single write instead of two `stfs` — it's automatic, so don't try to reproduce it in your C.",
     ],
   },
   {
@@ -546,7 +574,9 @@ extern u16 lbl_tilt;`,
 SFA's race objects are driven by a \`phase\` integer and a big \`switch\`. With a
 handful of small, contiguous cases MWCC does **not** build a jump table — it
 emits a *binary search* of \`cmpwi\`/branch, which is one of the most disorienting
-shapes to read back into a clean \`switch\`.
+shapes to read back into a clean \`switch\`. The jump table only appears once the
+case count grows (roughly five or more dense, contiguous labels); below that
+threshold you get the comparison tree, so don't expect a table on every switch.
 
 \`\`\`c
 typedef struct { int phase; f32 timer; } RaceState;
@@ -560,23 +590,23 @@ extern void s16toFloat(f32* t, int frames);
 Watch how the dispatch pivots on \`2\`, then narrows:
 
 \`\`\`asm
-lwz     r0, 0(r31)         ; s->phase
+lwz     r0, 0(r31)         # s->phase
 cmpwi   r0, 2
 beq-    .case2
-bge-    .hi                ; phase >= 3
+bge-    .hi                # phase >= 3
 cmpwi   r0, 0
 beq-    .case0
-bge-    .case1             ; phase == 1
+bge-    .case1             # phase == 1
 b       .default
 .hi:
 cmpwi   r0, 4
 bge-    .default
-b       .case3             ; phase == 3
+b       .case3             # phase == 3
 \`\`\`
 
 The body of each case is ordinary: \`GameBit_Get\`/\`Set\` calls, a \`stw\` to update
-\`phase\`, and in case 2 a \`timerCountDown\` guard. The single most important habit
-here: **don't try to reverse-engineer the comparison tree by hand.** Write the
+\`phase\`, and in case 2 a \`timerCountDown\` guard. A useful habit here: rather than
+reverse-engineering the comparison tree by hand, write the
 plain \`switch\` with the cases in numeric order and a \`default\`, and MWCC
 regenerates this exact pivot structure for you.
 
@@ -671,18 +701,18 @@ on the \`s16\` rotation field; the flag is set with \`ori 0x4000\`:
 
 \`\`\`asm
 lbz     r0, 0(r31)
-cmplwi  r0, 2              ; state == 2 ?  (unsigned, because u8)
+cmplwi  r0, 2              # state == 2 ?  (unsigned, because u8)
 bne-    .nospin
 ...
 lha     r3, 20(r30)
-addi    r0, r3, 256        ; rotX += 0x100
+addi    r0, r3, 256        # rotX += 0x100
 sth     r0, 20(r30)
 .nospin:
 lwz     r3, 0(r5)
 bl      GameBit_Get
 cmpwi   r3, 0
 beq-    .else
-ori     r0, r0, 16384      ; flags |= 0x4000
+ori     r0, r0, 16384      # flags |= 0x4000
 bl      Obj_RemoveFromUpdateList
 b       .end
 .else:
@@ -692,6 +722,10 @@ bne-    .enable
 bl      ObjHits_DisableObject
 ...
 \`\`\`
+
+(The \`rotY = 0\` and \`rotZ = 0\` stores are elided from the excerpt above for
+brevity — only the \`rotX += 0x100\` line is shown — but your solution still needs
+all three.)
 
 The instructive detail: typing \`state\` as \`u8\` is what makes those compares
 \`cmplwi\` instead of \`cmpwi\`. Get the field type wrong and the branch opcode
@@ -783,24 +817,24 @@ The key recognition skill is that a chain of \`&&\`-guards becomes a *cascade of
 \`beq-\`/\`bne-\` to one shared label*, not nested basic blocks:
 
 \`\`\`asm
-lwz     r4, 0(r3)          ; collider
-lwz     r30, 4(r3)         ; def
+lwz     r4, 0(r3)          # collider
+lwz     r30, 4(r3)         # def
 cmplwi  r4, 0
-beq-    .out               ; collider == NULL
-lwz     r31, 0(r4)         ; collider->hitObj
+beq-    .out               # collider == NULL
+lwz     r31, 0(r4)         # collider->hitObj
 cmplwi  r31, 0
-beq-    .out               ; hitObj == NULL
+beq-    .out               # hitObj == NULL
 lha     r0, 12(r31)
-cmpwi   r0, 908            ; hitObj->objType == 0x38c ?
+cmpwi   r0, 908            # hitObj->objType == 0x38c ?
 bne-    .out
-...                        ; the work block
+...                        # the work block
 lwz     r3, 0(r30)
-cmpwi   r3, -1             ; def->hitEvent != -1 ?
+cmpwi   r3, -1             # def->hitEvent != -1 ?
 beq-    .skipbit
 li      r4, 1
 bl      GameBit_Set
 .skipbit:
-lfs     f0, 0(r31)         ; copy position, Y gets lbl_yBias
+lfs     f0, 0(r31)         # copy position, Y gets lbl_yBias
 ...
 .out:
 \`\`\`
@@ -809,6 +843,12 @@ The magic number is a tell: a lone \`cmpwi r0, 908\` against a halfword field is
 type/id check — the kind of constant you'd later name with an enum. And the
 \`!= -1\` sentinel guard producing \`cmpwi r3, -1\` / \`beq-\` is the everyday way SFA
 skips an optional event.
+
+It doesn't matter whether you write all three guards as one flat
+\`collider != NULL && collider->hitObj != NULL && hitObj->objType == 0x38c\` or
+split the type check into its own nested \`if\` (as the solution does to name the
+\`hitObj\` local): both lower to the *same* cascade of \`beq-\`/\`bne-\` to the shared
+exit, so pick whichever reads clearest.
 
 ## Your task
 
@@ -905,15 +945,15 @@ own \`li\` into \`r4..r10\` — a wall of immediates that is the fingerprint of 
 many-argument call:
 
 \`\`\`asm
-lfs     f2, 12(r31)        ; state->triggerDistance
+lfs     f2, 12(r31)        # state->triggerDistance
 lfs     f0, lbl_bias
 lfs     f1, lbl_distScale
-fsubs   f2, f2, f0         ; dist = triggerDistance - lbl_bias
+fsubs   f2, f2, f0         # dist = triggerDistance - lbl_bias
 lfs     f0, lbl_base
 li      r6, 0
 li      r7, 1
 ...
-fmadds  f1, f2, f1, f0     ; dist*scale + base  -> the float arg
+fmadds  f1, f2, f1, f0     # dist*scale + base  -> the float arg
 li      r10, 0
 bl      spawnExplosion
 \`\`\`
@@ -930,7 +970,8 @@ before the call.
 
 With the structs above, write \`mine_resetToIdle\` reproducing the sequence:
 call \`Obj_GetPlayerObject()\`; stop sfx \`0x2e9\` and \`0x2e8\`, play \`0xf1\`; zero
-\`velocityX\`/\`velocityZ\` from \`lbl_zero\`; \`storeZeroToFloatParam(&state->renderTimer)\`
+\`velocityX\`/\`velocityZ\` from \`lbl_zero\` (\`velocityY\` is deliberately **not**
+zeroed in the original — only X and Z); \`storeZeroToFloatParam(&state->renderTimer)\`
 then \`s16toFloat(&state->renderTimer, 10)\`; set \`mode = 0\`; enable hits and mark
 position dirty; zero \`resetTimer\`; \`fn_lightUpdate(obj, lbl_light)\`; spawn the
 explosion with scale \`(triggerDistance - lbl_bias) * lbl_distScale + lbl_base\`
@@ -993,6 +1034,7 @@ extern f32 lbl_zero, lbl_light, lbl_base, lbl_bias, lbl_distScale;`,
     hints: [
       "Load `lbl_zero` into a local `zero` and assign it to both velocity fields so one `lfs` is reused.",
       "Compute `dist = triggerDistance - lbl_bias`, then `dist * lbl_distScale + lbl_base` fuses into `fmadds`.",
+      "`ObjHits_EnableObject` is called *twice* on purpose — once before the explosion and once after; keep both, don't collapse them.",
       "The free takes the field address `&state->effectHandle` and is guarded by `if (state->effectHandle != NULL)`.",
     ],
   },

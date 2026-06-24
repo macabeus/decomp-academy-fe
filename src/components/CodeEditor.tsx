@@ -1,7 +1,11 @@
 "use client";
 
 import Editor, { Monaco } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 import { useRef } from "react";
+import { palette } from "@/lib/theme";
+
+const hx = (c: string) => c.replace("#", "");
 
 export function CodeEditor({
   value,
@@ -15,30 +19,31 @@ export function CodeEditor({
   const onRunRef = useRef(onRun);
   onRunRef.current = onRun;
 
-  function handleMount(editor: any, monaco: Monaco) {
+  function handleMount(ed: editor.IStandaloneCodeEditor, monaco: Monaco) {
+    const s = palette.syntax;
     monaco.editor.defineTheme("decomp", {
       base: "vs-dark",
       inherit: true,
       rules: [
-        { token: "comment", foreground: "6b7686", fontStyle: "italic" },
-        { token: "keyword", foreground: "ff7b72" },
-        { token: "type", foreground: "7ee787" },
-        { token: "number", foreground: "79c0ff" },
-        { token: "string", foreground: "a5d6ff" },
-        { token: "identifier", foreground: "c9d1d9" },
+        { token: "comment", foreground: hx(s.comment), fontStyle: "italic" },
+        { token: "keyword", foreground: hx(s.keyword) },
+        { token: "type", foreground: hx(s.reg) },
+        { token: "number", foreground: hx(s.num) },
+        { token: "string", foreground: hx(s.str) },
+        { token: "identifier", foreground: hx(s.ident) },
       ],
       colors: {
-        "editor.background": "#0a0d12",
+        "editor.background": palette.bg.inset,
         "editor.lineHighlightBackground": "#12171f",
-        "editorLineNumber.foreground": "#3a4757",
-        "editorLineNumber.activeForeground": "#7c93ff",
+        "editorLineNumber.foreground": palette.content.ghost,
+        "editorLineNumber.activeForeground": palette.accent.DEFAULT,
         "editor.selectionBackground": "#2b3960",
-        "editorCursor.foreground": "#7c93ff",
-        "editorIndentGuide.background1": "#1c2530",
+        "editorCursor.foreground": palette.accent.DEFAULT,
+        "editorIndentGuide.background1": palette.line.faint,
       },
     });
     monaco.editor.setTheme("decomp");
-    editor.addCommand(
+    ed.addCommand(
       monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
       () => onRunRef.current?.(),
     );

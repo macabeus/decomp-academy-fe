@@ -16,7 +16,7 @@ mask and clears the rest. When the mask has scattered (non-contiguous) bits,
 MWCC reaches for the immediate-AND instruction **\`andi.\`**:
 
 \`\`\`asm
-andi.  r3, r3, 18    ; r3 = x & 0x12
+andi.  r3, r3, 18    # r3 = x & 0x12
 blr
 \`\`\`
 
@@ -25,8 +25,9 @@ mask the low half-word directly. Second, the trailing **dot** means it also
 updates condition register \`cr0\` as a side effect — MWCC uses \`andi.\` even when
 nobody reads the flags, simply because it's the only immediate AND PowerPC has.
 
-(Watch out: a *contiguous* mask like \`0xF0\` takes a different path — that's a
-later lesson. For now we use \`0x12\`, whose bits don't form a run.)
+(Watch out: a *contiguous* mask like \`0xF0\` takes a different path — covered in
+"Testing Whether a Bit Is Set". For now we use \`0x12\`, whose bits don't form a
+run.)
 
 ## Your task
 
@@ -62,7 +63,7 @@ result, and the others pass through untouched. MWCC emits the immediate form
 **\`ori\`**:
 
 \`\`\`asm
-ori  r3, r3, 18    ; r3 = x | 0x12
+ori  r3, r3, 18    # r3 = x | 0x12
 blr
 \`\`\`
 
@@ -70,6 +71,11 @@ Unlike \`andi.\`, plain \`ori\` has **no dot** and never touches the condition
 register. Notice OR doesn't care whether the mask bits are contiguous: \`ori\`
 handles any 16-bit pattern, so you won't see the rotate tricks that AND
 sometimes triggers.
+
+One limit to keep in mind: \`ori\` only carries a 16-bit immediate. A constant
+wider than 16 bits (say \`x | 0x12345\`) splits into two instructions — \`oris\`
+for the high half-word, then \`ori\` for the low — so don't be surprised to see a
+pair when the mask outgrows the bottom 16 bits.
 
 ## Your task
 
@@ -104,7 +110,7 @@ inverts the corresponding bit of the value, a 0 leaves it alone. The immediate
 instruction is **\`xori\`**:
 
 \`\`\`asm
-xori  r3, r3, 64    ; r3 = x ^ 0x40
+xori  r3, r3, 64    # r3 = x ^ 0x40
 blr
 \`\`\`
 
@@ -145,7 +151,7 @@ Game code is full of flag words where each bit means something — *visible*,
 written with the compound assignment \`x |= mask\`:
 
 \`\`\`asm
-ori  r3, r3, 64    ; x |= 0x40
+ori  r3, r3, 64    # x |= 0x40
 blr
 \`\`\`
 
@@ -172,6 +178,7 @@ Write \`set_flag\`, taking a \`u32 x\`, performing \`x |= 0x40\`, and returning 
       "Setting a flag means OR-ing in its bit and keeping the rest.",
       "`x |= 0x40` is the same as `x = x | 0x40` → one `ori`.",
       "0x40 is a single bit (bit 6), so a power-of-two immediate appears.",
+      "In real code a lone `ori` with a power-of-two immediate usually means the source used a named constant (`#define SOME_FLAG 0x40`); writing the constant compiles identically.",
     ],
   },
   {
@@ -189,20 +196,25 @@ To **clear** a single flag you AND with the *inverse* mask. The natural C is
 what actually comes out:
 
 \`\`\`asm
-rlwinm  r3, r3, 0, 25, 23    ; x & ~0x80
+rlwinm  r3, r3, 0, 25, 23    # x & ~0x80
 blr
 \`\`\`
 
 That's **\`rlwinm\`** (rotate-left-word-immediate-then-AND-with-mask), *not*
 \`andi.\`. The reason is decisive: \`~0x80\` is \`0xFFFFFF7F\`, a 32-bit constant.
 \`andi.\` only has a **16-bit** immediate and could never express the high bits, so
-MWCC uses \`rlwinm\` with a rotate of 0 and a mask spanning everything except
-bit 24. The mask \`[25,23]\` *wraps around* the word — that's how it covers all
-bits but the one being cleared.
+MWCC uses \`rlwinm\` with a rotate of 0 and a mask that spans everything except the
+one bit being cleared. To derive that mask yourself: \`~0x80\` is \`0xFFFFFF7F\`, so
+the only cleared bit is the one in \`0x80\`. PowerPC numbers bits from the MSB
+(bit 0 = \`0x80000000\`, bit 31 = \`0x1\`), which puts \`0x80\` at **bit 24**. The mask
+\`[MB,ME] = [25,23]\` therefore *wraps around* the word, covering bits 25-31 and
+0-23 — everything except bit 24.
 
 **This is a key MWCC idiom.** Write \`x &= ~0x80\` and you get \`rlwinm\`. If you had
-instead written the equivalent-looking \`x &= 0xFF7F\` you'd get an \`andi.\` and
-**fail to match**. The source you choose decides the instruction.
+instead written \`x &= 0xFF7F\`, you'd get an \`andi.\` — but note that isn't a
+stylistic alternative: \`0xFF7F\` is \`0x0000FF7F\`, which also zeroes every bit above
+bit 15, unlike \`~0x80\` (\`0xFFFFFF7F\`). So it's both the wrong instruction *and* the
+wrong result — the source you write decides the instruction.
 
 ## Your task
 
@@ -221,7 +233,7 @@ Write \`clear_flag\`, taking a \`u32 x\`, performing \`x &= ~0x80\`, and returni
     hints: [
       "Clearing a bit ANDs with the complement: `x &= ~0x80`.",
       "`~0x80` is a full 32-bit constant, too wide for `andi.` — expect `rlwinm`.",
-      "Do NOT write `x &= 0xFF7F`; that produces `andi.` and won't match.",
+      "Avoid `x &= 0xFF7F` here — it produces `andi.`, which won't match the target.",
     ],
   },
   {
@@ -239,15 +251,17 @@ To **test** a flag you AND the value with that single bit and return the result
 bit, and MWCC isolates it with a single **\`rlwinm\`**:
 
 \`\`\`asm
-rlwinm  r3, r3, 0, 24, 24    ; x & 0x80
+rlwinm  r3, r3, 0, 24, 24    # x & 0x80
 blr
 \`\`\`
 
 Here the rotate is again 0 and the mask is exactly **one** bit wide: \`[24,24]\`
-selects bit 24, which is \`0x80\`. This is the mirror image of the AND-mask
-lesson — a *contiguous* mask (even a one-bit one) goes through \`rlwinm\`, while a
-*scattered* mask like \`0x12\` went through \`andi.\`. Contiguity, not size, is what
-steers AND between the two instructions.
+selects bit 24, which is \`0x80\`. (PPC counts bits from the MSB: bit 0 is
+\`0x80000000\`, bit 24 is \`0x80\`, bit 31 is \`0x1\` — so the value \`0x80\` lands at
+bit number 24.) This is the mirror image of the AND-mask lesson — a *contiguous*
+mask (even a one-bit one) goes through \`rlwinm\`, while a *scattered* mask like
+\`0x12\` went through \`andi.\`. Contiguity, not size, is what steers AND between the
+two instructions.
 
 ## Your task
 
@@ -283,14 +297,15 @@ with zeros. PowerPC has no dedicated immediate left-shift; instead MWCC uses
 \`rlwinm\` and the assembler prints the friendly **\`slwi\`** extended mnemonic:
 
 \`\`\`asm
-slwi  r3, r3, 4    ; x << 4
+slwi  r3, r3, 4    # x << 4
 blr
 \`\`\`
 
 Under the hood \`slwi r3, r3, 4\` *is* \`rlwinm r3, r3, 4, 0, 27\` — rotate left by 4
 and keep the top 28 bits. You don't have to decode that by hand; recognizing the
-\`slwi\` mnemonic as "left shift by a constant" is enough. (Recall from arithmetic
-that \`x << n\` and \`x * 2^n\` are the same instruction.)
+\`slwi\` mnemonic as "left shift by a constant" is enough. (As a mental check,
+\`x << n\` equals \`x * 2^n\` arithmetically — but always write the shift in your
+source so MWCC emits \`slwi\` rather than a multiply instruction.)
 
 ## Your task
 
@@ -325,7 +340,7 @@ low end and the high end is filled with zeros. MWCC emits \`rlwinm\`, printed as
 the extended mnemonic **\`srwi\`**:
 
 \`\`\`asm
-srwi  r3, r3, 3    ; (u32)x >> 3
+srwi  r3, r3, 3    # (u32)x >> 3
 blr
 \`\`\`
 
@@ -370,15 +385,16 @@ needs a dedicated instruction, **\`srawi\`** (shift right algebraic word
 immediate):
 
 \`\`\`asm
-srawi  r3, r3, 3    ; (s32)x >> 3
+srawi  r3, r3, 3    # (s32)x >> 3
 blr
 \`\`\`
 
 Notice this is a *real* opcode, not an \`rlwinm\` mnemonic — sign extension can't be
 done with a rotate-and-mask. The signed/unsigned distinction is invisible in the
 C operator (\`>>\` either way) and decided **entirely by the operand's type**:
-\`srwi\` for \`u32\`, \`srawi\` for \`s32\`. When the shift amount is a *variable* rather
-than a constant, the matching instruction is \`sraw\` (no trailing \`i\`).
+\`srwi\` for \`u32\`, \`srawi\` for \`s32\`. (When the shift *amount* is a variable
+instead of a constant, you get the register-form \`sraw\`/\`srw\`/\`slw\` — the next
+lesson.)
 
 ## Your task
 
@@ -400,6 +416,50 @@ Write \`asr3\`, taking an \`s32 x\` and returning \`x >> 3\`.
     ],
   },
   {
+    id: "bitwise-shift-variable",
+    chapter: "bitwise",
+    order: 9.5,
+    title: "Shifting by a Variable Amount",
+    difficulty: 3,
+    concepts: ["bitwise", "shifts", "variable-shift", "slw"],
+    brief: `
+# When the shift count is a register
+
+Every shift so far used a *constant* amount, which let MWCC fold it into an
+\`rlwinm\` (\`slwi\`/\`srwi\`) or an \`srawi\`. When the amount is a **runtime value**,
+there's nothing to fold — PowerPC has dedicated register-shift opcodes that take
+the count in a second register:
+
+\`\`\`asm
+slw  r3, r3, r4    # x << n, shift amount in r4
+blr
+\`\`\`
+
+The family mirrors the constant case by sign: **\`slw\`** (shift left), **\`srw\`**
+(shift right, logical — for unsigned), and **\`sraw\`** (shift right algebraic —
+for signed). Same signed/unsigned rule as before; the only difference is the
+count lives in a register instead of the instruction. Seeing \`slw\`/\`srw\`/\`sraw\`
+(no trailing \`i\`) tells you the shift distance was a variable in the original C.
+
+## Your task
+
+Write \`shl_var\`, taking an \`int x\` and an \`int n\`, returning \`x << n\`.
+`,
+    symbol: "shl_var",
+    starter: `int shl_var(int x, int n) {
+    return 0;
+}
+`,
+    solution: `int shl_var(int x, int n) {
+    return x << n;
+}
+`,
+    hints: [
+      "A runtime shift amount can't fold into `rlwinm` — it uses the register-form shift.",
+      "`x << n` with `n` in a register compiles to `slw r3, r3, r4`.",
+    ],
+  },
+  {
     id: "bitwise-extract-field",
     chapter: "bitwise",
     order: 10,
@@ -415,15 +475,16 @@ that reads like two operations, but \`rlwinm\` does **rotate and mask together**
 MWCC fuses the whole thing into one instruction:
 
 \`\`\`asm
-rlwinm  r3, r3, 28, 28, 31    ; (x >> 4) & 0xF
+rlwinm  r3, r3, 28, 28, 31    # (x >> 4) & 0xF
 blr
 \`\`\`
 
 Read the operands: rotate left by **28** (which is the same as rotating *right* by
-4, moving bits 4-7 down to bits 0-3), then keep mask \`[28,31]\` — the bottom 4
-bits. One \`rlwinm\` expresses the entire \`>>\`-then-\`&\` field extract. This is the
-single most important \`rlwinm\` pattern to recognize: whenever you see a rotate
-amount paired with a low-bit mask, read it back as
+4, moving bits 4-7 down to bits 0-3). Concretely, \`0x000000F0\` rotated left by 28
+becomes \`0x0000000F\` — the nibble at bits 4-7 lands at bits 0-3. Then keep mask
+\`[28,31]\` — the bottom 4 bits. One \`rlwinm\` expresses the entire \`>>\`-then-\`&\`
+field extract. This is one of the most useful \`rlwinm\` patterns to recognize:
+whenever you see a rotate amount paired with a low-bit mask, read it back as
 \`(x >> shift) & ((1 << width) - 1)\`.
 
 ## Your task

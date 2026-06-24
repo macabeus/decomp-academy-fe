@@ -35,7 +35,10 @@ Write \`mul2\`, returning \`a * b\`.
     return a * b;
 }
 `,
-    hints: ["Variable multiply uses `mullw`.", "`a * b` → `mullw r3, r3, r4`."],
+    hints: [
+      "Multiplying two variables (not a constant) maps to one dedicated instruction.",
+      "You only write C here — return the product and let the compiler emit the multiply.",
+    ],
   },
   {
     id: "arithmetic-mul-const-pow2",
@@ -53,7 +56,7 @@ PowerPC is the \`rlwinm\` rotate instruction (MWCC prints it via the \`slwi\`
 extended mnemonic):
 
 \`\`\`asm
-slwi r3, r3, 3    ; x << 3  == x * 8
+slwi r3, r3, 3    # x << 3  == x * 8
 blr
 \`\`\`
 
@@ -76,7 +79,7 @@ Write \`times8\`, returning \`x * 8\`.
 `,
     hints: [
       "8 is a power of two, so this is a shift, not a multiply.",
-      "`x * 8` becomes `slwi r3, r3, 3` (shift left by 3).",
+      "Shifting left by 3 is the same as ×8 — write the multiply and the compiler reduces it for you.",
     ],
   },
   {
@@ -113,7 +116,10 @@ Write \`times12\`, returning \`x * 12\`.
     return x * 12;
 }
 `,
-    hints: ["Constant multiply can use `mulli`.", "`x * 12` → `mulli r3, r3, 12`."],
+    hints: [
+      "A constant multiply that isn't a power of two can use `mulli`.",
+      "Write the multiply in C; the constant folds into a single immediate-multiply.",
+    ],
   },
   {
     id: "arithmetic-div-pow2-unsigned",
@@ -129,15 +135,20 @@ For an **unsigned** value, dividing by a power of two is a logical right shift �
 \`srwi\`, again an extended form of \`rlwinm\`:
 
 \`\`\`asm
-srwi r3, r3, 2    ; x >> 2 == x / 4 (unsigned)
+srwi r3, r3, 2    # x >> 2 == x / 4 (unsigned)
 blr
 \`\`\`
 
 No rounding correction is needed because unsigned division truncates toward zero
 and the high bits are simply discarded. **Signed** division by a power of two is
-much trickier (it needs to round toward zero for negatives) — we'll get there.
+much trickier — it has to round toward zero for negatives, so MWCC emits a
+\`srawi\`/\`addze\` correction pair rather than a plain shift, which the next lesson
+walks through.
 
 ## Your task
+
+(\`u32\` is the GameCube SDK's typedef for \`unsigned int\` — it's pre-declared for
+you here, not a built-in C type.)
 
 Write \`udiv4\` taking a \`u32 x\` and returning \`x / 4\`.
 `,
@@ -152,7 +163,53 @@ Write \`udiv4\` taking a \`u32 x\` and returning \`x / 4\`.
 `,
     hints: [
       "Unsigned divide by 4 is a logical right shift by 2.",
-      "`x / 4` on a u32 becomes `srwi r3, r3, 2`.",
+      "Since the type is unsigned, it's a logical right shift with no rounding correction.",
+    ],
+  },
+  {
+    id: "arithmetic-div-pow2-signed",
+    chapter: "arithmetic",
+    order: 4.5,
+    title: "Signed Divide by a Power of Two",
+    difficulty: 3,
+    concepts: ["strength-reduction", "shifts", "signed", "rounding"],
+    brief: `
+# Signed division rounds, so it needs a fixup
+
+The unsigned case was a clean \`srwi\`. Signed division by a power of two is
+trickier: C rounds *toward zero*, but an arithmetic shift rounds *toward
+negative infinity*. For a negative dividend those differ — \`-1 / 4\` is \`0\` in C,
+yet \`-1 >> 2\` is \`-1\` — so MWCC adds a correction:
+
+\`\`\`asm
+srawi r0, r3, 2    # x >> 2, biased the wrong way for negatives
+addze r3, r0       # add the carry back: +1 only when x was negative
+blr
+\`\`\`
+
+\`srawi\` sets the carry bit when it shifts a 1 out of a negative value; \`addze\`
+("add to zero, extended with carry") then nudges the quotient back toward zero
+exactly when needed. A positive dividend produces no carry, so \`addze\` adds
+nothing. This **\`srawi\` + \`addze\`** pair is the unmistakable signature of a
+signed divide by a power of two — distinct from the lone \`srwi\` of the unsigned
+case.
+
+## Your task
+
+Write \`sdiv4\`, taking a signed \`int x\` and returning \`x / 4\`.
+`,
+    symbol: "sdiv4",
+    starter: `int sdiv4(int x) {
+    return 0;
+}
+`,
+    solution: `int sdiv4(int x) {
+    return x / 4;
+}
+`,
+    hints: [
+      "Signed divide by a power of two is an arithmetic shift plus a rounding fixup.",
+      "Look for `srawi` followed by `addze` — the carry corrects the rounding for negatives.",
     ],
   },
   {
@@ -190,7 +247,10 @@ Write \`div2\`, returning \`a / b\` for signed \`int\`s.
     return a / b;
 }
 `,
-    hints: ["Variable signed divide uses `divw`.", "`a / b` → `divw r3, r3, r4`."],
+    hints: [
+      "Dividing by a variable can't be reduced to shifts — it's a hardware divide.",
+      "The signed `int` type selects `divw` (an unsigned divide would use `divwu`).",
+    ],
   },
   {
     id: "arithmetic-mod",
@@ -207,11 +267,15 @@ PowerPC has no remainder instruction. \`a % b\` is computed as
 together:
 
 \`\`\`asm
-divw  r5, r3, r4   ; q = a / b
-mullw r5, r5, r4   ; q * b
-subf  r3, r5, r3   ; a - q*b
+divw  r0, r3, r4   # q = a / b
+mullw r0, r0, r4   # q * b
+subf  r3, r0, r3   # a - q*b
 blr
 \`\`\`
+
+Watch the operand order on \`subf\`: \`subf rD, rA, rB\` computes \`rD = rB - rA\`,
+the *reverse* of how the mnemonic reads. Here \`subf r3, r0, r3\` is \`r3 - r0\`,
+i.e. \`a - q*b\`. That backwards subtraction is a classic PowerPC gotcha.
 
 Spotting this divide → \`mullw\` → \`subf\` trio in the wild instantly tells you the
 original C was a \`%\` operator.
@@ -235,7 +299,7 @@ Write \`mod2\`, returning \`a % b\` for signed \`int\`s.
     ],
   },
   {
-    id: "arithmetic-abs",
+    id: "arithmetic-add3",
     chapter: "arithmetic",
     order: 7,
     title: "Sum of Three",
@@ -249,11 +313,16 @@ Write \`mod2\`, returning \`a % b\` for signed \`int\`s.
 register, sums \`b + c\` first, then folds \`a\` back in:
 
 \`\`\`asm
-mr   r0, r3        ; save a into scratch r0
-add  r3, r4, r5    ; b + c first
-add  r3, r0, r3    ; + a
+mr   r0, r3        # save a into scratch r0
+add  r3, r4, r5    # b + c first
+add  r3, r0, r3    # + a
 blr
 \`\`\`
+
+\`r0\` is a volatile scratch register MWCC grabs freely inside a function. (It has
+one architectural quirk for later: when used as a base in a load/store address,
+\`r0\` reads as the literal value 0 instead of its contents — so it can't be an
+addressing base.)
 
 The result is identical, but the instruction order is the optimizer's, not the
 source's. Predicting these small reorderings is exactly what matching trains.
@@ -273,7 +342,7 @@ Write \`add3\`, returning \`a + b + c\`.
 `,
     hints: [
       "Three arguments arrive in r3, r4, r5.",
-      "Don't expect literal left-to-right accumulation — the compiler sums b+c first.",
+      "The compiler may not accumulate left-to-right; it often sums b+c first.",
       "Write `a + b + c` and observe the register choices.",
     ],
   },
@@ -291,8 +360,8 @@ Real code combines these tricks. \`x * 4 + 1\` mixes a strength-reduced multiply
 with an immediate add. MWCC may even fuse the shift-and-add cleverly:
 
 \`\`\`asm
-slwi r3, r3, 2    ; x * 4
-addi r3, r3, 1    ; + 1
+slwi r3, r3, 2    # x * 4
+addi r3, r3, 1    # + 1
 blr
 \`\`\`
 

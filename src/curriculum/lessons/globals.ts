@@ -15,10 +15,13 @@ A 32-bit GameCube address won't fit in an instruction, so the compiler can't jus
 \`lwz\` a global by its absolute address. MWCC's answer is the **Small Data Area
 (SDA)**: at startup, register **\`r13\`** is pointed at a fixed base, and frequently
 used globals are gathered into a window reachable by a signed 16-bit offset from
-it. Reading one is a single load with that offset baked in by the linker:
+it. That window is only 64 KB wide (±32 KB from the base), so on a large game
+some globals spill out and have to be reached the longer way (the \`@ha\`/\`@l\`
+addressing a few lessons from now). For anything that fits, reading one is a
+single load with that offset baked in by the linker:
 
 \`\`\`asm
-lwz   r3, g@sda21(r13)   ; load global g, r13-relative
+lwz   r3, g@sda21(r13)   # load global g, r13-relative
 blr
 \`\`\`
 \`\`\`
@@ -66,7 +69,7 @@ register (here the argument \`v\` in \`r3\`), and a single **\`stw\`** stores it
 same \`@sda21\` offset from \`r13\`:
 
 \`\`\`asm
-stw   r3, g@sda21(r13)   ; g = v
+stw   r3, g@sda21(r13)   # g = v
 blr
 \`\`\`
 \`\`\`
@@ -86,7 +89,7 @@ assigns it to \`gScore\` (no return value).
     symbol: "setScore",
     context: `extern int gScore;`,
     starter: `void setScore(int v) {
-    // store v into the global
+    // hint: which opcode does a write use?
 }
 `,
     solution: `void setScore(int v) {
@@ -113,9 +116,9 @@ The \`@sda21\` addressing doesn't change with the width of the global — but th
 \`R_PPC_EMB_SDA21\`; the instruction tells you the declared type:
 
 \`\`\`asm
-lbz   r3, g@sda21(r13)   ; u8  global  (load byte, zero-extend)
-lhz   r3, g@sda21(r13)   ; u16 global  (load halfword, zero-extend)
-lha   r3, g@sda21(r13)   ; s16 global  (load halfword, sign-extend)
+lbz   r3, g@sda21(r13)   # u8  global  (load byte, zero-extend)
+lhz   r3, g@sda21(r13)   # u16 global  (load halfword, zero-extend)
+lha   r3, g@sda21(r13)   # s16 global  (load halfword, sign-extend)
 \`\`\`
 
 For a \`u8\` global you get **\`lbz\`** (load byte zero), for \`u16\` **\`lhz\`** (load
@@ -123,6 +126,11 @@ halfword zero), and a *signed* \`s16\` switches to **\`lha\`** (load halfword
 algebraic = sign-extend). This is how you recover a global's type from
 disassembly: the displacement says "it's a global," the opcode says "this wide,
 this signedness." A byte global read with \`lbz\` was a \`u8\`, not an \`int\`.
+
+Writes mirror this exactly — a \`u8\` store is \`stb rX, sym@sda21(r13)\` and a
+16-bit store is \`sth rX, sym@sda21(r13)\` (there's no signed/unsigned distinction
+on stores; only the width matters). That \`stb\`/\`sth\` is just the narrow-width
+sibling of the \`stw\` from the previous lesson.
 
 ## Your task
 
@@ -156,12 +164,16 @@ this signedness." A byte global read with \`lbz\` was a \`u8\`, not an \`int\`.
 
 Floating-point globals live in the SDA too, but conceptually in a *second*
 small-data area. The GameCube ABI reserves **two** small-data base registers:
-\`r13\` for read/write data (\`.sdata\`/\`.sbss\`) and **\`r2\`** for read-only small data
-(\`.sdata2\`, where constants and many float globals sit). A float global is read
-with **\`lfs\`** (load floating single) straight into an FPR:
+\`r13\` for the read/write sections (\`.sdata\`/\`.sbss\`) and **\`r2\`** for the
+read-only ones (\`.sdata2\`, where const data and float constants sit). Don't read
+\`r2\` as "the immutable global" register, though: MWCC parks float globals in
+\`.sdata2\` *by default*, so even a writable \`f32\` like \`gGravity\` here is reached
+through \`r2\`, while a plain \`int\` global goes to \`.sdata\` and uses \`r13\`. The
+base register tracks the *section the compiler chose*, not the C \`const\`-ness. A
+float global is read with **\`lfs\`** (load floating single) straight into an FPR:
 
 \`\`\`asm
-lfs   f1, fg@sda21(r2)   ; load global float fg into f1
+lfs   f1, fg@sda21(r2)   # load global float fg into f1
 blr
 \`\`\`
 \`\`\`
@@ -190,7 +202,7 @@ pool — just one load.
 `,
     hints: [
       "A global f32 is loaded with `lfs` into f1, addressed in the small-data area.",
-      "`return gGravity;` compiles to `lfs f1, gGravity@sda21` — relocation R_PPC_EMB_SDA21.",
+      "`return gGravity;` compiles to `lfs f1, gGravity@sda21(r2)` — relocation R_PPC_EMB_SDA21.",
     ],
   },
   {
@@ -209,8 +221,8 @@ and loads it with \`lfs\`, just like a named global — except the symbol is a
 compiler-generated label such as \`@5\` rather than a name you wrote:
 
 \`\`\`asm
-lfs   f0, @5@sda21(r2)   ; load the pooled constant 0.5f
-fmuls f1, f0, f1         ; x * 0.5f
+lfs   f0, @5@sda21(r2)   # load the pooled constant 0.5f
+fmuls f1, f0, f1         # x * 0.5f
 blr
 \`\`\`
 \`\`\`
@@ -226,7 +238,11 @@ constant in the expression.
 ## Your task
 
 Write \`scaleHalf\`, taking an \`f32 x\` and returning \`x * 0.5f\`. Use the \`0.5f\`
-literal (note the \`f\` suffix to keep it single precision).
+literal — the \`f\` suffix matters. Write \`0.5\` (a *double*) and MWCC promotes
+\`x\` to double, multiplies in double precision, and converts back: you get
+\`lfd\`/\`fmul\`/\`frsp\` instead of the \`lfs\`/\`fmuls\` shown above, and the match
+fails. Forgetting the suffix is one of the most common real-world causes of a
+float mismatch.
 `,
     symbol: "scaleHalf",
     starter: `f32 scaleHalf(f32 x) {
@@ -255,12 +271,15 @@ literal (note the \`f\` suffix to keep it single precision).
 Returning the *address* of a global (rather than its value) splits into two cases.
 
 **A small-data scalar** has its address sitting one \`r13\`/\`r2\` offset away, so MWCC
-just adds that offset into a register — encoded with the SDA21 relocation (the
-linker turns it into the real \`addi rX, r13, sym\`); unlinked, the disassembler
-shows it as \`li r3, 0\` with the reloc attached:
+just adds that offset into a register — encoded with the SDA21 relocation. At link
+time it becomes a real \`addi r3, r13, g\`. Unlinked, the offset and base register
+aren't filled in yet, so the disassembler prints the bare \`addi r3, r3, 0\`
+(equivalently shown as \`li r3, 0\`) with the reloc attached — there's no
+\`g@sda21(r13)\` text in the raw object; that operand only exists once the linker
+resolves it:
 
 \`\`\`asm
-li    r3, g@sda21(r13)   ; r3 = &g  (small-data scalar)
+addi  r3, r13, g@sda21   # r3 = &g  (small-data scalar# "li r3, 0" + reloc unlinked)
 blr
 \`\`\`
 \`\`\`
@@ -272,8 +291,8 @@ such as an array — needs its full 32-bit address built from two halves with th
 classic **high-adjusted / low** pair:
 
 \`\`\`asm
-lis   r3, tbl@ha        ; r3 = high 16 bits (adjusted for sign of the low half)
-addi  r3, r3, tbl@l     ; add the low 16 bits → full &tbl
+lis   r3, tbl@ha        # r3 = high 16 bits (adjusted for sign of the low half)
+addi  r3, r3, tbl@l     # add the low 16 bits → full &tbl
 blr
 \`\`\`
 \`\`\`
@@ -322,10 +341,10 @@ aren't small-data), the index \`i\` is multiplied by the element size, and a sin
 indexed load (\`lwzx\` — "load word zero, indexed") fetches the element:
 
 \`\`\`asm
-lis   r4, tbl@ha        ; high half of &tbl
-slwi  r0, r3, 2         ; r0 = i * 4   (sizeof(int) == 4)
-addi  r3, r4, tbl@l     ; r3 = &tbl  (add low half)
-lwzx  r3, r3, r0        ; r3 = *(&tbl + i*4) = tbl[i]
+lis   r4, tbl@ha        # high half of &tbl
+slwi  r0, r3, 2         # r0 = i * 4   (sizeof(int) == 4)
+addi  r3, r4, tbl@l     # r3 = &tbl  (add low half)
+lwzx  r3, r3, r0        # r3 = *(&tbl + i*4) = tbl[i]
 blr
 \`\`\`
 \`\`\`
@@ -337,6 +356,12 @@ R_PPC_ADDR16_LO   tbl
 \`int\` element size. \`lwzx rD, rA, rB\` loads from \`rA + rB\` — base plus the scaled
 offset, no displacement needed. The two \`R_PPC_ADDR16\` relocations confirm it's a
 global array rather than a small-data scalar.
+
+Notice the \`slwi\` lands *between* the \`lis\` and the \`addi\` even though it has
+nothing to do with building the base address. That's instruction scheduling, not
+meaning: the index scaling is independent of the address pair, so MWCC slots it
+into the gap to hide the \`lis\` latency. Order like this is normal in real
+CodeWarrior output — don't read it as significant.
 
 ## Your task
 
@@ -368,25 +393,25 @@ returning \`gScores[i]\`.
     brief: `
 # Many globals in one function
 
-Real engine code reads and writes a fistful of globals per function — this is the
-shape of \`worldplanet_updateMapLighting\` and its cousins in Star Fox Adventures.
+Real engine code reads and writes a fistful of globals per function. The assembly
+below is drawn from \`worldplanet_updateMapLighting\` in Star Fox Adventures.
 Every access is its own \`@sda21\` load or store; the types pick the opcodes. Here a
 counter is bumped, a float is copied, and the product of two floats is truncated
 into a byte global:
 
 \`\`\`asm
 stwu  r1, -16(r1)
-lfs   f1, gSrcA@sda21(r2)     ; read float global gSrcA
-lfs   f0, gSrcB@sda21(r2)     ; read float global gSrcB
-lwz   r3, gCounter@sda21(r13) ; read int global gCounter
-fmuls f0, f1, f0             ; gSrcA * gSrcB
-stfs  f1, gLerpT@sda21(r2)    ; gLerpT = gSrcA
-addi  r0, r3, 1              ; gCounter + 1
-stw   r0, gCounter@sda21(r13) ; store it back
-fctiwz f0, f0               ; (s32) of the product
+lfs   f1, gSrcA@sda21(r2)     # read float global gSrcA
+lfs   f0, gSrcB@sda21(r2)     # read float global gSrcB
+lwz   r3, gCounter@sda21(r13) # read int global gCounter
+fmuls f0, f1, f0             # gSrcA * gSrcB
+stfs  f1, gLerpT@sda21(r2)    # gLerpT = gSrcA  (fmuls wrote f0, so f1 still holds gSrcA)
+addi  r0, r3, 1              # gCounter + 1
+stw   r0, gCounter@sda21(r13) # store it back
+fctiwz f0, f0               # (s32) of the product
 stfd  f0, 8(r1)
-lwz   r0, 12(r1)            ; move the low word FPR->GPR via the stack
-stb   r0, gColor@sda21(r13)   ; gColor = (u8) result
+lwz   r0, 12(r1)            # move the low word FPR->GPR via the stack
+stb   r0, gColor@sda21(r13)   # gColor = (u8) result
 addi  r1, r1, 16
 blr
 \`\`\`

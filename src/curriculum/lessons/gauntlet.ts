@@ -16,7 +16,7 @@ const stub = (sig: string) => `${sig} {\n    // your code here\n    return 0;\n}
 
 // ── Family 1: load an integer constant ──────────────────────────────────────
 // Small constants fit in `li`; large ones need `lis`+`ori` (or `lis` alone).
-const CONSTANTS = [0, 1, 7, 100, 255, 256, 1000, 32767, -1, -50, -1000, 0x8000, 0x10000, 0x12340000, 0x12345678];
+const CONSTANTS = [0, 1, 7, 100, 255, 256, 1000, 32767, -1, -50, -1000, -32768, 0x8000, 0x10000, 0x12340000, 0x12345678];
 for (const k of CONSTANTS) {
   const big = k > 32767 || k < -32768;
   push({
@@ -132,6 +132,29 @@ Write \`shr\` on a \`u32\`, returning \`x >> ${n}\`.
     hints: [`Unsigned right shift by ${n} is \`srwi r3, r3, ${n}\`.`, `Write \`x >> ${n}\`.`],
   });
 }
+for (let n = 1; n <= 16; n++) {
+  push({
+    id: `gauntlet-sar-${n}`,
+    title: `Signed shift right by ${n}`,
+    difficulty: 2,
+    concepts: ["shifts", "signed", "srawi"],
+    brief: `
+# Arithmetic shift right by ${n}
+
+On a *signed* value, \`x >> ${n}\` preserves the sign bit, so MWCC uses the
+algebraic shift **\`srawi r3, r3, ${n}\`** — a real opcode, not an \`rlwinm\`
+mnemonic. (An unsigned \`>>\` would zero-fill with \`srwi\` instead; the type, not
+the operator, decides.)
+
+## Your task
+Write \`sar\` on an \`s32\`, returning \`x >> ${n}\`.
+`,
+    symbol: "sar",
+    starter: stub("s32 sar(s32 x)"),
+    solution: `s32 sar(s32 x) {\n    return x >> ${n};\n}\n`,
+    hints: [`Signed right shift by ${n} is \`srawi r3, r3, ${n}\`.`, `Write \`x >> ${n}\` on an s32.`],
+  });
+}
 
 // ── Family 4: single-bit set / clear / test ─────────────────────────────────
 for (let bit = 0; bit < 16; bit++) {
@@ -174,8 +197,31 @@ Write \`clrb\` on a \`u32\`, returning \`x\` with bit ${bit} cleared.
     starter: stub("u32 clrb(u32 x)"),
     solution: `u32 clrb(u32 x) {\n    return x & ~0x${mask.toString(16)};\n}\n`,
     hints: [
-      `Clear with \`x &= ~mask\`, not \`x &= 0x...\` — the \`~\` is what yields rlwinm.`,
+      `Clear with \`x &= ~mask\` — the complement operator \`~\` is what yields the efficient rlwinm instruction.`,
       `Use \`x & ~0x${mask.toString(16)}\`.`,
+    ],
+  });
+  push({
+    id: `gauntlet-testbit-${bit}`,
+    title: `Test bit ${bit}`,
+    difficulty: 2,
+    concepts: ["bitwise", "rlwinm"],
+    brief: `
+# Test bit ${bit}
+
+Extracting one bit as a 0/1 value is \`(x >> ${bit}) & 1\`. MWCC folds the shift
+and the mask into a single **\`rlwinm\`** that rotates bit ${bit} down to the
+bottom and keeps only it (bit 0 collapses to a \`clrlwi\`).
+
+## Your task
+Write \`testb\` on a \`u32\`, returning bit ${bit} of \`x\` as 0 or 1.
+`,
+    symbol: "testb",
+    starter: stub("u32 testb(u32 x)"),
+    solution: `u32 testb(u32 x) {\n    return (x >> ${bit}) & 1;\n}\n`,
+    hints: [
+      `Isolate the bit with \`(x >> ${bit}) & 1\`.`,
+      `It folds to a single \`rlwinm\` that drops bit ${bit} to the bottom.`,
     ],
   });
 }
@@ -210,10 +256,19 @@ for (const { t, load } of FIELD_TYPES) {
 A typed field access compiles to a single load with the field's displacement.
 A \`${t}\` field reads with **\`${load}\`**${
         off === 0 ? " at displacement 0" : ` at displacement ${off}`
-      }. The *type* picks the load opcode; the *offset* picks the displacement.
+      }. The *type* picks the load opcode; the *offset* picks the displacement.${
+        t === "s8"
+          ? `
+
+Note that \`s8\` reads with \`lbz\` (the same byte-load as \`u8\`), *not* a
+sign-extending load. MWCC returns the byte directly in r3 without extending it
+in the callee — the ABI only requires the low 8 bits of the return register to
+hold a valid \`s8\`.`
+          : ""
+      }
 
 \`\`\`c
-typedef struct { u8 pad[${off}]; ${t} field; } S;
+${decl}
 \`\`\`
 
 ## Your task
@@ -250,7 +305,14 @@ for (const { t, loadx } of ARRAY_TYPES) {
 # Indexed load from a \`${t}\` array
 
 \`a[i]\` scales the index by \`sizeof(${t})\` and uses an indexed load: **${loadx}**.
-The element size drives the shift before the indexed-load.
+Unlike a constant displacement, a *variable* index must be scaled at runtime${
+      t === "u8"
+        ? `. For a 1-byte element the scale is 1, so no shift is needed — just the
+indexed load.`
+        : `: MWCC first emits a \`slwi\` to multiply the index by the element size,
+then the indexed load. So expect two instructions, e.g. \`slwi r0, r4, N\`
+followed by the load.`
+    }
 
 ## Your task
 Write \`at\`, returning \`a[i]\`.
@@ -281,7 +343,7 @@ single-precision **\`fmuls\`** does the work. Keeping everything \`f32\` avoids 
 Write \`scale\`, returning \`x * ${lit}\`.
 `,
     symbol: "scale",
-    starter: `f32 scale(f32 x) {\n    return x;\n}\n`,
+    starter: `f32 scale(f32 x) {\n    return 0.0f;\n}\n`,
     solution: `f32 scale(f32 x) {\n    return x * ${lit};\n}\n`,
     hints: [`The constant loads with \`lfs\`, the multiply is \`fmuls\`.`, `Write \`x * ${lit}\`.`],
   });
@@ -303,12 +365,41 @@ bits — a single **\`srwi r3, r3, ${sh}\`**. No rounding fix-up is needed (that
 only for *signed* division by a power of two).
 
 ## Your task
-Write \`d\` on a \`u32\`, returning \`x / ${d}\`.
+Write \`udiv\` on a \`u32\`, returning \`x / ${d}\`.
 `,
-    symbol: "d",
-    starter: stub("u32 d(u32 x)"),
-    solution: `u32 d(u32 x) {\n    return x / ${d};\n}\n`,
+    symbol: "udiv",
+    starter: stub("u32 udiv(u32 x)"),
+    solution: `u32 udiv(u32 x) {\n    return x / ${d};\n}\n`,
     hints: [`${d} = 2^${sh}, so this is \`srwi r3, r3, ${sh}\`.`, `Write \`x / ${d}\`.`],
+  });
+}
+
+// ── Family 9: divide a signed value by a power of two ───────────────────────
+for (const sh of [2, 3, 4, 5, 8, 10]) {
+  const d = 1 << sh;
+  push({
+    id: `gauntlet-sdiv-${d}`,
+    title: `Signed divide by ${d}`,
+    difficulty: 3,
+    concepts: ["strength-reduction", "signed", "srawi", "addze"],
+    brief: `
+# Signed divide by ${d}
+
+A *signed* divide by a power of two can't be a plain shift: C rounds toward zero
+but an arithmetic shift rounds toward negative infinity, so MWCC adds a fixup.
+The signature is **\`srawi r0, r3, ${sh}\`** followed by **\`addze r3, r0\`** — the
+\`addze\` nudges the quotient back toward zero for negative inputs.
+
+## Your task
+Write \`sdiv\` on an \`s32\`, returning \`x / ${d}\`.
+`,
+    symbol: "sdiv",
+    starter: stub("s32 sdiv(s32 x)"),
+    solution: `s32 sdiv(s32 x) {\n    return x / ${d};\n}\n`,
+    hints: [
+      `Signed divide by ${d} is \`srawi\` then \`addze\`, not a lone shift.`,
+      `Write \`x / ${d}\` on an s32.`,
+    ],
   });
 }
 

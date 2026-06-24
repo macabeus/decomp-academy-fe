@@ -2,14 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
 html, body {
-  background: #0d1117;
-  color: #c9d1d9;
+  background: theme(colors.bg.DEFAULT);
+  color: theme(colors.content.DEFAULT);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -17,27 +12,49 @@ html, body {
 
 ::selection { background: rgba(124, 147, 255, 0.3); }
 
+/* Visible, consistent keyboard focus everywhere (there was none before). */
+:focus-visible {
+  outline: 2px solid theme(colors.accent.DEFAULT);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+/* Don't double up the ring on the code editor's own focus model. */
+.monaco-editor :focus-visible { outline: none; }
+
+/* Respect reduced-motion: collapse every animation/transition to a blink. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Thin custom scrollbars to match the IDE feel. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2b3441; border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: theme(colors.line.strong); border-radius: 6px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a4757; }
 
 /* Markdown (lesson brief) styling. */
-.prose-lesson h1 { font-size: 1.35rem; font-weight: 700; color: #f0f3f8; margin: 0 0 0.75rem; }
-.prose-lesson h2 { font-size: 1.05rem; font-weight: 650; color: #e6ebf2; margin: 1.25rem 0 0.5rem; }
-.prose-lesson p { margin: 0.6rem 0; line-height: 1.65; color: #b3bdca; }
-.prose-lesson ul { margin: 0.5rem 0; padding-left: 1.2rem; list-style: disc; color: #b3bdca; }
+.prose-lesson h1 { font-size: 1.35rem; font-weight: 700; color: theme(colors.content.bright); margin: 0 0 0.75rem; }
+.prose-lesson h2 { font-size: 1.05rem; font-weight: 650; color: theme(colors.content.primary); margin: 1.25rem 0 0.5rem; }
+.prose-lesson p { margin: 0.6rem 0; line-height: 1.65; color: theme(colors.content.secondary); }
+.prose-lesson ul { margin: 0.5rem 0; padding-left: 1.2rem; list-style: disc; color: theme(colors.content.secondary); }
+.prose-lesson ol { margin: 0.5rem 0; padding-left: 1.4rem; list-style: decimal; color: theme(colors.content.secondary); }
 .prose-lesson li { margin: 0.3rem 0; line-height: 1.6; }
-.prose-lesson strong { color: #e6ebf2; font-weight: 650; }
+.prose-lesson li::marker { color: theme(colors.accent.DEFAULT); font-weight: 600; }
+.prose-lesson strong { color: theme(colors.content.primary); font-weight: 650; }
+.prose-lesson a { color: theme(colors.accent.DEFAULT); text-decoration: underline; text-underline-offset: 2px; }
 .prose-lesson code {
   font-family: var(--font-mono);
   font-size: 0.82em;
-  background: #1c2128;
-  border: 1px solid #2b3441;
+  background: theme(colors.bg.softer);
+  border: 1px solid theme(colors.line.strong);
   border-radius: 4px;
   padding: 0.08em 0.35em;
-  color: #9ecbff;
+  color: theme(colors.accent.grad);
 }
 .prose-lesson table {
   width: 100%;
@@ -49,14 +66,14 @@ html, body {
 }
 .prose-lesson th,
 .prose-lesson td {
-  border: 1px solid #222b38;
+  border: 1px solid theme(colors.line.DEFAULT);
   padding: 0.4rem 0.65rem;
   text-align: left;
   vertical-align: top;
 }
 .prose-lesson thead th {
-  background: #161b22;
-  color: #e6ebf2;
+  background: theme(colors.bg.soft);
+  color: theme(colors.content.primary);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -67,19 +84,19 @@ html, body {
 .prose-lesson th code { font-size: 0.8em; }
 
 .prose-lesson blockquote {
-  border-left: 3px solid #5468d4;
+  border-left: 3px solid theme(colors.accent.soft);
   background: rgba(124, 147, 255, 0.06);
   border-radius: 0 6px 6px 0;
   padding: 0.5rem 0.85rem;
   margin: 0.75rem 0;
-  color: #aeb8c6;
+  color: theme(colors.content.secondary);
   font-size: 0.92rem;
 }
 .prose-lesson blockquote code { font-size: 0.8em; }
 
 .prose-lesson pre {
-  background: #0a0d12;
-  border: 1px solid #222b38;
+  background: theme(colors.bg.inset);
+  border: 1px solid theme(colors.line.DEFAULT);
   border-radius: 8px;
   padding: 0.85rem 1rem;
   overflow-x: auto;
@@ -88,17 +105,40 @@ html, body {
 }
 /* Keep a faint always-visible track so a clipped asm line reads as scrollable. */
 .prose-lesson pre::-webkit-scrollbar { height: 8px; }
-.prose-lesson pre::-webkit-scrollbar-thumb { background: #2b3441; }
+.prose-lesson pre::-webkit-scrollbar-thumb { background: theme(colors.line.strong); }
 .prose-lesson pre code {
   background: none;
   border: none;
   padding: 0;
   font-size: 0.82rem;
-  color: #c9d1d9;
+  color: theme(colors.content.DEFAULT);
   line-height: 1.55;
 }
 
 .grid-dots {
   background-image: radial-gradient(circle at 1px 1px, rgba(124,147,255,0.10) 1px, transparent 0);
   background-size: 22px 22px;
+}
+
+/* Faint scrolling-disassembly texture for the hero backdrop. */
+.asm-rain {
+  font-family: var(--font-mono);
+  white-space: pre;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Shimmer skeleton fill. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: theme(colors.bg.softer);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  animation: shimmer 1.5s infinite linear;
 }

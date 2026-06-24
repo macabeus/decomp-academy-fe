@@ -30,6 +30,11 @@ function write(p: Progress) {
   window.dispatchEvent(new Event("decomp-progress"));
 }
 
+/** How many lessons are fully solved right now (for the first-match moment). */
+export function totalSolved(): number {
+  return Object.values(read().solved).filter((v) => v >= 100).length;
+}
+
 export function recordResult(lessonId: string, percent: number) {
   const p = read();
   const prev = p.solved[lessonId] ?? 0;

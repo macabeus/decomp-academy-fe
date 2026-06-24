@@ -18,7 +18,7 @@ the 32-bit word at \`rA + off\` into \`rD\`.
 With the pointer arriving in \`r3\` and an offset of zero, \`*p\` is a single load:
 
 \`\`\`asm
-lwz  r3, 0(r3)    ; r3 = *p
+lwz  r3, 0(r3)    # r3 = *p
 blr
 \`\`\`
 
@@ -62,7 +62,7 @@ how you read \`*p = v\` in C.
 With the pointer in \`r3\` and the value in \`r4\`:
 
 \`\`\`asm
-stw  r4, 0(r3)    ; *p = v
+stw  r4, 0(r3)    # *p = v
 blr
 \`\`\`
 
@@ -102,7 +102,7 @@ offset straight into the displacement field of the load. There's no separate
 add. Since each \`int\` is 4 bytes, element 2 lives at byte offset \`2 * 4 = 8\`:
 
 \`\`\`asm
-lwz  r3, 8(r3)    ; r3 = p[2]
+lwz  r3, 8(r3)    # r3 = p[2]
 blr
 \`\`\`
 
@@ -143,7 +143,7 @@ into a displacement, and a \`stw\` writes there. With \`p\` in \`r3\` and \`v\` 
 \`r4\`, writing \`p[2]\` targets byte offset \`8\`:
 
 \`\`\`asm
-stw  r4, 8(r3)    ; p[2] = v
+stw  r4, 8(r3)    # p[2] = v
 blr
 \`\`\`
 
@@ -185,13 +185,16 @@ elements**. For an \`int*\`, \`p + 3\` moves forward \`3 * 4 = 12\` bytes. With 
 *constant* offset MWCC folds the scaled distance into an \`addi\`:
 
 \`\`\`asm
-addi r3, r3, 12   ; p + 3, scaled by sizeof(int)
+addi r3, r3, 12   # p + 3, scaled by sizeof(int)
 blr
 \`\`\`
 
 The result is the new address, returned in \`r3\`. This is why \`p + 3\` and
 \`&p[3]\` are the same thing: both produce the address \`p + 12 bytes\`. The element
-size silently multiplies every pointer offset you write.
+size silently multiplies every pointer offset you write. The decompilation
+implication: since both forms emit identical assembly, you *can't* tell from the
+output which one the author wrote — pick whichever reads more naturally in
+context (\`&arr[i]\` for array-shaped data, \`p + n\` for pointer walks).
 
 ## Your task
 
@@ -229,13 +232,18 @@ no displacement).
 For an \`int*\`, the index is scaled by 4 with a shift-left-by-2 (\`slwi\`):
 
 \`\`\`asm
-slwi r0, r4, 2    ; i * 4  (sizeof(int))
-lwzx r3, r3, r0   ; load p[i]
+slwi r0, r4, 2    # i * 4  (sizeof(int))
+lwzx r3, r3, r0   # load p[i]
 blr
 \`\`\`
 
 So \`slwi\` by 2 followed by \`lwzx\` is the signature of an \`int*\` indexed by a
 variable. The shift amount tells you the element size: 2 → 4-byte elements.
+
+One thing to recognize in the wild: \`slwi rA, rB, n\` is itself a simplified
+mnemonic for \`rlwinm rA, rB, n, 0, 31-n\`. Disassemblers like objdump or Ghidra
+often print the underlying \`rlwinm\` (here \`rlwinm r0, r4, 2, 0, 29\`) instead of
+the friendlier \`slwi r0, r4, 2\` — they're the same shift.
 
 ## Your task
 
@@ -265,18 +273,26 @@ Write \`at\`, which takes an \`int* p\` and an \`int i\` and returns \`p[i]\`.
     brief: `
 # Scale of one
 
+(\`u8\` is the GameCube SDK's typedef for \`unsigned char\` — \`typedef unsigned
+char u8;\` — and shows up everywhere in this codebase. The matching signed and
+wider types are \`s8\`, \`u16\`/\`s16\`, \`u32\`/\`s32\`.)
+
 The scaling factor *is* the element size. A \`u8\` is one byte, so scaling \`i\` by
 1 is a no-op — there's no shift at all. The index register goes straight into
 the indexed byte load \`lbzx rD, rA, rB\` (*load byte and zero*, indexed):
 
 \`\`\`asm
-lbzx r3, r3, r4   ; r3 = p[i], zero-extended
+lbzx r3, r3, r4   # r3 = p[i], zero-extended
 blr
 \`\`\`
 
 \`lbzx\` zero-extends the byte into the full register, which is exactly what an
-unsigned \`u8\` wants. Use \`u8\` (not \`char\`) for a byte you only load and store —
-\`char\` would drag in a sign-extending \`extsb\` you don't need here.
+unsigned \`u8\` wants. When you only load and store a byte, \`u8\` is the natural
+choice; using \`char\` would bring in a sign-extending \`extsb\` the compiler
+wouldn't otherwise need. That gives you a diagnostic rule when reading
+disassembly: \`lbzx\` (or \`lbz\`) *alone* with no following \`extsb\` is strong
+evidence the original type was unsigned; \`lbzx\` followed by \`extsb\` points to a
+signed \`char\`/\`s8\`.
 
 ## Your task
 
@@ -313,8 +329,8 @@ signed \`s16\` sign-extends with \`lhax\` (*load halfword algebraic*, indexed).
 For a signed \`s16*\`:
 
 \`\`\`asm
-slwi r0, r4, 1    ; i * 2  (sizeof(s16))
-lhax r3, r3, r0   ; load p[i], sign-extended
+slwi r0, r4, 1    # i * 2  (sizeof(s16))
+lhax r3, r3, r0   # load p[i], sign-extended
 blr
 \`\`\`
 
@@ -355,21 +371,24 @@ bumping both with \`addi\` and re-checking the loaded byte against zero each
 iteration:
 
 \`\`\`asm
-li      r4, 0          ; count = 0
+li      r4, 0          # count = 0
 b       check
 loop:
-addi    r4, r4, 1      ; count++
-addi    r3, r3, 1      ; s++
+addi    r4, r4, 1      # count++
+addi    r3, r3, 1      # s++
 check:
-lbz     r0, 0(r3)      ; *s
-cmplwi  r0, 0          ; compare unsigned against 0
-bne+    loop           ; keep going while non-zero
-mr      r3, r4         ; return count
+lbz     r0, 0(r3)      # *s
+cmplwi  r0, 0          # compare unsigned against 0
+bne+    loop           # keep going while non-zero
+mr      r3, r4         # return count
 blr
 \`\`\`
 
 Note the loop tests at the *bottom* (the initial \`b\` jumps straight to the
-check), and the unsigned compare \`cmplwi\` comes from the \`u8\` element type.
+check), and the unsigned compare \`cmplwi\` comes from the \`u8\` element type. The
+\`+\` on \`bne+\` is a static branch hint predicting the back-edge is taken — loops
+are expected to iterate, so MWCC marks the loop branch as likely. (Contrast the
+\`beq-\` in the NULL-check lesson, where the early-out is marked *un*likely.)
 
 ## Your task
 
@@ -406,13 +425,15 @@ terminating zero.
 # Equality without a branch
 
 Two pointers are equal when their addresses are equal, so \`a == b\` is really an
-integer equality. Returning that comparison as a \`BOOL\` (0 or 1) without
-branching, MWCC reaches for a clever trick: subtract, then count leading zeros.
+integer equality. Returning that comparison as a \`BOOL\` (in the GameCube SDK
+headers \`BOOL\` is just a typedef for \`int\`, with \`TRUE == 1\` and \`FALSE == 0\`,
+so it carries no special compiler semantics) without branching, MWCC reaches for
+a clever trick: subtract, then count leading zeros.
 
 \`\`\`asm
-subf   r0, r3, r4     ; r4 - r3  (zero iff equal)
-cntlzw r0, r0         ; count leading zero bits (32 iff the value was 0)
-srwi   r3, r0, 5      ; 32 >> 5 == 1; anything < 32 >> 5 == 0
+subf   r0, r3, r4     # subf rD,rA,rB = rB - rA, i.e. r4 - r3 (zero iff equal)
+cntlzw r0, r0         # count leading zero bits (32 iff the value was 0)
+srwi   r3, r0, 5      # 32 >> 5 == 1# anything < 32 >> 5 == 0
 blr
 \`\`\`
 
@@ -454,18 +475,21 @@ address \`0\`, \`if (p)\` is an unsigned compare against \`0\` feeding a branch.
 it's zero, the function skips the load and returns \`0\`:
 
 \`\`\`asm
-cmplwi r3, 0          ; p == NULL ?
-beq-   ret0           ; if so, jump to the zero return
-lwz    r3, 0(r3)      ; else *p
+cmplwi r3, 0          # p == NULL ?
+beq-   ret0           # if so, jump to the zero return
+lwz    r3, 0(r3)      # else *p
 blr
 ret0:
-li     r3, 0          ; return 0
+li     r3, 0          # return 0
 blr
 \`\`\`
 
 The \`beq-\` carries a branch hint (the \`-\`) predicting the pointer is usually
-*non*-NULL — MWCC assumes the early-out is the rare path. Two \`blr\`s, one per
-return path.
+*non*-NULL — MWCC assumes the early-out is the rare path. The \`-\`/\`+\` suffix is
+a static prediction bit baked into the branch's encoding, not a condition
+modifier: \`-\` marks the branch as *unlikely* taken, \`+\` as *likely*. You'll see
+\`bne+\`, \`blt+\`, \`beq-\` and friends throughout real disassembly. Two \`blr\`s,
+one per return path.
 
 ## Your task
 
@@ -494,7 +518,7 @@ Write \`safe_deref\`, taking an \`int* p\`, returning \`*p\` when \`p\` is non-N
     chapter: "pointers",
     order: 12,
     title: "Swapping Through Pointers",
-    difficulty: 2,
+    difficulty: 3,
     concepts: ["loads", "stores", "pointers"],
     brief: `
 # Two loads, two stores
@@ -504,16 +528,21 @@ store each into the other's slot. MWCC loads both words up front (into \`r5\` an
 \`r0\`) *before* storing, so neither store clobbers a value still needed:
 
 \`\`\`asm
-lwz  r5, 0(r3)    ; t = *a
-lwz  r0, 0(r4)    ; *b
-stw  r0, 0(r3)    ; *a = *b
-stw  r5, 0(r4)    ; *b = t
+lwz  r5, 0(r3)    # t = *a
+lwz  r0, 0(r4)    # *b
+stw  r0, 0(r3)    # *a = *b
+stw  r5, 0(r4)    # *b = t
 blr
 \`\`\`
 
 The C temporary \`t\` never reaches the stack — it lives in \`r5\` for the brief
 window between the loads and stores. Watch how the compiler reorders the two
 loads ahead of the stores; the order in your C source doesn't bind it.
+
+Notice the second loaded word lands in \`r0\`. \`r0\` is special on PowerPC: when
+it appears as the *base* register of a load/store (\`0(r0)\`, say) the hardware
+reads it as a literal \`0\` rather than the register's contents, so the compiler
+keeps it for scratch values like this and never uses it as an address base.
 
 ## Your task
 

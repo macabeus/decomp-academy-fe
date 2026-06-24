@@ -22,14 +22,15 @@ typedef struct { int x; int y; } Point;
 \`p->y\` is a word load four bytes past the base:
 
 \`\`\`asm
-lwz  r3, 4(r3)   ; load p->y
+lwz  r3, 4(r3)   # load p->y
 blr
 \`\`\`
 
 That \`4(r3)\` is the whole story — \`lwz rD, off(rA)\` means "load the word at
-\`rA + off\`". When you see a bare \`lwz r3, 4(r3)\`, distrust the temptation to read
-it as \`*(int*)((char*)p + 4)\`. The original was almost certainly a **named field**
-of a struct; recovering that name and offset is the job.
+\`rA + off\`". When you see a bare \`lwz r3, 4(r3)\`, it's tempting to read it as
+\`*(int*)((char*)p + 4)\`, but that bare offset is really a clue: the original was
+almost certainly a **named field** of a struct, and recovering that name and
+offset is the job.
 
 ## Your task
 
@@ -71,7 +72,7 @@ the value to store arrives in \`r4\` (the second argument) and the struct base i
 \`r3\`. Setting \`p->y = v\` is:
 
 \`\`\`asm
-stw  r4, 4(r3)   ; p->y = v
+stw  r4, 4(r3)   # p->y = v
 blr
 \`\`\`
 
@@ -117,7 +118,7 @@ typedef struct { u8 r; u8 g; u8 b; u8 a; } Color;
 each byte is one wide, so \`g\` is at offset 1:
 
 \`\`\`asm
-lbz  r3, 1(r3)   ; load c->g
+lbz  r3, 1(r3)   # load c->g
 blr
 \`\`\`
 
@@ -164,7 +165,7 @@ typedef struct { u8 r; u8 g; u8 b; u8 a; } Color;
 \`b\` is the third byte, offset 2, so \`c->b = v\` is:
 
 \`\`\`asm
-stb  r4, 2(r3)   ; c->b = v
+stb  r4, 2(r3)   # c->b = v
 blr
 \`\`\`
 
@@ -192,6 +193,55 @@ With the \`Color\` struct above, write \`Color_setB\` storing \`v\` into \`c->b\
     ],
   },
   {
+    id: "structs-padding",
+    chapter: "structs",
+    order: 4.5,
+    title: "Alignment Padding Shifts an Offset",
+    difficulty: 2,
+    concepts: ["structs", "alignment", "padding", "offsets"],
+    brief: `
+# A hidden byte changes the math
+
+The previous lesson noted it in passing; now you'll match it. A field can't sit
+at *any* offset — its type forces **alignment**. A \`u16\` must start on an even
+address, so in:
+
+\`\`\`c
+typedef struct { u8 tag; u16 count; } S;
+\`\`\`
+
+\`tag\` takes offset 0, but \`count\` can't follow at offset 1 (odd). The compiler
+inserts a **pad byte** at offset 1, and \`count\` lands at offset **2**:
+
+\`\`\`asm
+lhz  r3, 2(r3)   # s->count, not 1(r3)
+blr
+\`\`\`
+
+If you assume \`count\` sits at offset 1, your load reads \`1(r3)\` and never
+matches. Whenever a wider field follows a narrower one, check whether alignment
+pushed it forward — the gap is invisible in the C but very visible in the asm.
+
+## Your task
+
+With the \`S\` struct above, write \`S_getCount\` returning \`s->count\`.
+`,
+    symbol: "S_getCount",
+    context: `typedef struct { u8 tag; u16 count; } S;`,
+    starter: `u16 S_getCount(S* s) {
+    return 0;
+}
+`,
+    solution: `u16 S_getCount(S* s) {
+    return s->count;
+}
+`,
+    hints: [
+      "A `u16` must be 2-byte aligned, so a pad byte sits between `tag` and `count`.",
+      "`count` is at offset 2, so the load is `lhz r3, 2(r3)` — not `1(r3)`.",
+    ],
+  },
+  {
     id: "structs-nested",
     chapter: "structs",
     order: 5,
@@ -214,12 +264,16 @@ typedef struct { int id; Vec3 pos; } Entity;
 is \`lfs\` (load floating single) into a float register:
 
 \`\`\`asm
-lfs  f1, 8(r3)   ; load e->pos.y
+lfs  f1, 8(r3)   # load e->pos.y
 blr
 \`\`\`
 
-Two field accesses (\`pos\` then \`.y\`) collapse into a **single** \`8(r3)\`. When you
-see one load with a "weird" offset, suspect a nested struct rather than a flat one.
+Two field accesses (\`pos\` then \`.y\`) collapse into a **single** \`8(r3)\`. The
+arithmetic is just a sum of offsets: \`offsetof(Entity, pos) = 4\` (past the 4-byte
+\`int id\`) plus \`offsetof(Vec3, y) = 4\` (past one \`f32\`), giving \`4 + 4 = 8\`. Run
+that addition yourself on any nested struct and the "weird" offset stops being a
+mystery. When you see one load with such an offset, suspect a nested struct
+rather than a flat one.
 
 ## Your task
 
@@ -263,9 +317,9 @@ typedef struct { int x; int y; int z; } Vec3i;   // sizeof == 12
 offset 8":
 
 \`\`\`asm
-mulli r0, r4, 12   ; i * sizeof(Vec3i)
-add   r3, r3, r0   ; &a[i]
-lwz   r3, 8(r3)    ; .z
+mulli r0, r4, 12   # i * sizeof(Vec3i)
+add   r3, r3, r0   # &a[i]
+lwz   r3, 8(r3)    # .z
 blr
 \`\`\`
 
@@ -316,13 +370,15 @@ both \`f\` and \`bits\` are at offset 0. Reading \`u->bits\` is an ordinary inte
 load of those four bytes:
 
 \`\`\`asm
-lwz  r3, 0(r3)   ; reinterpret the float's bytes as u32
+lwz  r3, 0(r3)   # reinterpret the float's bytes as u32
 blr
 \`\`\`
 
 This is the clean way to express **type punning** — pulling the raw bit pattern
-out of a float, or viewing a 32-bit word as four bytes. When asm loads a value
-one way that was stored another, suspect a union overlay rather than a cast.
+out of a float, or viewing a 32-bit word as four bytes. A pointer cast like
+\`*(u32*)&u->f\` would compile to the very same \`lwz r3, 0(r3)\`, so the asm alone
+can't tell the two source forms apart — but a union member is the idiomatic MWCC
+spelling, and the one to prefer when you recover this load.
 
 ## Your task
 
@@ -351,7 +407,7 @@ With \`FloatBits\` above, write \`floatRawBits\` returning \`u->bits\`.
     difficulty: 3,
     concepts: ["structs", "bitfields", "rlwimi"],
     brief: `
-# The bitfield tell that everyone misses
+# Single-Bit Bitfields Compile to rlwimi
 
 Here is a make-or-break idiom. A **single-bit C bitfield** set to 1 does *not*
 compile to a manual OR-mask. Given:
@@ -366,10 +422,17 @@ then-**mask-insert**) to drop a single bit into place:
 \`\`\`asm
 lbz     r0, 0(r3)
 li      r4, 1
-rlwimi  r0, r4, 7, 24, 24   ; insert bit 1 into active's position
+rlwimi  r0, r4, 7, 24, 24   # insert bit 1 into active's position
 stb     r0, 0(r3)
 blr
 \`\`\`
+
+Read \`rlwimi rA, rS, SH, MB, ME\` as "rotate \`rS\` left by \`SH\`, then copy bits
+\`MB..ME\` of the result into \`rA\`, leaving the rest of \`rA\` alone". Here the
+field \`active\` is the most-significant bit of the byte — PowerPC bit 24 in the
+32-bit word — so \`SH = 7\` rotates the value's bit 0 up to bit 24, and the
+inclusive mask \`MB = ME = 24\` selects exactly that one bit. Deriving each operand
+this way beats memorizing the constant.
 
 Contrast the *manual* version \`*p |= 1\`, which instead emits an \`ori\`:
 
@@ -381,7 +444,8 @@ stb  r0, 0(r3)
 
 Same memory effect, **different instructions**. So when you see \`li; rlwimi\`
 writing one bit, the original was a \`u8 x:1\` bitfield assignment — never a hand
-written \`|= mask\`. Reaching for the mask would leave you mismatched forever.
+written \`|= mask\`. A manual mask-and-OR produces different instructions (\`ori\`
+instead of \`rlwimi\`), so it won't match the compiled output.
 
 ## Your task
 
@@ -423,7 +487,7 @@ typedef struct { u32 mode : 3; u32 level : 5; u32 rest : 24; } Packed;
 
 \`\`\`asm
 lbz     r0, 0(r3)
-rlwimi  r0, r4, 5, 24, 26   ; insert m's low 3 bits into mode
+rlwimi  r0, r4, 5, 24, 26   # insert m's low 3 bits into mode
 stb     r0, 0(r3)
 blr
 \`\`\`
@@ -473,7 +537,7 @@ typedef struct { u32 r : 5; u32 g : 6; u32 b : 5; u32 a : 16; } Pixel;
 
 \`\`\`asm
 lhz     r0, 0(r3)
-rlwinm  r3, r0, 27, 26, 31   ; rotate g down, keep 6 bits
+rlwinm  r3, r0, 27, 26, 31   # rotate g down, keep 6 bits
 blr
 \`\`\`
 
@@ -524,16 +588,21 @@ zero decides whether to continue:
 
 \`\`\`asm
        b       check
-loop:  mr      r3, r0       ; n = n->next
-check: lwz     r0, 0(r3)    ; load n->next
-       cmplwi  r0, 0        ; next != NULL ?
+loop:  mr      r3, r0       # n = n->next
+check: lwz     r0, 0(r3)    # load n->next
+       cmplwi  r0, 0        # next != NULL ?
        bne+    loop
-       blr                  ; return last node (still in r3)
+       blr                  # return last node (still in r3)
 \`\`\`
 
 The repeated \`lwz\` of the same offset feeding a NULL test and a branch is the
 fingerprint of a linked-list traversal. The \`cmplwi\` (unsigned compare) reflects
 that \`next\` is a pointer, not a signed integer.
+
+Don't be fooled by the leading \`b check\`: MWCC compiles the \`while\` loop into a
+"test at the bottom" shape, branching to the condition first so the body and the
+test share one block. A plain \`while\` in C produces this exact asm — you do *not*
+need a \`do\`/\`while\` to match it.
 
 ## Your task
 
@@ -579,16 +648,24 @@ typedef struct Actor {
 } Actor;
 \`\`\`
 
-\`update\` is at offset 4. Calling \`a->update(a)\` is:
+\`update\` is at offset 4. Because this function makes a call, it is **non-leaf**
+and needs a frame to preserve the return address. The full listing is:
 
 \`\`\`asm
-lwz    r12, 4(r3)   ; load the function pointer
-mtctr  r12          ; move it into CTR
-bctrl               ; branch to CTR, set link  (the indirect call)
+stwu   r1, -16(r1)  # open a stack frame
+mflr   r0
+stw    r0, 20(r1)   # save the return address (LR)
+lwz    r12, 4(r3)   # load the function pointer
+mtctr  r12          # move it into CTR
+bctrl               # branch to CTR, set link  (the indirect call)
+lwz    r0, 20(r1)   # restore LR
+mtlr   r0
+addi   r1, r1, 16   # tear down the frame
+blr
 \`\`\`
 
-(The full listing also has the standard \`stwu\`/\`mflr\` prologue and epilogue to
-save the return address, since this function makes a call.) The trio
+The \`stwu\`/\`mflr\`/\`stw\` prologue and the matching epilogue are the standard
+non-leaf frame; the indirect call itself is the middle three lines. The trio
 \`lwz r12, off(rX)\` → \`mtctr r12\` → \`bctrl\` is the unmistakable signature of an
 **indirect call through a struct field** — a vtable dispatch or callback. The
 argument \`a\` is already in \`r3\`, so no extra setup is needed before the call.

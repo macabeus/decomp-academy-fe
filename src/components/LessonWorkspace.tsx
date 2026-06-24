@@ -16,17 +16,17 @@ import {
   IconList,
   IconGitCompare,
   IconTerminal2,
-  IconConfetti,
   IconBook2,
+  IconFileCode,
 } from "@tabler/icons-react";
 import { AsmDiff, AsmList, Insn, Row } from "./AsmDiff";
 import { Difficulty } from "./CurriculumMap";
-import { loadCode, recordResult, saveCode } from "@/lib/progress";
+import { loadCode, recordResult, saveCode, totalSolved } from "@/lib/progress";
 
 const CodeEditor = dynamic(() => import("./CodeEditor").then((m) => m.CodeEditor), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full items-center justify-center text-sm text-[#5b6675]">
+    <div className="flex h-full items-center justify-center text-sm text-content-faint">
       <IconLoader2 className="mr-2 animate-spin" size={16} /> Loading editor…
     </div>
   ),
@@ -56,15 +56,48 @@ interface CheckState {
   matchPercent?: number;
   rows?: Row[];
   message?: string;
+  firstEver?: boolean;
+  noHints?: boolean;
 }
 
-type Tab = "diff" | "target" | "console";
+type Tab = "diff" | "target" | "yours" | "console";
+
+// Tween a number up to `value` (respecting reduced-motion).
+function useCountUp(value: number, ms = 550) {
+  const [n, setN] = useState(value);
+  const fromRef = useRef(value);
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const from = fromRef.current;
+    if (reduce || from === value) {
+      setN(value);
+      fromRef.current = value;
+      return;
+    }
+    let raf = 0;
+    let start = 0;
+    const tick = (t: number) => {
+      if (!start) start = t;
+      const p = Math.min(1, (t - start) / ms);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setN(from + (value - from) * eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = value;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, ms]);
+  return n;
+}
 
 export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
   const [code, setCode] = useState(lesson.starter);
   const [check, setCheck] = useState<CheckState>({ status: "idle" });
   const [target, setTarget] = useState<Insn[] | null>(null);
   const [tab, setTab] = useState<Tab>("target");
+  const [mobilePane, setMobilePane] = useState<"brief" | "code" | "result">("brief");
   const [hintsShown, setHintsShown] = useState(0);
   const [showSolution, setShowSolution] = useState(false);
   const codeRef = useRef(code);
@@ -79,6 +112,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     setHintsShown(0);
     setShowSolution(false);
     setTab("target");
+    setMobilePane("brief");
   }, [lesson.id, lesson.starter]);
 
   // Fetch the authoritative target asm so the learner can see what to match.
@@ -96,7 +130,9 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
   }, [lesson.id]);
 
   const run = useCallback(async () => {
-    setCheck({ status: "running" });
+    setCheck((c) => ({ status: "running", matchPercent: c.matchPercent }));
+    setTab("diff");
+    setMobilePane("result");
     saveCode(lesson.id, codeRef.current);
     try {
       const res = await fetch("/api/check", {
@@ -117,10 +153,15 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
       }
       const pct = d.diff.matchPercent as number;
       const exact = d.diff.exact as boolean;
+      // Capture "first ever solve" and "no help used" before we record this run.
+      const firstEver = exact && totalSolved() === 0;
+      const noHints = exact && hintsShown === 0 && !showSolution;
       setCheck({
         status: exact ? "match" : "close",
         matchPercent: pct,
         rows: d.diff.rows,
+        firstEver,
+        noHints,
       });
       setTab("diff");
       recordResult(lesson.id, exact ? 100 : pct);
@@ -128,7 +169,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
       setCheck({ status: "error", message: "Network error talking to the compiler." });
       setTab("console");
     }
-  }, [lesson.id]);
+  }, [lesson.id, hintsShown, showSolution]);
 
   const reset = () => {
     setCode(lesson.starter);
@@ -138,12 +179,39 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
 
   if (lesson.concept) return <ConceptView lesson={lesson} />;
 
+  const hasResult = check.status !== "idle";
+
   return (
     <div className="flex min-h-screen flex-col bg-bg lg:h-screen">
       <TopBar lesson={lesson} />
+      {/* Mobile pane switcher — each surface gets the full screen on a phone. */}
+      <div className="flex border-b border-line bg-bg-soft lg:hidden">
+        {(["brief", "code", "result"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setMobilePane(p)}
+            className={`relative flex-1 py-2.5 text-xs font-medium transition ${
+              mobilePane === p
+                ? "border-b-2 border-accent text-content-primary"
+                : "border-b-2 border-transparent text-content-muted"
+            }`}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {p === "brief" ? "Brief" : p === "code" ? "Code" : "Result"}
+              {p === "result" && hasResult && mobilePane !== "result" && (
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              )}
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,440px)_1fr]">
         {/* Brief column */}
-        <aside className="flex min-h-0 flex-col border-r border-line bg-bg-soft/40">
+        <aside
+          className={`min-h-0 flex-col border-r border-line bg-bg-soft/40 lg:flex ${
+            mobilePane === "brief" ? "flex" : "hidden"
+          }`}
+        >
           <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
             <span className="rounded-md bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
               {lesson.chapterTitle}
@@ -153,7 +221,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
               {lesson.concepts.slice(0, 3).map((c) => (
                 <span
                   key={c}
-                  className="rounded bg-bg-softer px-1.5 py-0.5 text-[10px] text-[#8b97a6]"
+                  className="rounded bg-bg-softer px-1.5 py-0.5 text-2xs text-content-muted"
                 >
                   {c}
                 </span>
@@ -169,10 +237,10 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
               hints={lesson.hints}
               shown={hintsShown}
               onReveal={() => setHintsShown((n) => n + 1)}
+              onHide={() => setHintsShown(0)}
             />
             <SolutionBox
               solution={lesson.solution}
-              symbol={lesson.symbol}
               shown={showSolution}
               onToggle={() => setShowSolution((s) => !s)}
               onUse={() => {
@@ -184,22 +252,29 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
         </aside>
 
         {/* Editor + console column */}
-        <section className="flex min-h-[70vh] flex-col lg:min-h-0">
+        <section
+          className={`min-h-[70vh] flex-col lg:flex lg:min-h-0 ${
+            mobilePane === "brief" ? "hidden" : "flex"
+          }`}
+        >
           <div className="flex items-center gap-2 border-b border-line bg-bg-soft/60 px-4 py-2">
-            <span className="font-mono text-xs text-[#7c8a9a]">
+            <span className="font-mono text-xs text-content-muted">
               match <span className="text-accent">{lesson.symbol}</span>
+            </span>
+            <span className="hidden items-center gap-1 rounded bg-bg-softer px-1.5 py-0.5 font-mono text-2xs text-content-faint sm:inline-flex">
+              mwcceppc.exe -O4,p
             </span>
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={reset}
-                className="inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs text-[#aab4c2] transition hover:bg-bg-softer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs text-content-secondary transition hover:bg-bg-softer hover:text-content-primary"
               >
                 <IconRefresh size={14} /> Reset
               </button>
               <button
                 onClick={run}
                 disabled={check.status === "running"}
-                className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-[#0d1117] transition hover:bg-[#9ab0ff] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-xs font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.97] disabled:opacity-60"
               >
                 {check.status === "running" ? (
                   <IconLoader2 size={14} className="animate-spin" />
@@ -207,12 +282,16 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
                   <IconPlayerPlayFilled size={13} />
                 )}
                 Compile &amp; Check
-                <kbd className="ml-1 rounded bg-black/20 px-1 text-[10px]">⌘↵</kbd>
+                <kbd className="ml-1 rounded bg-black/20 px-1 text-2xs">⌘↵</kbd>
               </button>
             </div>
           </div>
 
-          <div className="min-h-[340px] flex-[1.2] border-b border-line lg:min-h-0">
+          <div
+            className={`min-h-[340px] flex-[1.2] border-b border-line lg:block lg:min-h-0 ${
+              mobilePane === "result" ? "hidden" : "block"
+            }`}
+          >
             <CodeEditor value={code} onChange={setCode} onRun={run} />
           </div>
 
@@ -221,6 +300,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
             setTab={setTab}
             check={check}
             target={target}
+            className={mobilePane === "code" ? "hidden lg:flex" : "flex"}
           />
         </section>
       </div>
@@ -230,7 +310,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
 
 function ConceptView({ lesson }: { lesson: LessonDTO }) {
   return (
-    <div className="flex h-screen flex-col bg-bg">
+    <div className="flex min-h-screen flex-col bg-bg lg:h-screen">
       <TopBar lesson={lesson} />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl px-5 py-10 sm:px-6 sm:py-14">
@@ -238,19 +318,19 @@ function ConceptView({ lesson }: { lesson: LessonDTO }) {
             <span className="inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
               <IconBook2 size={14} /> {lesson.chapterTitle}
             </span>
-            <span className="text-xs text-[#8b97a6]">Concept · no code to write</span>
+            <span className="text-xs text-content-muted">Concept · no code to write</span>
           </div>
           <article
-            className="prose-lesson rounded-2xl border border-line bg-bg-soft/40 px-6 py-7 sm:px-9 sm:py-9"
+            className="prose-lesson animate-slide-up-fade rounded-2xl border border-line bg-bg-soft/40 px-6 py-7 sm:px-9 sm:py-9"
             dangerouslySetInnerHTML={{ __html: lesson.briefHtml }}
           />
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
-            <span className="text-sm text-[#8b97a6]">Got it? Lock it in and move on.</span>
+            <span className="text-sm text-content-muted">Got it? Lock it in and move on.</span>
             {lesson.next ? (
               <Link
                 href={`/lesson/${lesson.next.id}`}
                 onClick={() => recordResult(lesson.id, 100)}
-                className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-[#0d1117] transition hover:bg-[#9ab0ff]"
+                className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.98]"
               >
                 <IconCheck size={17} /> Mark read &amp; continue
                 <IconArrowRight size={16} className="transition group-hover:translate-x-0.5" />
@@ -259,7 +339,7 @@ function ConceptView({ lesson }: { lesson: LessonDTO }) {
               <Link
                 href="/"
                 onClick={() => recordResult(lesson.id, 100)}
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-[#0d1117] transition hover:bg-[#9ab0ff]"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.98]"
               >
                 <IconCheck size={17} /> Finish
               </Link>
@@ -276,17 +356,17 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
     <header className="flex items-center gap-3 border-b border-line bg-bg-soft px-4 py-2.5">
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-[#aab4c2] transition hover:bg-bg-softer hover:text-[#e6ebf2]"
+        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-content-secondary transition hover:bg-bg-softer hover:text-content-primary"
       >
         <IconArrowLeft size={16} /> Curriculum
       </Link>
       <div className="mx-1 h-5 w-px bg-line" />
-      <h1 className="truncate text-sm font-semibold text-[#e6ebf2]">{lesson.title}</h1>
+      <h1 className="truncate text-sm font-semibold text-content-primary">{lesson.title}</h1>
       <div className="ml-auto flex items-center gap-1.5">
         {lesson.prev ? (
           <Link
             href={`/lesson/${lesson.prev.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-[#aab4c2] transition hover:bg-bg-softer"
+            className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-content-secondary transition hover:bg-bg-softer"
             title={lesson.prev.title}
           >
             <IconArrowLeft size={14} /> Prev
@@ -295,7 +375,7 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
         {lesson.next ? (
           <Link
             href={`/lesson/${lesson.next.id}`}
-            className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-[#aab4c2] transition hover:bg-bg-softer"
+            className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-content-secondary transition hover:bg-bg-softer"
             title={lesson.next.title}
           >
             Next <IconArrowRight size={14} />
@@ -310,22 +390,32 @@ function Hints({
   hints,
   shown,
   onReveal,
+  onHide,
 }: {
   hints: string[];
   shown: number;
   onReveal: () => void;
+  onHide: () => void;
 }) {
   if (!hints.length) return null;
   return (
     <div className="mt-6 border-t border-line pt-4">
-      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7c8a9a]">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-content-muted">
         <IconBulb size={14} className="text-warn" /> Hints
+        {shown > 0 && (
+          <button
+            onClick={onHide}
+            className="ml-auto text-2xs font-medium normal-case tracking-normal text-content-faint transition hover:text-content-muted"
+          >
+            Hide
+          </button>
+        )}
       </div>
       <div className="space-y-2">
         {hints.slice(0, shown).map((h, i) => (
           <div
             key={i}
-            className="animate-fade-in rounded-lg border border-line bg-bg-softer/50 px-3 py-2 text-sm text-[#b3bdca]"
+            className="animate-slide-up-fade rounded-lg border border-line bg-bg-softer/50 px-3 py-2 text-sm text-content-secondary"
           >
             <span className="mr-1.5 font-semibold text-warn">{i + 1}.</span>
             {h}
@@ -335,7 +425,7 @@ function Hints({
       {shown < hints.length && (
         <button
           onClick={onReveal}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-dashed border-line px-3 py-1.5 text-xs text-[#8b97a6] transition hover:border-warn/40 hover:text-warn"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-bg-softer/60 px-3 py-1.5 text-xs text-content-muted transition hover:bg-bg-softer hover:text-warn"
         >
           <IconBulb size={13} /> Reveal hint {shown + 1} of {hints.length}
         </button>
@@ -346,41 +436,86 @@ function Hints({
 
 function SolutionBox({
   solution,
-  symbol,
   shown,
   onToggle,
   onUse,
 }: {
   solution: string;
-  symbol: string;
   shown: boolean;
   onToggle: () => void;
   onUse: () => void;
 }) {
-  void symbol;
-  return (
-    <div className="mt-4">
-      <button
-        onClick={onToggle}
-        className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-line px-3 py-1.5 text-xs text-[#8b97a6] transition hover:text-[#c4cdd9]"
-      >
-        <IconEye size={13} /> {shown ? "Hide" : "Show"} reference solution
-      </button>
-      {shown && (
-        <div className="animate-fade-in mt-2">
-          <pre className="overflow-x-auto rounded-lg border border-line bg-bg-inset px-3 py-2.5 font-mono text-xs leading-relaxed text-[#c9d1d9]">
+  // Friction so the answer isn't the path of least resistance.
+  const [confirming, setConfirming] = useState(false);
+
+  if (shown) {
+    return (
+      <div className="mt-4">
+        <button
+          onClick={onToggle}
+          className="inline-flex items-center gap-1.5 rounded-md bg-bg-softer/60 px-3 py-1.5 text-xs text-content-muted transition hover:bg-bg-softer hover:text-content"
+        >
+          <IconEye size={13} /> Hide reference solution
+        </button>
+        <div className="animate-slide-up-fade mt-2">
+          <pre className="overflow-x-auto rounded-lg border border-line bg-bg-inset px-3 py-2.5 font-mono text-xs leading-relaxed text-content">
             {solution.trim()}
           </pre>
           <button
             onClick={onUse}
-            className="mt-2 text-xs text-accent hover:underline"
+            className="mt-2 text-xs text-accent transition hover:text-accent-hover hover:underline"
           >
             Load into editor →
           </button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  if (confirming) {
+    return (
+      <div className="animate-slide-up-fade mt-4 rounded-lg bg-warn/[0.09] px-3 py-2.5">
+        <p className="text-xs text-content-secondary">
+          This reveals the full answer. Try the hints first — you&apos;ll learn far more
+          by matching it yourself.
+        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            onClick={() => {
+              onToggle();
+              setConfirming(false);
+            }}
+            className="rounded-md border border-warn/40 px-2.5 py-1 text-2xs font-semibold text-warn transition hover:bg-warn/10"
+          >
+            Reveal anyway
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            className="text-2xs text-content-muted transition hover:text-content"
+          >
+            Keep trying
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4">
+      <button
+        onClick={() => setConfirming(true)}
+        className="inline-flex items-center gap-1.5 rounded-md bg-bg-softer/60 px-3 py-1.5 text-xs text-content-muted transition hover:bg-bg-softer hover:text-content"
+      >
+        <IconEye size={13} /> Show reference solution
+      </button>
     </div>
   );
+}
+
+// Pull the learner's own compiled instruction stream out of the diff rows.
+function userAsmFrom(rows?: Row[]): Insn[] {
+  if (!rows) return [];
+  return rows.filter((r) => r.user).map((r) => r.user as Insn);
 }
 
 function ResultPanel({
@@ -388,15 +523,18 @@ function ResultPanel({
   setTab,
   check,
   target,
+  className = "",
 }: {
   tab: Tab;
   setTab: (t: Tab) => void;
   check: CheckState;
   target: Insn[] | null;
+  className?: string;
 }) {
   const isErr = check.status === "compileError" || check.status === "error";
+  const yours = userAsmFrom(check.rows);
   return (
-    <div className="flex min-h-[260px] flex-[1] flex-col bg-bg-inset/60 lg:min-h-0">
+    <div className={`min-h-[260px] flex-[1] flex-col bg-bg-inset/60 lg:min-h-0 ${className}`}>
       <div className="flex items-center gap-1 border-b border-line bg-bg-soft/50 px-2">
         <TabButton active={tab === "diff"} onClick={() => setTab("diff")} icon={<IconGitCompare size={14} />}>
           Diff
@@ -404,18 +542,23 @@ function ResultPanel({
         <TabButton active={tab === "target"} onClick={() => setTab("target")} icon={<IconList size={14} />}>
           Target asm
         </TabButton>
+        <TabButton active={tab === "yours"} onClick={() => setTab("yours")} icon={<IconFileCode size={14} />}>
+          Your asm
+        </TabButton>
         <TabButton active={tab === "console"} onClick={() => setTab("console")} icon={<IconTerminal2 size={14} />}>
-          Output
+          Console
         </TabButton>
         <div className="ml-auto pr-2">
-          <StatusBadge check={check} />
+          <MatchMeter check={check} />
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {tab === "diff" &&
-          (check.rows ? (
+          (check.status === "running" ? (
+            <DiffSkeleton />
+          ) : check.rows ? (
             check.status === "match" ? (
-              <MatchBanner percent={100} rows={check.rows} />
+              <MatchBanner percent={100} firstEver={check.firstEver} noHints={check.noHints} />
             ) : (
               <AsmDiff rows={check.rows} />
             )
@@ -423,40 +566,115 @@ function ResultPanel({
             <Empty>Hit “Compile &amp; Check” to diff your code against the target.</Empty>
           ))}
         {tab === "target" &&
-          (target ? (
-            <AsmList rows={target} />
+          (target ? <AsmList rows={target} /> : <DiffSkeleton />)}
+        {tab === "yours" &&
+          (yours.length ? (
+            <AsmList rows={yours} />
           ) : (
-            <Empty>Loading target disassembly…</Empty>
+            <Empty>Your compiled assembly shows up here after a check.</Empty>
           ))}
-        {tab === "console" && (
-          <pre
-            className={`whitespace-pre-wrap px-4 py-3 font-mono text-xs leading-relaxed ${
-              isErr ? "text-[#d6938c]" : "text-[#8b97a6]"
-            }`}
-          >
-            {check.message ||
-              (check.status === "match"
-                ? "Compiled cleanly — perfect match."
-                : "No compiler output yet.")}
-          </pre>
-        )}
+        {tab === "console" && <Console check={check} isErr={isErr} />}
       </div>
     </div>
   );
 }
 
-function MatchBanner({ percent, rows }: { percent: number; rows: Row[] }) {
-  void rows;
+// Parse the first human-meaningful line out of MWCC's raw stderr. The compiler
+// prints a caret-art block (`Error: ^` then the description on the next line),
+// so we skip caret/location noise and surface the actual prose message.
+function summarizeError(msg?: string): string | null {
+  if (!msg) return null;
+  const lines = msg.split("\n").map((l) => l.trim()).filter(Boolean);
+  const idx = lines.findIndex((l) => /error|warning/i.test(l));
+  if (idx < 0) return null;
+  for (const c of lines.slice(idx, idx + 3)) {
+    const cleaned = c
+      .replace(/\^/g, "")
+      .replace(/^\d+:\s*/, "")
+      .replace(/^(Error|Warning):\s*/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (/[a-z]{3,}/i.test(cleaned)) return cleaned.slice(0, 140);
+  }
+  return null;
+}
+
+function Console({ check, isErr }: { check: CheckState; isErr: boolean }) {
+  const summary = isErr ? summarizeError(check.message) : null;
   return (
-    <div className="animate-fade-in flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-      <div className="animate-pulse-good flex h-14 w-14 items-center justify-center rounded-full bg-good/15">
-        <IconConfetti size={28} className="text-good" />
+    <div className="flex h-full flex-col">
+      {summary && (
+        <div className="flex items-start gap-2 border-b border-bad/20 bg-bad/[0.07] px-4 py-2.5 text-xs text-bad">
+          <IconAlertTriangle size={14} className="mt-px shrink-0" />
+          <span className="font-medium text-content">{summary}</span>
+        </div>
+      )}
+      <pre
+        className={`flex-1 whitespace-pre-wrap px-4 py-3 font-mono text-xs leading-relaxed ${
+          isErr ? "text-bad-text" : "text-content-muted"
+        }`}
+      >
+        {check.message ||
+          (check.status === "match"
+            ? "Compiled cleanly — perfect match."
+            : "No compiler output yet.")}
+      </pre>
+    </div>
+  );
+}
+
+function DiffSkeleton() {
+  return (
+    <div className="space-y-2 px-4 py-3">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div
+          key={i}
+          className="skeleton h-3.5 rounded"
+          style={{ width: `${85 - (i % 4) * 16}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MatchBanner({
+  percent,
+  firstEver,
+  noHints,
+}: {
+  percent: number;
+  firstEver?: boolean;
+  noHints?: boolean;
+}) {
+  return (
+    <div className="relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden p-6 text-center">
+      <div className="pointer-events-none absolute inset-0 animate-success-sweep bg-gradient-to-r from-transparent via-good/15 to-transparent" />
+      <div className="animate-ring-burst flex h-14 w-14 items-center justify-center rounded-full bg-good/15">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M5 12.5l4.2 4.2L19 7"
+            stroke="#3fb950"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="28"
+            className="animate-draw-check"
+          />
+        </svg>
       </div>
-      <div className="text-lg font-bold text-good">Perfect match — {percent}%</div>
-      <p className="max-w-sm text-sm text-[#8b97a6]">
-        Every instruction lines up with the compiler's output. This is exactly
-        how a real decomp function gets checked in. Move on to the next lesson.
+      <div className="animate-count-pop text-lg font-bold text-good">
+        {firstEver ? "First match. You're decomping now." : `Perfect match — ${percent}%`}
+      </div>
+      <p className="max-w-sm text-sm text-content-muted">
+        {firstEver
+          ? "That's exactly how every function in a real decomp project gets checked in — byte for byte. You just did the real thing."
+          : "Every instruction lines up with the compiler's output. This is exactly how a real decomp function gets checked in. Move on to the next lesson."}
       </p>
+      {noHints && (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/30 bg-warn/10 px-3 py-1 text-xs font-semibold text-warn">
+          <IconBulb size={13} /> Solved with no hints
+        </span>
+      )}
     </div>
   );
 }
@@ -477,8 +695,8 @@ function TabButton({
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition ${
         active
-          ? "border-accent text-[#e6ebf2]"
-          : "border-transparent text-[#7c8a9a] hover:text-[#b3bdca]"
+          ? "border-accent text-content-primary"
+          : "border-transparent text-content-muted hover:text-content-secondary"
       }`}
     >
       {icon}
@@ -487,17 +705,16 @@ function TabButton({
   );
 }
 
-function StatusBadge({ check }: { check: CheckState }) {
+// Prominent, animated match metric — the dopamine surface of the whole app.
+function MatchMeter({ check }: { check: CheckState }) {
+  const pct = check.matchPercent ?? 0;
+  const shown = useCountUp(pct);
+  const diffs = check.rows?.filter((r) => r.kind !== "same").length ?? 0;
+
   if (check.status === "match")
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-good/15 px-2.5 py-1 text-xs font-semibold text-good">
+      <span className="inline-flex animate-count-pop items-center gap-1 rounded-full bg-good/15 px-2.5 py-1 text-xs font-semibold text-good">
         <IconCheck size={13} /> 100% match
-      </span>
-    );
-  if (check.status === "close" && check.matchPercent !== undefined)
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-warn/15 px-2.5 py-1 text-xs font-semibold text-warn">
-        {check.matchPercent}% — keep going
       </span>
     );
   if (check.status === "compileError")
@@ -512,12 +729,23 @@ function StatusBadge({ check }: { check: CheckState }) {
         <IconAlertTriangle size={13} /> error
       </span>
     );
+  if (check.status === "close" && check.matchPercent !== undefined) {
+    const tone = pct >= 90 ? "text-good" : pct >= 60 ? "text-warn" : "text-bad";
+    return (
+      <span className="inline-flex items-baseline gap-1.5 tabular-nums">
+        <span className={`text-base font-bold ${tone}`}>{shown.toFixed(1)}%</span>
+        <span className="text-2xs text-content-muted">
+          {diffs} {diffs === 1 ? "instr" : "instrs"} left
+        </span>
+      </span>
+    );
+  }
   return null;
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[#5b6675]">
+    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-content-faint">
       {children}
     </div>
   );

@@ -19,7 +19,7 @@ A function that simply returns its **fourth** argument therefore just copies
 \`r6\` into the return register \`r3\`:
 
 \`\`\`asm
-mr   r3, r6      ; r3 = the 4th argument
+mr   r3, r6      # r3 = the 4th argument
 blr
 \`\`\`
 
@@ -61,7 +61,7 @@ argument lives in **\`r7\`** (r3=1st, r4=2nd, r5=3rd, r6=4th, r7=5th). A functio
 that adds its first and fifth arguments reads exactly that:
 
 \`\`\`asm
-add  r3, r3, r7   ; 1st arg + 5th arg
+add  r3, r3, r7   # 1st arg + 5th arg
 blr
 \`\`\`
 
@@ -69,6 +69,10 @@ The compiler never moved anything into place — \`a\` was already in \`r3\` and
 was already in \`r7\`, so a single \`add\` does the whole job. When you see an
 operation between \`r3\` and \`r7\` with nothing loaded first, it's almost always
 the 1st and 5th parameters.
+
+The pattern continues all the way through \`r10\`: that's the full integer
+argument range, \`r3\`–\`r10\`, holding exactly eight arguments. A ninth argument
+has no register left and must spill to the stack — a case you'll meet later.
 
 ## Your task
 
@@ -107,14 +111,15 @@ Single-precision \`f32\` math uses the \`...s\` ("single") forms, so summing thr
 floats is two \`fadds\`:
 
 \`\`\`asm
-fadds f0, f1, f2   ; a + b  (into scratch f0)
-fadds f1, f3, f0   ; + c, result in the return reg f1
+fadds f0, f1, f2   # a + b  (into scratch f0)
+fadds f1, f3, f0   # + c, result in the return reg f1
 blr
 \`\`\`
 
-\`f0\` is the floating-point scratch register (the analogue of \`r0\`). Notice the
-final result lands in \`f1\`, the float return register — the mirror of \`r3\` on
-the integer side.
+The compiler uses \`f0\` as its float scratch register — it is caller-saved and
+the compiler reaches for it first when it needs a temporary. Notice the final
+result lands in \`f1\`, the float return register — the mirror of \`r3\` on the
+integer side.
 
 ## Your task
 
@@ -150,15 +155,17 @@ scratch storage that outlives a call — so MWCC gives it **no stack frame at
 all**. There is no prologue and no epilogue; the body runs and returns:
 
 \`\`\`asm
-mullw r3, r3, r4   ; a * b
-addi  r3, r3, 1    ; + 1
-blr                ; return — no stack adjustment anywhere
+mullw r3, r3, r4   # a * b
+addi  r3, r3, 1    # + 1
+blr                # return — no stack adjustment anywhere
 \`\`\`
 
 Compare this to what you'll see next lesson. The complete absence of
 \`stwu r1,...\` / \`mflr\` / \`mtlr\` is the signature of a leaf: everything happens
-in volatile registers (\`r3\`–\`r12\`, \`f0\`–\`f13\`) that a function may freely
-clobber, then \`blr\`.
+in volatile registers (\`r0\`, \`r3\`–\`r12\`, \`f0\`–\`f13\`) that a function may freely
+clobber, then \`blr\`. (\`r0\` is volatile too — it's caller-saved, which is why
+non-leaf prologues can use it as scratch to shuffle the link register without
+ever preserving \`r0\` itself.)
 
 ## Your task
 
@@ -195,21 +202,36 @@ so before our function can call out, it must save its *own* return address
 somewhere safe. That somewhere is a **stack frame**.
 
 \`\`\`asm
-stwu r1, -16(r1)   ; PROLOGUE: push a 16-byte frame (r1 is the stack pointer)
-mflr r0            ; r0 = our return address (the link register)
-stw  r0, 20(r1)    ; save it into the caller's frame, above our own
-bl   compute       ; call compute(x) — this trashes lr, but we saved it
-lwz  r0, 20(r1)    ; EPILOGUE: reload our return address
-addi r3, r3, 1     ; compute(x) + 1
-mtlr r0            ; restore lr
-addi r1, r1, 16    ; pop the frame
-blr                ; return
+stwu r1, -16(r1)   # PROLOGUE: push a 16-byte frame (r1 is the stack pointer)
+mflr r0            # r0 = our return address (the link register)
+stw  r0, 20(r1)    # save it into the caller's frame, above our own
+bl   compute       # call compute(x) — this trashes lr, but we saved it
+lwz  r0, 20(r1)    # EPILOGUE: reload our return address
+addi r3, r3, 1     # compute(x) + 1
+mtlr r0            # restore lr
+addi r1, r1, 16    # pop the frame
+blr                # return
 \`\`\`
 
 Every non-leaf function wears this prologue/epilogue. \`stwu r1, -N(r1)\` both
 allocates the frame and links it to the caller's; \`mflr\`/\`stw\` save the return
 address on the way in; \`lwz\`/\`mtlr\`/\`addi r1\` undo it all on the way out. Learn
 to read past this boilerplate to find the real work in the middle.
+
+After \`stwu r1, -16(r1)\`, the new \`r1\` points 16 bytes below where it started,
+and the frame is laid out like this:
+
+\`\`\`text
+20(r1)  LR save slot (in the caller's frame)  <- our return address goes here
+16(r1)  caller's back-chain word
+12(r1)  saved-register slot (used in later lessons)
+ 8(r1)  parameter area
+ 4(r1)  our own LR save slot (unused — leaf callees fill it)
+ 0(r1)  back-chain: points at the old r1 (= r1 + 16)
+\`\`\`
+
+That is why the return address is stored at \`20(r1)\`: it lives in the *caller's*
+LR save slot, which sits \`16 + 4\` bytes above our new stack pointer.
 
 ## Your task
 
@@ -251,9 +273,9 @@ before the \`bl\`:
 \`\`\`asm
 stwu r1, -16(r1)
 mflr r0
-addi r4, r3, 1     ; r4 = x + 1  (the 2nd argument)
-stw  r0, 20(r1)    ; x is still in r3, ready as the 1st argument
-bl   combine       ; combine(x, x + 1)
+addi r4, r3, 1     # r4 = x + 1  (the 2nd argument)
+stw  r0, 20(r1)    # save our return address (no move needed for r3 — see below)
+bl   combine       # combine(x, x + 1)
 ... epilogue ...
 blr
 \`\`\`
@@ -306,11 +328,11 @@ Here \`y\` must survive the \`side(x)\` call so it can be returned afterwards:
 stwu r1, -16(r1)
 mflr r0
 stw  r0, 20(r1)
-stw  r31, 12(r1)   ; save the caller's r31 — we're about to borrow it
-mr   r31, r4       ; park y (r4) in non-volatile r31
-bl   side          ; side(x); r3..r12 may be destroyed, but r31 is safe
-mr   r3, r31       ; recover y for the return value
-lwz  r31, 12(r1)   ; restore the caller's r31
+stw  r31, 12(r1)   # save caller's r31 in the saved-register slot at 12(r1)
+mr   r31, r4       # park y (r4) in non-volatile r31
+bl   side          # side(x)# r3..r12 may be destroyed, but r31 is safe
+mr   r3, r31       # recover y for the return value
+lwz  r31, 12(r1)   # restore the caller's r31
 ... epilogue ...
 blr
 \`\`\`
@@ -363,20 +385,33 @@ In \`order_demo\`, \`first\` is declared before \`second\`:
 \`\`\`asm
 stw  r31, 12(r1)
 stw  r30, 8(r1)
-mr   r30, r4         ; y parked for the second call
-bl   transform       ; first = transform(x)
-mr   r31, r3         ; first -> r31  (declared first -> highest reg)
+mr   r30, r4         # y parked for the second call
+bl   transform       # first = transform(x)
+mr   r31, r3         # first -> r31  (declared first -> highest reg)
 mr   r3, r30
-bl   transform       ; second = transform(y)
-subf r3, r3, r31     ; first - second
+bl   transform       # second = transform(y)
+subf r3, r3, r31     # first - second
 \`\`\`
+
+The snippet above is the real output for the solution: \`first\`, declared first,
+lands in \`r31\` (via \`mr r31, r3\` after its call), and the final \`subf\` reads
+\`first - second\` as \`subf r3, r3, r31\`.
 
 Now the decompiler's lever: **if the target had \`first\` in r30 and \`second\` in
 r31, you'd simply swap the two declarations.** Reordering
 \`int first; int second;\` to \`int second; int first;\` flips their register
 homes — \`second\` would take \`r31\` and \`first\` would take \`r30\` — with no change
-to the program's meaning. Register coloring you can't otherwise reach is often
-just a declaration-order edit away.
+to the program's meaning. The swapped source compiles to the mirror image, with
+\`second\` parked in \`r31\` and the subtraction reading \`subf r3, r31, r3\`:
+
+\`\`\`asm
+mr   r31, r3         # second -> r31  (now declared first -> highest reg)
+...
+subf r3, r31, r3     # first - second
+\`\`\`
+
+Register coloring you can't otherwise reach is often just a declaration-order
+edit away.
 
 ## Your task
 
@@ -420,11 +455,11 @@ value must be — there is no shuffling to do between the call and the return:
 stwu r1, -16(r1)
 mflr r0
 stw  r0, 20(r1)
-bl   helper        ; helper(x); result lands in r3
+bl   helper        # helper(x)# result lands in r3
 lwz  r0, 20(r1)
 mtlr r0
 addi r1, r1, 16
-blr                ; r3 already holds helper(x)
+blr                # r3 already holds helper(x)
 \`\`\`
 
 This still isn't a leaf — the \`bl\` forces the full frame so the link register
@@ -432,6 +467,11 @@ survives — but the *body* is just the call. There's no \`mr\` to move the resu
 into place, because \`helper\`'s return register and \`call_it\`'s return register
 are the same \`r3\`. The argument \`x\` likewise passes straight through \`r3\`
 untouched.
+
+Note this is **not** a tail call in the optimized sense: MWCC GC/2.0 does not
+do tail-call elimination, so you always get the full prologue/epilogue around
+the \`bl\` and a \`blr\` to return — never a bare \`b helper\` that reuses the
+caller's frame. Don't go looking for that pattern; this compiler never emits it.
 
 ## Your task
 
@@ -466,11 +506,14 @@ the call surrounded only by the prologue and epilogue.
 
 Only the first **eight** integer arguments get registers (\`r3\`–\`r10\`). A
 **ninth** argument has nowhere left to go, so the caller places it on the
-**stack**, and the callee reads it back from there. By the ABI it sits in the
-caller's parameter area, which the callee sees at offset \`8(r1)\` on entry:
+**stack**, and the callee reads it back from there. The EABI lays out the
+caller's frame as \`0(r1)\` = back-chain, \`4(r1)\` = LR save slot, and \`8(r1)\`
+onward = the outgoing parameter area. Because \`ninth\` is a leaf and never
+allocates its own frame, its \`r1\` on entry still points at the caller's frame —
+so the ninth argument is right there at \`8(r1)\`:
 
 \`\`\`asm
-lwz  r3, 8(r1)    ; load the 9th argument from the caller's frame
+lwz  r3, 8(r1)    # load the 9th argument from the caller's frame
 blr
 \`\`\`
 

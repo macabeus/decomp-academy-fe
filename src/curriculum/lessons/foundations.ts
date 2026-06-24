@@ -15,16 +15,18 @@ export const foundations: LessonSource[] = [
 binary. Here you don't guess — you *prove* it. You write C, the real
 **Metrowerks CodeWarrior GC/2.0** compiler turns it into PowerPC assembly, and
 we compare it, instruction for instruction, against the target. When every
-instruction lines up, you have a **100% match**.
+instruction lines up, you have a **100% match**. Even a single extra
+instruction counts as a mismatch, so small choices like a variable's type
+matter more than you might expect.
 
-## The one rule of PowerPC you need right now
+## The first piece of PowerPC to know
 
 The GameCube's CPU returns a function's result in register **\`r3\`**. A function
 that returns an integer constant therefore does just two things:
 
 \`\`\`asm
-li   r3, 42      ; load immediate 42 into r3
-blr              ; branch to link register = "return"
+li   r3, 42      # load immediate 42 into r3
+blr              # branch to link register = "return"
 \`\`\`
 
 \`li\` means *load immediate* and \`blr\` (*branch to link register*) is how every
@@ -47,7 +49,7 @@ The target on the right is exactly those two instructions. Write the C function
 `,
     hints: [
       "The function should return the literal value 42.",
-      "`return 42;` compiles to `li r3, 42` followed by `blr`.",
+      "A one-line `return` of that value is all it takes — the `li`/`blr` is the compiler's job.",
     ],
   },
   {
@@ -65,11 +67,13 @@ used for the return value. So a function that just returns its argument has
 nothing to do: the value is already sitting in \`r3\`.
 
 \`\`\`asm
-blr              ; r3 already holds x — just return
+blr              # r3 already holds x — just return
 \`\`\`
 
-That single \`blr\` is a perfect, if anticlimactic, match. Later arguments go in
-\`r4\`, \`r5\`, \`r6\` … up to \`r10\`.
+That single \`blr\` is a perfect, if anticlimactic, match. Later integer and
+pointer arguments go in \`r4\`, \`r5\`, \`r6\` … up to \`r10\`. Floating-point
+arguments are separate: they use \`f1\`–\`f8\` and don't consume an integer
+register slot.
 
 ## Your task
 
@@ -86,7 +90,7 @@ Write \`identity\`, which takes an \`int x\` and returns it unchanged.
 `,
     hints: [
       "The argument `x` arrives in r3, which is also the return register.",
-      "`return x;` needs no work at all — the compiler emits just `blr`.",
+      "Returning it unchanged needs no work at all — the compiler emits just `blr`.",
     ],
   },
   {
@@ -109,7 +113,8 @@ blr
 \`\`\`
 
 The destination comes **first**, then the two sources. Keep that order in mind —
-it trips up everyone at the start.
+it's an easy one to mix up at first. As in the identity lesson, the arguments
+arrive left-to-right: \`a\` in \`r3\` and \`b\` in \`r4\`.
 
 ## Your task
 
@@ -126,7 +131,7 @@ Write \`add2\`, returning the sum of two \`int\`s.
 `,
     hints: [
       "Two arguments arrive in r3 (a) and r4 (b).",
-      "`a + b` becomes `add r3, r3, r4`.",
+      "Returning the sum of the two arguments compiles to a single `add` of their registers.",
     ],
   },
   {
@@ -143,12 +148,13 @@ PowerPC has no plain \`sub\`. To compute \`a - b\` it uses **\`subf\`** — *sub
 from* — which computes \`rD = rB - rA\`. The operands are **reversed**:
 
 \`\`\`asm
-subf r3, r4, r3   ; r3 = r3 - r4  =  a - b
+subf r3, r4, r3   # r3 = r3 - r4  =  a - b
 blr
 \`\`\`
 
-So \`subf r3, r4, r3\` reads as "subtract r4 *from* r3". Once you internalize that
-\`subf rD, rA, rB\` is \`rB - rA\`, the disassembly stops looking backwards.
+So \`subf r3, r4, r3\` subtracts \`r4\` from \`r3\`, leaving \`a - b\` in \`r3\`. Once you
+internalize that \`subf rD, rA, rB\` computes \`rB - rA\`, the disassembly stops
+looking backwards.
 
 ## Your task
 
@@ -164,7 +170,7 @@ Write \`sub2\`, returning \`a - b\`.
 }
 `,
     hints: [
-      "`a - b` uses `subf`, the subtract-from instruction.",
+      "There's no plain `sub`; subtraction uses `subf`, the subtract-from instruction.",
       "`subf r3, r4, r3` computes r3 - r4, i.e. a - b.",
     ],
   },
@@ -182,12 +188,15 @@ When you add a small constant, the compiler doesn't load it into a register
 first — it uses the **immediate** form \`addi rD, rA, imm\`:
 
 \`\`\`asm
-addi r3, r3, 1    ; r3 = r3 + 1
+addi r3, r3, 1    # r3 = r3 + 1
 blr
 \`\`\`
 
 Immediates are signed 16-bit, so the same \`addi\` handles subtraction of a
 constant too (\`x - 5\` → \`addi r3, r3, -5\`). No separate instruction needed.
+That 16-bit field only spans **-32768 to 32767**; constants outside that range
+take two instructions (\`lis\` + \`addi\`). You won't see that here, but spotting the
+pattern later will save you some confusion.
 
 ## Your task
 
@@ -204,11 +213,11 @@ Write \`increment\`, returning \`x + 1\`.
 `,
     hints: [
       "Adding a constant uses the immediate form `addi`.",
-      "`x + 1` compiles to `addi r3, r3, 1`.",
+      "The constant folds right into the instruction, so it's one op with no extra load.",
     ],
   },
   {
-    id: "foundations-objdump",
+    id: "foundations-negate",
     chapter: "foundations",
     order: 6,
     title: "Negation and the Zero Register",
@@ -243,8 +252,8 @@ Write \`negate\`, returning \`-x\`.
 }
 `,
     hints: [
-      "There is a dedicated negate instruction.",
-      "`-x` compiles to `neg r3, r3`.",
+      "There is a dedicated negate instruction — you don't build it from a subtract-from-zero.",
+      "The same principle applies to bitwise NOT — look for `not` rather than an `xor` with -1.",
     ],
   },
 ];

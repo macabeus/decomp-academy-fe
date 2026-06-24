@@ -17,9 +17,9 @@ the difference is zero exactly when they're equal — then counts the leading
 zero bits and shifts:
 
 \`\`\`asm
-subf   r0, r3, r4    ; r0 = b - a   (zero iff a == b)
-cntlzw r0, r0        ; count leading zeros: 32 if r0==0, else < 32
-srwi   r3, r0, 5     ; r0 >> 5  ==  1 if it was 32, else 0
+subf   r0, r3, r4    # r0 = b - a   (zero iff a == b)
+cntlzw r0, r0        # count leading zeros: 32 if r0==0, else < 32
+srwi   r3, r0, 5     # r0 >> 5  ==  1 if it was 32, else 0
 blr
 \`\`\`
 
@@ -34,6 +34,7 @@ Write \`is_equal\`, returning \`a == b\` as an \`int\`.
 `,
     symbol: "is_equal",
     starter: `int is_equal(int a, int b) {
+    /* TODO: return the result of comparing a and b */
     return 0;
 }
 `,
@@ -61,16 +62,19 @@ instead of a *zero* test. MWCC computes the difference both ways, ORs them, and
 extracts the sign bit of the combination:
 
 \`\`\`asm
-subf r5, r3, r4    ; b - a
-subf r0, r4, r3    ; a - b
-or   r0, r5, r0    ; nonzero (with bit 31 set somewhere) iff a != b
-srwi r3, r0, 31    ; pull bit 31 down to 0/1
+subf r5, r3, r4    # b - a
+subf r0, r4, r3    # a - b
+or   r0, r5, r0    # nonzero (with bit 31 set somewhere) iff a != b
+srwi r3, r0, 31    # pull bit 31 down to 0/1
 blr
 \`\`\`
 
 ORing \`b - a\` with \`a - b\` guarantees the top bit is set whenever the two
-differ (one of the two subtractions is negative), and is exactly zero when they
-match. The final \`srwi r3, r0, 31\` isolates that sign bit as a clean \`0\`/\`1\`.
+differ (at least one of the two subtractions has bit 31 set), and is exactly
+zero when they match. The final \`srwi r3, r0, 31\` isolates that sign bit as a
+clean \`0\`/\`1\`. (Edge case: when \`a - b\` wraps to \`INT_MIN\`, \`b - a\` wraps to
+\`INT_MIN\` too, but the OR is still \`INT_MIN\` so bit 31 stays set and the result
+is still correct.)
 
 ## Your task
 
@@ -105,18 +109,18 @@ first time you'll see a real **compare-and-branch**. The comparison no longer
 produces a number — it sets the condition register, and a branch reads it:
 
 \`\`\`asm
-cmpw  r3, r4      ; compare a against b, set cr0
-li    r3, 20      ; assume the else value first
-bnelr-            ; if a != b, return now with 20
-li    r3, 10      ; otherwise overwrite with the then value
+cmpw  r3, r4      # compare a against b, set cr0
+li    r3, 20      # assume the else value first
+bnelr-            # if a != b, return now with 20
+li    r3, 10      # otherwise overwrite with the then value
 blr
 \`\`\`
 
-Two things to notice. MWCC **speculatively loads the else value** (\`20\`) before
-the branch, so the equal case is the one that falls through and reloads. And
-\`bnelr\` is a *conditional return* — "branch to link register if not equal" —
-collapsing an entire else-arm into one instruction. The trailing \`-\` is a
-branch-prediction hint, not an operand.
+First, that trailing \`-\` on \`bnelr-\` is a branch-prediction hint, not an
+operand. Then two things to notice. MWCC **speculatively loads the else value**
+(\`20\`) before the branch, so the equal case is the one that falls through and
+reloads. And \`bnelr\` is a *conditional return* — "branch to link register if
+not equal" — collapsing an entire else-arm into one instruction.
 
 ## Your task
 
@@ -152,8 +156,8 @@ clamping a signed value up to zero is a classic branchless trick MWCC knows by
 heart, built from an arithmetic shift and an *and-with-complement*:
 
 \`\`\`asm
-srawi r0, r3, 31   ; r0 = all 1s if x < 0, else all 0s (sign mask)
-andc  r3, r3, r0   ; r3 = x AND (NOT mask) -> 0 if x<0, else x
+srawi r0, r3, 31   # r0 = all 1s if x < 0, else all 0s (sign mask)
+andc  r3, r3, r0   # r3 = x AND (NOT mask) -> 0 if x<0, else x
 blr
 \`\`\`
 
@@ -161,6 +165,13 @@ blr
 \`0xFFFFFFFF\` for negatives and \`0\` for non-negatives. \`andc\` then masks \`x\`
 against the *inverse*: negatives become \`0\`, everything else passes through
 untouched. No \`cmpwi\`, no branch — pure data flow.
+
+Why branchless? MWCC recognises the clamp shape when both paths return a value
+derived from the *same* register, and folds it into this \`srawi\`/\`andc\` pair.
+The single-return form \`return x < 0 ? 0 : x;\` is recognised identically. Beware
+that the logically equivalent inversion \`if (x >= 0) return x; return 0;\` falls
+*outside* the recognised pattern and compiles to a different sequence — source
+form can decide codegen.
 
 ## Your task
 
@@ -196,10 +207,10 @@ the C **type** decides which one. For a signed \`int\`, MWCC emits **\`cmpw\`** 
 the signed word compare:
 
 \`\`\`asm
-cmpw  r3, r4      ; signed compare: treats r3, r4 as signed
-li    r3, 200     ; else value
-bgelr-            ; if a >= b, return 200
-li    r3, 100     ; then value
+cmpw  r3, r4      # signed compare: treats r3, r4 as signed
+li    r3, 200     # else value
+bgelr-            # if a >= b, return 200
+li    r3, 100     # then value
 blr
 \`\`\`
 
@@ -243,7 +254,7 @@ operands to \`u32\`. The structure is identical — but the compare becomes
 **\`cmplw\`**, the *logical* (unsigned) word compare:
 
 \`\`\`asm
-cmplw r3, r4      ; UNSIGNED compare
+cmplw r3, r4      # UNSIGNED compare
 li    r3, 200
 bgelr-
 li    r3, 100
@@ -254,7 +265,9 @@ Why it matters: under unsigned ordering \`0xFFFFFFFF\` is the *largest* value, n
 \`-1\`. Pick the wrong compare and a value like \`0xFFFFFFFF\` lands on the wrong
 side of the branch. **The types in your C are what select \`cmpw\` vs \`cmplw\`** —
 if your match shows \`cmplw\` but you wrote \`int\`, the original local or field was
-unsigned. This is the single most common reason a comparison fails to match.
+unsigned. Spotting this mismatch — \`cmplw\` where you expected \`cmpw\` — is one of
+the most useful debugging skills in decompilation: it points straight back to the
+original type.
 
 ## Your task
 
@@ -293,9 +306,9 @@ gives **\`cmpwi\`**, an unsigned operand gives **\`cmplwi\`**.
 A signed \`if (a > 5)\` returning two values:
 
 \`\`\`asm
-cmpwi r3, 5       ; signed immediate compare
+cmpwi r3, 5       # signed immediate compare
 li    r3, 9
-blelr-            ; a <= 5 -> return 9
+blelr-            # a <= 5 -> return 9
 li    r3, 7
 blr
 \`\`\`
@@ -340,12 +353,12 @@ function can assume it holds. Because the two arms do genuinely different work
 than going branchless:
 
 \`\`\`asm
-cmpwi r4, 0       ; is the divisor zero?
-bne-  .body       ; no -> skip the guard, go do the work
-li    r3, -1      ; yes -> return the sentinel
+cmpwi r4, 0       # is the divisor zero?
+bne-  .body       # no -> skip the guard, go do the work
+li    r3, -1      # yes -> return the sentinel
 blr
 .body:
-divw  r3, r3, r4  ; safe: b is known non-zero here
+divw  r3, r3, r4  # safe: b is known non-zero here
 blr
 \`\`\`
 
@@ -378,7 +391,7 @@ Write \`safe_div\`: if \`b == 0\` return \`-1\`, otherwise return \`a / b\`.
     chapter: "control",
     order: 9,
     title: "Ternary Max",
-    difficulty: 2,
+    difficulty: 3,
     concepts: ["ternary", "comparison", "select"],
     brief: `
 # Selecting the larger of two
@@ -388,11 +401,11 @@ a conditional skip, and a pair of moves that funnel the chosen value into the
 return register:
 
 \`\`\`asm
-cmpw r3, r4      ; compare a, b (signed int)
-ble- .else       ; if a <= b, keep b
-mr   r4, r3      ; a wins: stage a into r4
+cmpw r3, r4      # compare a, b (signed int)
+ble- .else       # if a <= b, keep b
+mr   r4, r3      # a wins: stage a into r4
 .else:
-mr   r3, r4      ; return whichever value is in r4
+mr   r3, r4      # return whichever value is in r4
 blr
 \`\`\`
 
@@ -424,7 +437,7 @@ Write \`maxi\`, returning the larger of two signed \`int\`s using a ternary.
     chapter: "control",
     order: 10,
     title: "Ternary Min",
-    difficulty: 2,
+    difficulty: 3,
     concepts: ["ternary", "comparison", "select"],
     brief: `
 # The mirror image
@@ -435,8 +448,8 @@ flipped — the branch condition. Where max skipped on \`ble-\`, min skips on
 
 \`\`\`asm
 cmpw r3, r4
-bge- .else       ; if a >= b, keep b
-mr   r4, r3      ; a is smaller: stage it
+bge- .else       # if a >= b, keep b
+mr   r4, r3      # a is smaller: stage it
 .else:
 mr   r3, r4
 blr
@@ -481,10 +494,10 @@ the first didn't already decide the answer. That laziness shows up directly as
 
 \`\`\`asm
 cmpwi r3, 0
-ble-  .false     ; a <= 0 -> whole && is false, skip the b test
+ble-  .false     # a <= 0 -> whole && is false, skip the b test
 cmpwi r4, 0
-ble-  .false     ; b <= 0 -> false
-li    r3, 1      ; both passed
+ble-  .false     # b <= 0 -> false
+li    r3, 1      # both passed
 blr
 .false:
 li    r3, 0
@@ -493,8 +506,25 @@ blr
 
 With \`&&\`, the *first* failing test jumps straight to the false exit — \`b\` is
 never compared when \`a <= 0\`. \`||\` inverts the logic: the first *passing* test
-jumps to the true exit. Counting the compares and reading which branch each one
-takes reconstructs the exact \`&&\`/\`||\` expression.
+jumps to the true exit. The same \`a > 0 || b > 0\` compiles to:
+
+\`\`\`asm
+cmpwi r3, 0
+bgt-  .true      # a > 0 -> short-circuit, the || is already true
+cmpwi r4, 0
+ble-  .false     # last test still gates: b <= 0 -> false
+.true:
+li    r3, 1
+blr
+.false:
+li    r3, 0
+blr
+\`\`\`
+
+Note only the *early* operand jumps to true on success; the final compare still
+falls through to the true path and branches to false on failure. Counting the
+compares and reading which branch each one takes reconstructs the exact
+\`&&\`/\`||\` expression.
 
 ## Your task
 
@@ -531,15 +561,15 @@ case values with signed compares to reach the right arm in a logarithmic number
 of tests:
 
 \`\`\`asm
-cmpwi r3, 2       ; probe the middle case first
+cmpwi r3, 2       # probe the middle case first
 beq-  .case2
-bge-  .hi         ; x > 2 -> search the upper half
-cmpwi r3, 0       ; lower half: 0 or 1?
+bge-  .hi         # x > 2 -> search the upper half
+cmpwi r3, 0       # lower half: 0 or 1?
 beq-  .case0
 bge-  .case1
 b     .default
 .hi:
-cmpwi r3, 4       ; upper half: 3, or out of range?
+cmpwi r3, 4       # upper half: 3, or out of range?
 bge-  .default
 b     .case3
 \`\`\`
@@ -548,7 +578,9 @@ Each \`.caseN\` is a tiny \`li r3, <value>\` / \`blr\` block, and anything that 
 through every test lands in \`.default\`. Note the cases are tested **in value
 order**, not source order — the compiler sorts them to bisect. A cascade of
 \`cmpwi\`/\`beq\`/\`bge\` against ascending constants is the unmistakable shape of a
-dense \`switch\`.
+dense \`switch\`. This compare-chain strategy is specific to small case sets;
+larger dense switches (roughly 5+ cases) flip to a jump table (a \`b\` through a
+computed table address), a pattern a later lesson covers.
 
 ## Your task
 
