@@ -4,26 +4,9 @@ An interactive course that takes you from *never having read a register* to
 matching real **Star Fox Adventures** functions, instruction for instruction.
 You write C; the **real Metrowerks CodeWarrior GC/2.0 compiler** grades it live.
 
-It's the [decomp.me](https://decomp.me) loop turned into a structured curriculum:
-read the target PowerPC assembly, write plausible C, compile, diff, iterate to
-a **100% byte match**.
-
-## How it works
-
-- The backend shells out to the authoritative MWCC GC/2.0 toolchain that ships
-  with the sibling [`../sfa`](../sfa) decompilation project (the Windows
-  `mwcceppc.exe` is run through [`wibo`](https://github.com/decompals/wibo)), then
-  disassembles the result with the project's `powerpc-eabi-objdump -M gekko`.
-- Your code and the lesson's authoritative reference solution are compiled with
-  the exact retail flags (`-O4,p -proc gekko ...`), normalized, and diffed
-  instruction-by-instruction. Branch targets and symbol relocations are
-  canonicalized so equivalent code matches regardless of address.
-- Because the *real* compiler is in the loop, every lesson target is truthful —
-  nothing is hand-waved or hard-coded.
-
 ## Curriculum
 
-306 lessons across 16 chapters, strictly progressive:
+364 lessons across 17 chapters, strictly progressive:
 
 1. **Foundations** — registers, return values, reading MWCC output
 2. **The Decomp Loop** — match %, objdump, diffing, diagnosing a near-match
@@ -35,29 +18,83 @@ a **100% byte match**.
 12. **Globals, the SDA & Pools** — `@sda21`, `@ha`/`@l`, literal pools
 13. **Optimization & Scheduling** — peephole, scheduling, the `#pragma` toggles
 14. **Advanced Idioms** — paired-singles, switch jump tables, enums, `volatile`
-15. **Practice Gauntlet** — ~160 generated drills for endless reps
-16. **Real-World Mastery** — 10 authentic SFA capstones, up to ~80 instructions
+15. **64-bit Integers** — `long long` register pairing, carry chains (`addc`/`adde`),
+    downcast fingerprints, and the divide/shift intrinsics
+16. **Practice Gauntlet** — ~160 generated drills for endless reps
+17. **Real-World Mastery** — 10 authentic SFA capstones, up to ~80 instructions
 
-## Running it
+## Running it locally
 
-Requires Node 18+ and the `../sfa` project present (it provides the compiler and
-binutils). Point elsewhere with `SFA_ROOT=/path/to/sfa`.
+Requires Node 18+ and the sibling [`../sfa`](../sfa) decompilation project present
+(it provides the MWCC compiler and binutils). Point elsewhere with
+`SFA_ROOT=/path/to/sfa`.
 
 ```sh
 npm install
 npm run dev      # http://localhost:3000
 ```
 
-### Useful endpoints / scripts
+## Contributing
 
-- `POST /api/check` `{ lesson, code }` — compile + diff a submission
-- `GET /api/target?lesson=<id>` — the authoritative target disassembly
-- `GET /api/admin/verify-all` — compile every lesson's reference solution (QA)
-- `node scripts/cc.mjs <file.c|-> [symbol]` — standalone compile + disassemble
-- `node scripts/shots.mjs` — capture UI screenshots for design review
+Contributions are very welcome — especially new lessons. The workflow is the
+standard GitHub fork-and-PR flow:
 
-## Stack
+1. **Fork** the repository on GitHub and clone your fork:
+   ```sh
+   git clone https://github.com/<your-username>/decomp-academy-fe
+   cd decomp-academy-fe
+   ```
+2. **Create a branch** for your change:
+   ```sh
+   git checkout -b my-new-lessons
+   ```
+3. **Make your changes** (see "Adding a lesson" below), commit, and push to your
+   fork:
+   ```sh
+   git commit -am "Add lessons on <topic>"
+   git push origin my-new-lessons
+   ```
+4. **Open a Pull Request** from your branch against this repo's `main`. Describe
+   what you added and, for new lessons, which compiler behaviour they teach.
 
-Next.js (App Router) · Tailwind CSS · Tabler icons · Monaco editor. Lesson
-content lives in `src/curriculum/lessons/*.ts`; the compile/diff engine is in
-`src/lib/`.
+### Where the content lives
+
+All lessons live under **`src/curriculum/`**, one folder per chapter named
+`NN-<id>` (e.g. `15-int64`). Inside each chapter:
+
+- `_chapter.md` — the chapter's title and one-line blurb.
+- `NNN-<slug>.md` — one file per lesson, in order. Each has YAML frontmatter
+  (`id`, `title`, `difficulty`, `concepts`, `symbol`, `hints`) followed by the
+  explanation and a `<!-- starter -->` / `<!-- solution -->` C block.
+
+The build step compiles this Markdown tree into JSON the app imports — it runs
+automatically before `dev`/`build`, or on demand:
+
+```sh
+npm run curriculum
+```
+
+### Adding a lesson
+
+1. Pick (or create) a chapter folder under `src/curriculum/`.
+2. Copy an existing `NNN-<slug>.md` as a template and edit the frontmatter,
+   explanation, starter, and solution. The `symbol` field is the function name
+   the grader compiles and diffs.
+3. Verify your reference solution actually compiles to that symbol on the real
+   toolchain:
+   ```sh
+   node scripts/cc.mjs path/to/solution.c <symbol>
+   ```
+4. Run `npm run curriculum` and check the lesson appears in the app.
+
+Because the *real* compiler is in the loop, every lesson target must be
+truthful — write the C, compile it, and quote the assembly the compiler actually
+emits. Nothing is hand-waved or hard-coded.
+
+## License
+
+Decomp Academy is free software licensed under the **GNU Affero General Public
+License v3.0** ([AGPL-3.0](LICENSE)). You are free to use, study, modify, and
+redistribute it — but any derivative work, **including a modified version run as
+a network service**, must also be released under the AGPL-3.0 with its complete
+source code made available. See [LICENSE](LICENSE) for the full text.
