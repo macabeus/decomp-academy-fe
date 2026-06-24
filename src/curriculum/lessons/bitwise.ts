@@ -304,8 +304,9 @@ blr
 Under the hood \`slwi r3, r3, 4\` *is* \`rlwinm r3, r3, 4, 0, 27\` — rotate left by 4
 and keep the top 28 bits. You don't have to decode that by hand; recognizing the
 \`slwi\` mnemonic as "left shift by a constant" is enough. (As a mental check,
-\`x << n\` equals \`x * 2^n\` arithmetically — but always write the shift in your
-source so MWCC emits \`slwi\` rather than a multiply instruction.)
+\`x << n\` equals \`x * 2^n\` arithmetically — and because MWCC strength-reduces a
+power-of-two multiply, \`x * 16\` and \`x << 4\` compile to the *same* \`slwi\`. Write
+whichever matches the original's intent.)
 
 ## Your task
 

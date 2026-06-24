@@ -579,8 +579,8 @@ through every test lands in \`.default\`. Note the cases are tested **in value
 order**, not source order — the compiler sorts them to bisect. A cascade of
 \`cmpwi\`/\`beq\`/\`bge\` against ascending constants is the unmistakable shape of a
 dense \`switch\`. This compare-chain strategy is specific to small case sets;
-larger dense switches (roughly 5+ cases) flip to a jump table (a \`b\` through a
-computed table address), a pattern a later lesson covers.
+larger dense switches (around seven or more consecutive cases) flip to a jump
+table (a \`b\` through a computed table address), a pattern a later lesson covers.
 
 ## Your task
 

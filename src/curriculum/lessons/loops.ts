@@ -110,8 +110,9 @@ either way.
 
 ## Your task
 
-Write \`sum\` again, but this time express it as a \`while\` loop. It must produce
-byte-for-byte the same code as the \`for\` version.
+Write \`sum\` again, but this time express it as a \`while\` loop. It compiles to
+the same loop skeleton as the \`for\` version — the test, the branch, and the body
+come out identical.
 `,
     symbol: "sum",
     starter: `#pragma optimization_level 1

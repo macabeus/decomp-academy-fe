@@ -471,7 +471,8 @@ remainder loop at the end.)
 
 Don't be alarmed when your output runs to dozens of instructions: MWCC emits a
 prologue that picks the eight-wide path when \`n\` is large, an unrolled body that
-stores eight elements per pass under a \`bdnz\`, and then the short tail loop below
+stores eight elements per pass — still a \`mulli\` per element there — under a
+\`bdnz\`, and then the short tail loop below
 that handles the leftover \`0..7\` elements one at a time. It's the tail loop where
 the strength-reduced \`+= 12\` is cleanest, so that's what we show.
 

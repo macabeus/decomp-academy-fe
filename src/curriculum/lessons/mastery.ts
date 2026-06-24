@@ -52,10 +52,10 @@ The payoff is that last quartet. \`return oldState != 1;\` does **not** compile 
 a compare-and-branch — MWCC computes \`!= \` *branchlessly* with
 \`subfic\`/\`addi\`/\`or\`/\`srwi\`. That four-instruction "is-nonzero" pattern is a
 signature you'll see often; it reads as a boolean \`x != k\` return, not as four
-separate arithmetic steps. This exact quartet appears because \`oldState\` is a
-\`u8\` (already zero-extended in its register); an \`int\` \`oldState\` would still
-return the right boolean but through a slightly different sequence — the type is
-what fixes the shape.
+separate arithmetic steps. This exact quartet appears because \`oldState\` was
+loaded from a \`u8\` *field* with \`lbz\`, which zero-extends it — so the branchless
+\`!=\` works on a clean value with no masking. (It's the field's width that drives
+this, not the declared type of the local.)
 
 ## Your task
 

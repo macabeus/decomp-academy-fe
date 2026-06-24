@@ -291,8 +291,10 @@ unsigned \`u8\` wants. When you only load and store a byte, \`u8\` is the natura
 choice; using \`char\` would bring in a sign-extending \`extsb\` the compiler
 wouldn't otherwise need. That gives you a diagnostic rule when reading
 disassembly: \`lbzx\` (or \`lbz\`) *alone* with no following \`extsb\` is strong
-evidence the original type was unsigned; \`lbzx\` followed by \`extsb\` points to a
-signed \`char\`/\`s8\`.
+evidence the original type was unsigned. An \`lbzx\` followed by \`extsb\` points to
+a signed \`char\`/\`s8\` *being widened* — the \`extsb\` shows up only when a signed
+byte is promoted to a wider type, so a signed byte kept narrow still loads with a
+bare \`lbzx\`.
 
 ## Your task
 

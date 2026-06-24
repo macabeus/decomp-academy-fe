@@ -400,8 +400,9 @@ lands in \`r31\` (via \`mr r31, r3\` after its call), and the final \`subf\` rea
 Now the decompiler's lever: **if the target had \`first\` in r30 and \`second\` in
 r31, you'd simply swap the two declarations.** Reordering
 \`int first; int second;\` to \`int second; int first;\` flips their register
-homes — \`second\` would take \`r31\` and \`first\` would take \`r30\` — with no change
-to the program's meaning. The swapped source compiles to the mirror image, with
+homes — \`second\` would take \`r31\` and \`first\` would take \`r30\`, leaving the
+result \`first - second\` unchanged (the two \`transform\` calls are independent, so
+only their order shifts). The swapped source compiles to the mirror image, with
 \`second\` parked in \`r31\` and the subtraction reading \`subf r3, r31, r3\`:
 
 \`\`\`asm

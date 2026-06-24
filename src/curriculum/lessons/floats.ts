@@ -177,9 +177,9 @@ Write \`div_f\`, returning \`a / b\` for two \`f32\`s.
     brief: `
 # A float divide that isn't a divide
 
-\`fdivs\` only shows up when the divisor is a *runtime* value. Divide by a
-**constant** and MWCC strength-reduces it the float way: it folds in the
-reciprocal and emits a single \`fmuls\`. So \`x / 4.0f\` compiles as \`x * 0.25f\`:
+Dividing a float by a **power-of-two constant** doesn't need \`fdivs\` at all.
+MWCC folds it into a multiply by the *exactly representable* reciprocal — so
+\`x / 4.0f\` becomes \`x * 0.25f\`, a single \`fmuls\`:
 
 \`\`\`asm
 lfs   f0, ...      # load the reciprocal constant 0.25f from the pool
@@ -188,9 +188,11 @@ blr
 \`\`\`
 
 The \`0.25f\` lives in a read-only float pool (loaded with \`lfs\`), and the divide
-is gone entirely. When you see a lone \`lfs\` + \`fmuls\` where the source
-"obviously" divides, this reciprocal fold is why — and writing \`x / 4.0f\` in C
-reproduces it exactly; you don't hand-write the \`0.25f\`.
+is gone entirely. This fold only happens when the reciprocal is *exact* — i.e.
+powers of two. \`x / 3.0f\` keeps a real \`fdivs\`, because \`1/3\` can't be stored
+exactly. So a lone \`lfs\` + \`fmuls\` where the source "obviously" divides tells you
+the divisor was a power of two — and writing \`x / 4.0f\` in C reproduces it; you
+don't hand-write the \`0.25f\`.
 
 ## Your task
 
