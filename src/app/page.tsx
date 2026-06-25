@@ -58,14 +58,6 @@ export default function Home() {
             <Link href="#curriculum" className="text-content-secondary transition hover:text-content-primary">
               Curriculum
             </Link>
-            {firstLesson && (
-              <Link
-                href={`/lesson/${firstLesson.id}`}
-                className="rounded-md bg-accent/10 px-3 py-1.5 font-medium text-accent transition hover:bg-accent/20"
-              >
-                Start
-              </Link>
-            )}
             <AccountMenu />
           </div>
         </div>

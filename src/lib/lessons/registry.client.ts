@@ -7,6 +7,8 @@ import { CHAPTERS } from "@/curriculum/chapters";
 
 export interface LessonMeta {
   id: string;
+  /** Stable backend/storage key (UUIDv5); see LessonSource.progressId. */
+  progressId: string;
   title: string;
   chapter: string;
   order: number;

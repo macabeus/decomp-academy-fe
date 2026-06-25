@@ -18,11 +18,36 @@
 // build time makes the data a normal import — and lets us ship a slim,
 // solution-free list to the browser.
 
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseChapterFile, parseLessonFile, parseTierFile } from "./curriculum-format.mjs";
+import {
+  lessonSlug,
+  parseChapterFile,
+  parseLessonFile,
+  parseTierFile,
+} from "./curriculum-format.mjs";
+
+// Stable backend identity for a lesson: a deterministic UUIDv5 of its
+// "<tier>/<chapter>/<slug>" path. We key server + local progress by this rather
+// than the human slug so the wire format is an opaque, collision-free id (and a
+// lesson keeps the same id across cosmetic title tweaks). Renaming/moving a
+// lesson's tier/chapter/slug intentionally mints a new id.
+const PROGRESS_NAMESPACE = "1b671a64-40d5-491e-99b0-da01ff1f3341";
+function uuidv5(name) {
+  const ns = Buffer.from(PROGRESS_NAMESPACE.replace(/-/g, ""), "hex");
+  const bytes = createHash("sha1")
+    .update(ns)
+    .update(name, "utf8")
+    .digest()
+    .subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50; // version 5
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const h = bytes.toString("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "src", "curriculum");
@@ -78,7 +103,12 @@ for (const tierEntry of subdirs(root)) {
       if (file === "_chapter.md" || !file.endsWith(".md")) continue;
       const m = file.match(ORDER_PREFIX);
       if (!m) throw new Error(`Lesson file missing "<order>-" prefix: ${chEntry.name}/${file}`);
-      lessons.push(parseLessonFile(readFileSync(join(dir, file), "utf8"), { chapter: chId, order: parseFloat(m[1]) }));
+      const lesson = parseLessonFile(readFileSync(join(dir, file), "utf8"), {
+        chapter: chId,
+        order: parseFloat(m[1]),
+      });
+      lesson.progressId = uuidv5(`${tierId}/${chId}/${lessonSlug(lesson.id, chId)}`);
+      lessons.push(lesson);
     }
   }
 }
@@ -95,6 +125,7 @@ lessons.sort((a, b) => {
 
 const slim = lessons.map((l) => ({
   id: l.id,
+  progressId: l.progressId,
   title: l.title,
   chapter: l.chapter,
   order: l.order,

@@ -24,6 +24,9 @@ export interface Chapter {
 
 export interface LessonSource {
   id: string;
+  /** Deterministic UUIDv5 of "<tier>/<chapter>/<slug>" — the stable key under
+   *  which progress is stored on the server and in localStorage. */
+  progressId: string;
   chapter: string;
   order: number;
   title: string;

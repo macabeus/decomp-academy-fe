@@ -19,11 +19,9 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  if (status === "loading") {
-    return <div className="h-7 w-7 animate-pulse rounded-full bg-bg-softer" aria-hidden />;
-  }
-
-  if (status === "anon" || !user) {
+  // Until auth resolves (and whenever signed out) just show Sign in — avoids a
+  // placeholder circle flashing in and then swapping to the button.
+  if (status !== "authed" || !user) {
     return (
       <Link
         href="/login"
