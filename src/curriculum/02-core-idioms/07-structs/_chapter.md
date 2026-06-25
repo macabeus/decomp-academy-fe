@@ -1,4 +1,4 @@
 ---
 title: Structs, Unions & Bitfields
-blurb: Typed field access, nested structs, unions, and single-bit bitfields.
+blurb: From single fields up to combining several across nested structs, member arrays, unions, and bitfields.
 ---
