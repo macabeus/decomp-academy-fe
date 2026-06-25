@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   IconChevronDown,
   IconCircleCheckFilled,
@@ -61,11 +61,16 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
   );
   const resume = ordered.find((x) => bestPercent(x.lessonId) < 100) ?? ordered[0];
 
-  const [open, setOpen] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(
-      chapters.map((c) => [c.id, c.id === resume?.chapterId || c.order === 1]),
-    ),
-  );
+  // Start with nothing forced open (matches SSR, before localStorage progress
+  // loads). Until the learner manually toggles a chapter, keep exactly the first
+  // not-fully-complete chapter open — completed chapters stay collapsed. `resume`
+  // updates once progress loads and as lessons get solved, and this follows it.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const userToggled = useRef(false);
+  useEffect(() => {
+    if (userToggled.current || !resume) return;
+    setOpen({ [resume.chapterId]: true });
+  }, [resume]);
 
   return (
     <div className="space-y-8">
@@ -111,7 +116,10 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
                     }`}
                   >
                     <button
-                      onClick={() => setOpen((o) => ({ ...o, [chapter.id]: !o[chapter.id] }))}
+                      onClick={() => {
+                        userToggled.current = true;
+                        setOpen((o) => ({ ...o, [chapter.id]: !o[chapter.id] }));
+                      }}
                       aria-expanded={isOpen}
                       className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-bg-softer/50"
                     >
