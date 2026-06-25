@@ -14,13 +14,12 @@ import { LESSONS } from "@/lib/lessons/registry.client";
 import { ProgressBar } from "@/components/ui";
 
 export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: string }) {
-  const { progress } = useProgress();
-  const solvedCount = Object.values(progress.solved).filter((p) => p >= 100).length;
+  const { bestPercent } = useProgress();
+  const solvedCount = LESSONS.filter((l) => bestPercent(l.id) >= 100).length;
   const pct = total ? Math.round((solvedCount / total) * 100) : 0;
 
   // Resume at the first unsolved lesson if we have progress.
-  const resumeId =
-    LESSONS.find((l) => (progress.solved[l.id] ?? 0) < 100)?.id || firstLessonId;
+  const resumeId = LESSONS.find((l) => bestPercent(l.id) < 100)?.id || firstLessonId;
 
   return (
     <header className="relative overflow-hidden border-b border-line">

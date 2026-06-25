@@ -10,6 +10,7 @@ import { CurriculumMap } from "@/components/CurriculumMap";
 import { MatchLog } from "@/components/MatchLog";
 import { Hero } from "@/components/Hero";
 import { Logo } from "@/components/ui";
+import { AccountMenu } from "@/components/AccountMenu";
 
 export default function Home() {
   // Slim the payload: the map only needs lesson metadata, never briefs/solutions.
@@ -65,6 +66,7 @@ export default function Home() {
                 Start
               </Link>
             )}
+            <AccountMenu />
           </div>
         </div>
       </nav>

@@ -29,7 +29,8 @@ import {
   type Seg,
 } from "@/lib/objdiff/client";
 import { Difficulty } from "./CurriculumMap";
-import { loadCode, recordResult, saveCode, totalSolved } from "@/lib/progress";
+import { loadCode, recordResult, saveCode, totalSolved, useProgress } from "@/lib/progress";
+import { AccountMenu } from "./AccountMenu";
 
 const CodeEditor = dynamic(() => import("./CodeEditor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -126,6 +127,11 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
   // Monotonic token bumped on every lesson open; async work checks it before
   // committing state so a stale in-flight compile can't clobber a newer lesson.
   const loadIdRef = useRef(0);
+  // The last code we seeded programmatically (starter or saved). If the editor
+  // still equals it, the learner hasn't typed, so a late server hydrate is free
+  // to replace it with their saved code.
+  const seededRef = useRef(code);
+  const { ready: progressReady } = useProgress();
 
   const run = useCallback(
     async (opts?: { initial?: boolean }) => {
@@ -235,6 +241,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     const initialCode = saved ?? lesson.starter;
     setCode(initialCode);
     codeRef.current = initialCode;
+    seededRef.current = initialCode;
     setCheck({ status: "idle" });
     setTargetRows(null);
     setOverview(null);
@@ -274,11 +281,25 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
       .catch(() => {});
   }, [lesson.id, lesson.starter, lesson.symbol, lesson.concept]);
 
+  // When the progress store finishes hydrating after open (e.g. server progress
+  // arrives on an authed hard-load), restore the saved code — but only if the
+  // learner hasn't touched what we last seeded.
+  useEffect(() => {
+    if (lesson.concept || !progressReady) return;
+    const saved = loadCode(lesson.id);
+    if (!saved || saved === codeRef.current || codeRef.current !== seededRef.current) return;
+    setCode(saved);
+    codeRef.current = saved;
+    seededRef.current = saved;
+    void runRef.current({ initial: true });
+  }, [progressReady, lesson.id, lesson.concept]);
+
   const reset = () => {
     setCode(lesson.starter);
     // Update the ref synchronously so the re-run below reads the starter, not the
     // pre-reset code (setCode only updates codeRef on the next render).
     codeRef.current = lesson.starter;
+    seededRef.current = lesson.starter;
     saveCode(lesson.id, lesson.starter);
     setSelectedSymbol(lesson.symbol);
     setTab("diff");
@@ -508,6 +529,8 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
             Next <IconArrowRight size={14} />
           </Link>
         ) : null}
+        <div className="mx-1 h-5 w-px bg-line" />
+        <AccountMenu />
       </div>
     </header>
   );

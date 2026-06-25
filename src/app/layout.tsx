@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth/AuthContext";
+import { ProgressProvider } from "@/lib/auth/ProgressProvider";
 
 const sans = Inter({
   subsets: ["latin"],
@@ -30,7 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="font-sans antialiased">
-        {children}
+        <AuthProvider>
+          <ProgressProvider>{children}</ProgressProvider>
+        </AuthProvider>
         {/* Cloudflare Web Analytics */}
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"
