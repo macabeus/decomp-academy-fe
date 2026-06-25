@@ -1,5 +1,5 @@
 ---
-id: workflow-add-sub
+id: arithmetic-add-sub
 title: An Add Then a Subtract
 difficulty: 1
 concepts:

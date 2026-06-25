@@ -1,5 +1,5 @@
 ---
-id: workflow-mul-add
+id: arithmetic-mul-add
 title: Multiply Then Add
 difficulty: 1
 concepts:
@@ -13,12 +13,11 @@ hints:
     carries that intermediate value into the second instruction.
 ---
 
-# Introducing `mullw`
+# Chaining off a multiply
 
-The `mullw` (*multiply low word*) instruction multiplies two 32-bit signed integers
-and keeps the lower 32 bits of the result — the same semantics as C `int`
-multiplication. Its operand order is straightforward:
-**`mullw rD, rA, rB` computes `rA * rB`**. No reversal, no surprises.
+Recall `mullw rD, rA, rB` computes `rA * rB` — *multiply low word*, keeping the
+low 32 bits, matching C `int` multiplication. Its operand order is
+straightforward: no reversal, no surprises.
 
 When multiplication is followed by a second operation, the pattern looks like
 the chains you have already seen: `mullw` writes an intermediate result into a

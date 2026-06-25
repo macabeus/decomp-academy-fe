@@ -1,5 +1,5 @@
 ---
-id: workflow-add-mul
+id: arithmetic-add-mul
 title: Precedence Changes the Order
 difficulty: 1
 concepts:

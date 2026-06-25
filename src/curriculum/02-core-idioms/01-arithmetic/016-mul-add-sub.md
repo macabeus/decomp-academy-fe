@@ -1,5 +1,5 @@
 ---
-id: workflow-mul-add-sub
+id: arithmetic-mul-add-sub
 title: A Three-Instruction Mixed Chain
 difficulty: 2
 concepts:

@@ -1,5 +1,5 @@
 ---
-id: workflow-div-sub-mul
+id: arithmetic-div-sub-mul
 title: Divide and Multiply, Then Subtract
 difficulty: 2
 concepts:

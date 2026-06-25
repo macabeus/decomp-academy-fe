@@ -1,5 +1,5 @@
 ---
-id: workflow-two-products
+id: arithmetic-two-products
 title: Two Products, Subtracted
 difficulty: 2
 concepts:

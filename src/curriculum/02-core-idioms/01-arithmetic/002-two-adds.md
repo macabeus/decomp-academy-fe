@@ -1,5 +1,5 @@
 ---
-id: workflow-add3
+id: arithmetic-two-adds
 title: Two Adds, Reassociated
 difficulty: 2
 concepts:

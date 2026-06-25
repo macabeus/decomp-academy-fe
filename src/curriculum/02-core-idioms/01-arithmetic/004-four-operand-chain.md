@@ -1,5 +1,5 @@
 ---
-id: workflow-add-sub-add
+id: arithmetic-add-sub-add
 title: A Three-Instruction Chain
 difficulty: 2
 concepts:

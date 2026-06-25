@@ -1,5 +1,5 @@
 ---
-id: workflow-div-add
+id: arithmetic-div-add
 title: Divide Then Add
 difficulty: 1
 concepts:
@@ -14,13 +14,11 @@ hints:
     carries it into the next instruction.
 ---
 
-# Introducing `divw`
+# Chaining off a divide
 
-The `divw` (*divide word*) instruction performs signed 32-bit integer division and
-discards the remainder — exactly like C's `/` on `int` values. Its operand order:
-**`divw rD, rA, rB` computes `rA / rB`**, with the dividend in `rA` and the
-divisor in `rB`. Unlike `subf`, there is no reversal here: `rA` is divided by `rB`,
-in that order.
+Recall `divw rD, rA, rB` computes `rA / rB` — *divide word*, signed, discarding
+the remainder, with the dividend in `rA` and the divisor in `rB` and no operand
+reversal.
 
 Division is more expensive than multiplication (typically 20+ cycles on PowerPC),
 so a `divw` instruction stands out in disassembly. Like any other arithmetic
