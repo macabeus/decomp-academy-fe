@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { compile } from "@/lib/compile";
 import { Instruction } from "@/lib/asm";
+import { API_URL } from "@/lib/api-url";
 import { getLesson } from "./registry";
 import { LessonSource } from "./types";
-import { compileApiUrl, postJson } from "./remote";
+import { postJson } from "./remote";
 
 // In-memory cache of compiled reference targets, keyed by a hash of the inputs
 // that affect codegen. The reference solution is authoritative, so caching it is
@@ -44,43 +44,23 @@ export async function getTarget(l: LessonSource): Promise<TargetResult> {
   const cached = targetCache.get(key);
   if (cached) return { ok: true, instructions: cached.instructions, objBase64: cached.objBase64 };
 
-  // Proxy mode: ask the deployed compile service for the target.
-  const api = compileApiUrl();
-  if (api) {
-    try {
-      const d = await postJson(`${api}/target`, {
-        solution: l.solution,
-        symbol: l.symbol,
-        context: l.context,
-        extraFlags: l.extraFlags,
-      });
-      if (!d?.ok) return { ok: false, error: d?.error || "Compile service error." };
-      if (!d.objBase64) {
-        return { ok: false, error: "Compile service returned no target object file." };
-      }
-      targetCache.set(key, { instructions: d.instructions, objBase64: d.objBase64 });
-      return { ok: true, instructions: d.instructions, objBase64: d.objBase64 };
-    } catch (e) {
-      return { ok: false, error: "Could not reach the compile service." };
+  // Ask the unified compile service for the authoritative target.
+  try {
+    const d = await postJson(`${API_URL}/target`, {
+      solution: l.solution,
+      symbol: l.symbol,
+      context: l.context,
+      extraFlags: l.extraFlags,
+    });
+    if (!d?.ok) return { ok: false, error: d?.error || "Compile service error." };
+    if (!d.objBase64) {
+      return { ok: false, error: "Compile service returned no target object file." };
     }
+    targetCache.set(key, { instructions: d.instructions, objBase64: d.objBase64 });
+    return { ok: true, instructions: d.instructions, objBase64: d.objBase64 };
+  } catch (e) {
+    return { ok: false, error: "Could not reach the compile service." };
   }
-
-  const res = await compile({
-    code: l.solution,
-    context: l.context,
-    symbol: l.symbol,
-    extraFlags: l.extraFlags,
-  });
-  if (!res.ok || !res.instructions) {
-    return {
-      ok: false,
-      error:
-        `The reference solution for this lesson failed to compile: ` +
-        (res.diagnostics || "unknown error"),
-    };
-  }
-  targetCache.set(key, { instructions: res.instructions, objBase64: res.objBase64 });
-  return { ok: true, instructions: res.instructions, objBase64: res.objBase64 };
 }
 
 export interface CheckResult {
@@ -102,38 +82,24 @@ export async function checkLesson(
   if (!lesson) return { ok: false, error: "Unknown lesson." };
   if (lesson.concept) return { ok: false, error: "This lesson has no exercise." };
 
-  // Proxy mode: the compile service compiles the learner's code and returns the .o.
-  const api = compileApiUrl();
-  if (api) {
-    try {
-      const d = await postJson(`${api}/check`, {
-        code,
-        symbol: lesson.symbol,
-        context: lesson.context,
-        extraFlags: lesson.extraFlags,
-      });
-      if (!d?.ok) {
-        return d?.compileError
-          ? { ok: false, compileError: d.compileError }
-          : { ok: false, error: d?.error || "Compile service error." };
-      }
-      if (!d.objBase64) {
-        return { ok: false, error: "Compile service returned no object file." };
-      }
-      return { ok: true, objBase64: d.objBase64 };
-    } catch (e) {
-      return { ok: false, error: "Could not reach the compile service." };
+  // The compile service compiles the learner's code and returns the .o.
+  try {
+    const d = await postJson(`${API_URL}/check`, {
+      code,
+      symbol: lesson.symbol,
+      context: lesson.context,
+      extraFlags: lesson.extraFlags,
+    });
+    if (!d?.ok) {
+      return d?.compileError
+        ? { ok: false, compileError: d.compileError }
+        : { ok: false, error: d?.error || "Compile service error." };
     }
+    if (!d.objBase64) {
+      return { ok: false, error: "Compile service returned no object file." };
+    }
+    return { ok: true, objBase64: d.objBase64 };
+  } catch (e) {
+    return { ok: false, error: "Could not reach the compile service." };
   }
-
-  const userRes = await compile({
-    code,
-    context: lesson.context,
-    symbol: lesson.symbol,
-    extraFlags: lesson.extraFlags,
-  });
-  if (!userRes.ok || !userRes.objBase64) {
-    return { ok: false, compileError: userRes.diagnostics };
-  }
-  return { ok: true, objBase64: userRes.objBase64 };
 }

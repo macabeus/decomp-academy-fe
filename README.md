@@ -95,12 +95,10 @@ npm run curriculum
 2. Copy an existing `NNN-<slug>.md` as a template and edit the frontmatter,
    explanation, starter, and solution. The `symbol` field is the function name
    the grader compiles and diffs.
-3. Verify your reference solution actually compiles to that symbol on the real
-   toolchain:
-   ```sh
-   node scripts/cc.mjs path/to/solution.c <symbol>
-   ```
-4. Run `npm run curriculum` and check the lesson appears in the app.
+3. Run `npm run curriculum` and check the lesson appears in the app.
+4. Verify your reference solution actually compiles to its symbol: start the app
+   (`npm run dev`) and open `/api/admin/verify-all`, which compiles every
+   lesson's reference solution through the compile API and reports any failures.
 
 Because the *real* compiler is in the loop, every lesson target must be
 truthful — write the C, compile it, and quote the assembly the compiler actually

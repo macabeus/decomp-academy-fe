@@ -1,8 +1,7 @@
 "use client";
 
 import { getIdToken } from "./cognito";
-
-const BASE = process.env.NEXT_PUBLIC_API_URL!;
+import { API_URL as BASE } from "@/lib/api-url";
 
 export class ApiError extends Error {
   constructor(
