@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { IconUserCircle, IconLogout, IconChevronDown } from "@tabler/icons-react";
+import {
+  IconUserCircle,
+  IconLogout,
+  IconChevronDown,
+  IconChartBar,
+} from "@tabler/icons-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 
 export function AccountMenu() {
@@ -53,6 +58,15 @@ export function AccountMenu() {
             <div className="text-2xs uppercase tracking-wide text-content-faint">Signed in as</div>
             <div className="truncate text-sm text-content-primary">{label}</div>
           </div>
+          {user.isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 border-b border-line px-3 py-2.5 text-left text-sm text-content-secondary transition hover:bg-bg-softer hover:text-content-primary"
+            >
+              <IconChartBar size={15} /> Admin
+            </Link>
+          )}
           <button
             onClick={() => {
               setOpen(false);

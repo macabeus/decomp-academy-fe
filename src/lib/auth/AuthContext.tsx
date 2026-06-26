@@ -13,6 +13,7 @@ import { getIdToken, logout } from "./cognito";
 export interface AuthUser {
   sub: string;
   email: string;
+  isAdmin: boolean;
 }
 
 type Status = "loading" | "anon" | "authed";
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const me = await api<AuthUser>("/me");
-      setUser(me);
+      setUser({ ...me, isAdmin: !!me.isAdmin });
       setStatus("authed");
     } catch {
       // Token present but rejected (revoked/expired refresh) — treat as anon.
