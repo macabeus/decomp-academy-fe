@@ -19,6 +19,7 @@ import {
   IconStack2,
 } from "@tabler/icons-react";
 import { ObjDiff, ObjOverview, preloadGlossary } from "./AsmDiff";
+import { GlossaryProse } from "./GlossaryProse";
 import {
   analyze,
   preloadObjdiff,
@@ -360,10 +361,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
             </div>
           </div>
           <div className="flex-1 px-5 py-5 lg:min-h-0 lg:overflow-y-auto">
-            <div
-              className="prose-lesson"
-              dangerouslySetInnerHTML={{ __html: lesson.briefHtml }}
-            />
+            <GlossaryProse className="prose-lesson" html={lesson.briefHtml} />
             <Hints
               hints={lesson.hints}
               shown={hintsShown}
@@ -468,9 +466,9 @@ function ConceptView({ lesson }: { lesson: LessonDTO }) {
             </span>
             <span className="text-xs text-content-muted">Concept · no code to write</span>
           </div>
-          <article
+          <GlossaryProse
             className="prose-lesson animate-slide-up-fade rounded-2xl border border-line bg-bg-soft/40 px-6 py-7 sm:px-9 sm:py-9"
-            dangerouslySetInnerHTML={{ __html: lesson.briefHtml }}
+            html={lesson.briefHtml}
           />
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
             <span className="text-sm text-content-muted">Got it? Lock it in and move on.</span>

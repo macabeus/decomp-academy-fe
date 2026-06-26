@@ -47,6 +47,12 @@ html, body {
 .prose-lesson li::marker { color: theme(colors.accent.DEFAULT); font-weight: 600; }
 .prose-lesson strong { color: theme(colors.content.primary); font-weight: 650; }
 .prose-lesson a { color: theme(colors.accent.DEFAULT); text-decoration: underline; text-underline-offset: 2px; }
+.prose-lesson abbr[data-glossary] {
+  cursor: help;
+  text-decoration: underline dotted theme(colors.content.faint);
+  text-underline-offset: 3px;
+}
+.prose-lesson abbr[data-glossary]:hover { text-decoration-color: theme(colors.accent.DEFAULT); }
 .prose-lesson code {
   font-family: var(--font-mono);
   font-size: 0.82em;
