@@ -725,7 +725,7 @@ function ResultPanel({
       <div className="min-h-0 flex-1 overflow-auto">
         {tab === "diff" &&
           (check.status === "running" && !check.vm ? (
-            <DiffSkeleton />
+            <DiffSkeleton label="Compiling with mwcceppc.exe…" />
           ) : showBanner ? (
             <MatchBanner
               percent={100}
@@ -782,6 +782,13 @@ function summarizeError(msg?: string): string | null {
 
 function Console({ check, isErr }: { check: CheckState; isErr: boolean }) {
   const summary = isErr ? summarizeError(check.message) : null;
+  if (check.status === "running")
+    return (
+      <div className="flex h-full items-center justify-center gap-2 text-xs text-content-faint">
+        <IconLoader2 size={14} className="animate-spin text-accent" />
+        Compiling with mwcceppc.exe…
+      </div>
+    );
   return (
     <div className="flex h-full flex-col">
       {summary && (
@@ -804,16 +811,24 @@ function Console({ check, isErr }: { check: CheckState; isErr: boolean }) {
   );
 }
 
-function DiffSkeleton() {
+function DiffSkeleton({ label }: { label?: string }) {
   return (
-    <div className="space-y-2 px-4 py-3">
-      {Array.from({ length: 7 }).map((_, i) => (
-        <div
-          key={i}
-          className="skeleton h-3.5 rounded"
-          style={{ width: `${85 - (i % 4) * 16}%` }}
-        />
-      ))}
+    <div className="px-4 py-3">
+      {label && (
+        <div className="mb-3 flex items-center gap-2 text-xs text-content-faint">
+          <IconLoader2 size={14} className="animate-spin text-accent" />
+          <span>{label}</span>
+        </div>
+      )}
+      <div className="space-y-2">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div
+            key={i}
+            className="skeleton h-3.5 rounded"
+            style={{ width: `${85 - (i % 4) * 16}%` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -900,6 +915,12 @@ function MatchMeter({ check }: { check: CheckState }) {
   const shown = useCountUp(pct);
   const diffs = check.vm?.rows.filter((r) => r.kind !== "none").length ?? 0;
 
+  if (check.status === "running")
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+        <IconLoader2 size={13} className="animate-spin" /> compiling…
+      </span>
+    );
   if (check.status === "match")
     return (
       <span className="inline-flex animate-count-pop items-center gap-1 rounded-full bg-good/15 px-2.5 py-1 text-xs font-semibold text-good">

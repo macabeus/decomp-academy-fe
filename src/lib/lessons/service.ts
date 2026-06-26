@@ -82,7 +82,9 @@ export async function checkLesson(
   if (!lesson) return { ok: false, error: "Unknown lesson." };
   if (lesson.concept) return { ok: false, error: "This lesson has no exercise." };
 
-  // The compile service compiles the learner's code and returns the .o.
+  // The compile service compiles the learner's code and returns the .o. It has
+  // no concept of lessons — the per-lesson stat is recorded separately against
+  // the main API below, once we know whether the code built.
   try {
     const d = await postJson(`${API_URL}/check`, {
       code,
@@ -91,15 +93,33 @@ export async function checkLesson(
       extraFlags: lesson.extraFlags,
     });
     if (!d?.ok) {
-      return d?.compileError
-        ? { ok: false, compileError: d.compileError }
-        : { ok: false, error: d?.error || "Compile service error." };
+      if (d?.compileError) {
+        await recordCompile(lessonId, false);
+        return { ok: false, compileError: d.compileError };
+      }
+      // A service/infra error isn't a failed compile, so it isn't counted.
+      return { ok: false, error: d?.error || "Compile service error." };
     }
+    await recordCompile(lessonId, true);
     if (!d.objBase64) {
       return { ok: false, error: "Compile service returned no object file." };
     }
     return { ok: true, objBase64: d.objBase64 };
   } catch (e) {
     return { ok: false, error: "Could not reach the compile service." };
+  }
+}
+
+// Best-effort per-lesson compile counter on the main API. Never let a stats
+// write change or fail a check.
+async function recordCompile(lessonId: string, compiled: boolean): Promise<void> {
+  try {
+    await fetch(`${API_URL}/stats/${encodeURIComponent(lessonId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ok: compiled }),
+    });
+  } catch {
+    // ignore — stats are non-critical
   }
 }
