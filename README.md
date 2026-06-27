@@ -5,7 +5,7 @@
 [![Live: decomp-academy.dev](https://img.shields.io/badge/live-decomp--academy.dev-6d28d9)](https://decomp-academy.dev)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
-🎮 **Try it at [decomp-academy.dev](https://decomp-academy.dev)** — 254 free, interactive lessons, in the browser, no signup required to start.
+🎮 **Try it at [decomp-academy.dev](https://decomp-academy.dev)** — 258 free, interactive lessons, in the browser, no signup required to start.
 
 Decomp Academy teaches **matching decompilation**: the craft of recovering original
 C source from a compiled binary so faithfully that it *re-compiles to the same
@@ -32,7 +32,7 @@ authentic **Star Fox Adventures** functions.
 
 ## Curriculum
 
-254 lessons across 18 chapters, grouped into four strictly-progressive tiers:
+258 lessons across 18 chapters, grouped into four strictly-progressive tiers:
 
 - **Warm-up — learn to read the machine.** Foundations (registers, return values,
   reading MWCC output) · The Decomp Loop (match %, objdump, diffing a near-match).

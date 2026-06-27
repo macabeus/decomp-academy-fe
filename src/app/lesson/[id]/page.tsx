@@ -13,7 +13,7 @@ export function generateStaticParams() {
   return LESSONS.map((l) => ({ id: l.id }));
 }
 
-// Per-lesson title + description, so all 254 lessons are distinct to search
+// Per-lesson title + description, so all 258 lessons are distinct to search
 // engines instead of inheriting the generic site-wide metadata.
 export function generateMetadata({
   params,
