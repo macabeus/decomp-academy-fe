@@ -55,6 +55,9 @@ export default function Home() {
             >
               <IconBrandGithub size={16} /> GitHub
             </a>
+            <Link href="/playground" className="text-content-secondary transition hover:text-content-primary">
+              Playground
+            </Link>
             <Link href="#curriculum" className="text-content-secondary transition hover:text-content-primary">
               Curriculum
             </Link>
