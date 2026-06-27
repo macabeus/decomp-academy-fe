@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
+import { BrandMark } from "@/components/BrandMark";
 
 function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
@@ -162,29 +163,10 @@ export function Card({
 
 // A terminal-prompt mark: chevron + blinking underscore. Mono-forward identity
 // that says "real tool / real compiler" — not a generic SaaS glyph.
+// The {dA} brand mark. `size` sets the rendered height; width follows the
+// mark's aspect ratio. (See components/BrandMark for the generated SVG.)
 export function Logo({ size = 28, className }: { size?: number; className?: string }) {
-  return (
-    <span
-      className={cx(
-        "inline-flex items-center justify-center rounded-md bg-accent/15",
-        className,
-      )}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="none">
-        <path
-          d="M6 7.5l4.5 4.5L6 16.5"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-accent"
-        />
-        <rect x="12.5" y="15" width="6" height="2.1" rx="1" className="fill-accent animate-blink" />
-      </svg>
-    </span>
-  );
+  return <BrandMark height={size} className={cx("block w-auto", className)} />;
 }
 
 export { cx };

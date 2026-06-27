@@ -10,7 +10,7 @@ html, body {
 
 * { box-sizing: border-box; }
 
-::selection { background: rgba(124, 147, 255, 0.3); }
+::selection { background: rgba(139, 108, 240, 0.32); }
 
 /* Visible, consistent keyboard focus everywhere (there was none before). */
 :focus-visible {
@@ -35,7 +35,7 @@ html, body {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: theme(colors.line.strong); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: #3a4757; }
+::-webkit-scrollbar-thumb:hover { background: #3a3350; }
 
 /* Markdown (lesson brief) styling. */
 .prose-lesson h1 { font-size: 1.35rem; font-weight: 700; color: theme(colors.content.bright); margin: 0 0 0.75rem; }
@@ -93,7 +93,7 @@ html, body {
 
 .prose-lesson blockquote {
   border-left: 3px solid theme(colors.accent.soft);
-  background: rgba(124, 147, 255, 0.06);
+  background: rgba(139, 108, 240, 0.06);
   border-radius: 0 6px 6px 0;
   padding: 0.5rem 0.85rem;
   margin: 0.75rem 0;
@@ -124,7 +124,7 @@ html, body {
 }
 
 .grid-dots {
-  background-image: radial-gradient(circle at 1px 1px, rgba(124,147,255,0.10) 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, rgba(139,108,240,0.10) 1px, transparent 0);
   background-size: 22px 22px;
 }
 
