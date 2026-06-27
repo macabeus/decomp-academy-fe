@@ -5,6 +5,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import { ProgressProvider } from "@/lib/auth/ProgressProvider";
 import { EngagementPrompts } from "@/components/EngagementPrompts";
+import { JsonLd } from "@/components/JsonLd";
+import { organizationLd, websiteLd, SITE_DESCRIPTION } from "@/lib/seo";
 
 const sans = Inter({
   subsets: ["latin"],
@@ -20,10 +22,25 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://decomp-academy.dev"),
-  title: "Decomp Academy — Master MWCC GC/2.0",
-  description:
-    "Learn to decompile GameCube PowerPC assembly back into matching C, " +
-    "powered by the authoritative Metrowerks CodeWarrior GC/2.0 compiler.",
+  title: {
+    default: "Decomp Academy — Learn GameCube Decompilation (MWCC GC/2.0)",
+    template: "%s · Decomp Academy",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "Decomp Academy",
+  keywords: [
+    "decompilation",
+    "matching decompilation",
+    "learn to decompile",
+    "GameCube",
+    "PowerPC",
+    "Gekko",
+    "reverse engineering",
+    "MWCC",
+    "Metrowerks CodeWarrior",
+    "assembly to C",
+  ],
+  alternates: { canonical: "/" },
   icons: {
     icon: [
       { url: "/brand/svg/favicon.svg", type: "image/svg+xml" },
@@ -38,16 +55,16 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Decomp Academy",
     url: "https://decomp-academy.dev",
-    title: "Decomp Academy — Master MWCC GC/2.0",
+    title: "Decomp Academy — Learn GameCube Decompilation (MWCC GC/2.0)",
     description:
-      "Learn to decompile GameCube PowerPC assembly back into matching C.",
+      "Learn to decompile GameCube PowerPC assembly into byte-matching C, graded live by the real MWCC GC/2.0 compiler.",
     images: [{ url: "/brand/png/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Decomp Academy — Master MWCC GC/2.0",
+    title: "Decomp Academy — Learn GameCube Decompilation",
     description:
-      "Learn to decompile GameCube PowerPC assembly back into matching C.",
+      "Learn to decompile GameCube PowerPC assembly into byte-matching C, graded live by the real MWCC GC/2.0 compiler.",
     images: ["/brand/png/og-image.png"],
   },
 };
@@ -64,6 +81,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="font-sans antialiased">
+        <JsonLd data={[organizationLd(), websiteLd()]} />
         <AuthProvider>
           <ProgressProvider>
             {children}

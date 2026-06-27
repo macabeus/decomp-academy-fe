@@ -31,7 +31,7 @@ export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: 
       <div className="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-5 pb-16 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pt-20">
         <div>
           <h1 className="max-w-xl text-2xl font-bold leading-snug tracking-tight text-content-bright sm:text-3xl">
-            Decompile assembly back into{" "}
+            Learn to decompile GameCube assembly into{" "}
             <span className="bg-gradient-to-r from-accent to-accent-grad bg-clip-text font-mono text-transparent">
               byte-matching C.
             </span>
