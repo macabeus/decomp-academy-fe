@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLesson } from "@/lib/lessons/registry";
+import { getLesson, DEFAULT_COURSE } from "@/lib/lessons/registry";
 import { getTarget } from "@/lib/lessons/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const course = req.nextUrl.searchParams.get("course");
   const id = req.nextUrl.searchParams.get("lesson");
-  if (!course || !id) {
-    return NextResponse.json({ ok: false, error: "Missing course or lesson id." }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Missing lesson id." }, { status: 400 });
   }
+  // `course` is optional for backwards compatibility: a client bundle from before
+  // the multi-course migration omits it. Fall back to the default course so an
+  // in-flight old client isn't broken across a deploy.
+  const course = req.nextUrl.searchParams.get("course") ?? DEFAULT_COURSE.id;
   const lesson = getLesson(course, id);
   if (!lesson) {
     return NextResponse.json({ ok: false, error: "Unknown lesson." }, { status: 404 });
