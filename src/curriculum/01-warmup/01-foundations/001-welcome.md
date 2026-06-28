@@ -15,31 +15,31 @@ hints:
 
 # Welcome to decompilation
 
-**Decompiling** is the art of recovering the original C source from a compiled
-binary. Here you don't guess — you *prove* it. You write C, the real
-**Metrowerks CodeWarrior GC/2.0** compiler turns it into PowerPC assembly, and
-we compare it, instruction for instruction, against the target. When every
-instruction lines up, you have a **100% match**. Even a single extra
-instruction counts as a mismatch, so small choices like a variable's type
-matter more than you might expect.
+Decompiling is working backwards. You take a compiled binary and recover the C
+that produced it. The good part is that you never have to wonder whether you got
+it right: you write C, hand it to the genuine Metrowerks CodeWarrior GC/2.0
+compiler, and let it emit PowerPC assembly. We diff that against the target, line
+by line. Match all of it and you score 100%. Be off by one instruction and the
+match fails outright. That strictness is the whole game, and it's why something
+as innocent as a variable's type can sink you.
 
 ## The first piece of PowerPC to know
 
-The GameCube's CPU returns a function's result in register **`r3`**. A function
-that returns an integer constant therefore does just two things:
+Return values live in register `r3`. The GameCube CPU insists on it. So a
+function that just hands back an integer constant has hardly any work to do:
 
 ```asm
 li   r3, 7       # load immediate 7 into r3
 blr              # branch to link register = "return"
 ```
 
-`li` means *load immediate*: it stuffs a literal value straight into a register.
-`blr` (*branch to link register*) is how every function returns. You'll see
-`blr` at the end of almost everything.
+Two lines. `li` is load immediate, which drops a literal straight into a
+register. `blr` (branch to link register) does the actual returning, and that one
+turns up at the bottom of nearly everything you'll decompile.
 
-The target on the right uses the same two-instruction shape — `li` followed by
-`blr` — but with a different constant loaded into `r3`. Read the target asm to
-find out which one.
+Your target wears the same `li` then `blr` shape. Only the constant heading into
+`r3` is different. Crack open the target asm and the value you need is sitting
+right there.
 
 ## Your task
 

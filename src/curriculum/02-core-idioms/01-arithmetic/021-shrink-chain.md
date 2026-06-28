@@ -17,12 +17,12 @@ hints:
 
 # A shift-divide in a chain
 
-Just as a constant multiply can hide as `slwi`, a constant **unsigned** divide
-hides as `srwi` at the head of a chain. Read it as `÷ 2ⁿ`, then the rest of the
-chain is the ordinary add/subtract threading you already know.
+You already know `slwi` stands in for a power-of-two multiply. The unsigned divide
+pulls the same trick, and `srwi` at the front of a chain is really `÷ 2ⁿ`. Read it
+that way and what follows is plain add/subtract threading.
 
-Consider `decay(p, q, r)`, which divides the first unsigned argument by a power
-of two, adds the second, and subtracts the third:
+Take `decay(p, q, r)`. It divides the first unsigned argument by a power of two,
+then adds the second and subtracts the third.
 
 ```asm
 srwi r0, r3, 5    # r0 = p >> 5  =  p / 32
@@ -31,13 +31,12 @@ subf r3, r5, r0   # r3 = r0 - r5
 blr
 ```
 
-The `srwi` strength-reduces the constant divide (shift right by 5 is `÷ 32`),
-parks the result in `r0`, and the `add`/`subf` carry the running total to `r3`.
-The shift is just the first arithmetic step.
+Here the `srwi` is the divide (a right shift of 5 means `÷ 32`), and it drops the
+result into `r0`. From there `add` and `subf` walk the total down to `r3`. The
+shift isn't anything exotic, just the first arithmetic step.
 
-The target assembly follows the same shape — a constant-divide shift, then two
-more operations — but with a different shift amount. Read the shift count to
-recover the divisor, then trace the rest of the chain.
+Your target runs the same way with a different shift amount. Recover the divisor
+from the count, then follow the two operations after it.
 
 ## Your task
 

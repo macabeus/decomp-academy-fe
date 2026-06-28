@@ -16,12 +16,11 @@ hints:
 
 # When the multiply runs first
 
-In C, `*` binds tighter than `+` and `−`, so in a mixed expression the
-multiplication is always evaluated first — no matter where it sits in reading
-order. The assembly mirrors this: the `mullw` runs before the add or subtract,
-even when the multiply is written last.
+`*` outranks `+` and `−`, so a mixed expression always does the multiply before
+the add. Left side of the sum, right side, doesn't matter. The `mullw` still
+comes out first, even with the multiply written last.
 
-Consider `bias_scaled(p, q, r)`, which subtracts a scaled value from a base:
+Take `bias_scaled(p, q, r)`. It subtracts a scaled value from a base:
 
 ```asm
 mullw r0, r4, r5   # r0 = q * r
@@ -29,16 +28,16 @@ subf  r3, r0, r3   # r3 = r3 - r0  =  p - (q * r)
 blr
 ```
 
-`mullw` runs first, computing `q * r` (arguments two and three, in `r4` and `r5`).
-The `subf` then takes that product and subtracts it from `r3` — note:
-`subf rD, rA, rB` is `rB − rA`, so `subf r3, r0, r3` gives `r3 − r0`,
-which is `p − (q * r)`.
+`mullw` builds `q * r` from the second and third arguments, `r4` and `r5`.
+`subf` then subtracts that from `r3`. And mind the reversal, since
+`subf rD, rA, rB` is `rB − rA`, so `subf r3, r0, r3` works out to `r3 − r0`,
+i.e. `p − (q * r)`.
 
-The tell-tale sign of a right-side multiply binding first: `mullw` uses `r4` and
-`r5` while `r3` (the first argument) only appears in the second instruction.
+Spot it by the registers. `mullw` only ever touches `r4` and `r5`; the first
+argument `r3` waits until the second instruction.
 
-For the target assembly in this lesson, identify which two registers feed the
-`mullw` and which argument register enters only in the second step.
+Read the target the same way, working out which two registers feed the `mullw`
+and which argument register surfaces only in the second instruction.
 
 ## Your task
 

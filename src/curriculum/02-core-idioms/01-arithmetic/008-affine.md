@@ -12,15 +12,17 @@ hints:
   - Expect `slwi r3, r3, 2` then `addi r3, r3, 1`.
 ---
 
-# Putting the idioms together
+# When the idioms stack up
 
-Real code combines these tricks. An affine expression — multiply by a
-power-of-two, then add a constant — compiles to a strength-reduced shift
-followed by an immediate add.
+Real code rarely hands you one operation at a time. An affine expression is a
+good example. It multiplies by a power of two and then adds a constant, so it's
+really two of this chapter's idioms back to back. A compiler encodes each one
+cheaply, a shift for the multiply and an immediate add for the constant.
 
-To see how the instructions encode the math: the shift left amount is the
-base-2 exponent of the multiplier, and the `addi` immediate is the addend. For
-example, `n * 8 + 3` (shift left by 3, then add 3) becomes:
+Decoding runs the other way, and it's mechanical. Count how many places the
+value shifts left and that's the power of two, so a shift by 3 means a multiply
+by 8. Whatever number rides on the `addi` is the constant. Push `n * 8 + 3`
+through that and it becomes:
 
 ```asm
 slwi r3, r3, 3    # left-shift by 3  →  n * 8
@@ -28,9 +30,8 @@ addi r3, r3, 3    # add 3
 blr
 ```
 
-Your target function uses different constants. Read the shift amount and the
-`addi` immediate from the disassembly below and work backwards to the C
-expression that produces them.
+The function below uses its own constants. Read the shift count and the `addi`
+immediate off the disassembly, then work out which C expression produces them.
 
 ```asm
 slwi r3, r3, 2

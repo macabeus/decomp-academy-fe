@@ -15,11 +15,12 @@ hints:
 
 # Threading a `subf` into a chain
 
-Now mix the subtract quirk into a chain. Two operations means two arithmetic
-instructions, each feeding the next — the running result rides in `r0` until the
-final instruction writes `r3`.
+Let us bring the subtract quirk into a chain. You have got two operations now, so
+two arithmetic instructions, and the first hands its output to the second. Keep
+an eye on `r0`. It carries the running result until the last instruction finally
+writes `r3`.
 
-Consider `blend(p, q, r)`, which combines an add and a subtract:
+Take `blend(p, q, r)`. It mixes an add with a subtract.
 
 ```asm
 add  r0, r3, r4   # r0 = p + q
@@ -27,17 +28,18 @@ subf r3, r5, r0   # r3 = r0 - r5  =  (p + q) - r
 blr
 ```
 
-The key detail is `subf`'s operand order: **`subf rD, rA, rB` computes `rB − rA`**,
-not `rA − rB`. So `subf r3, r5, r0` is `r0 − r5`, which equals `(p + q) − r`.
-Swap the subtrahend and minuend in your head whenever you read `subf`.
+Here is the bit that bites. **`subf rD, rA, rB` computes `rB − rA`**, never
+`rA − rB`. Run that through `subf r3, r5, r0` and you get `r0 − r5`, which is
+`(p + q) − r`. The habit to build is flipping the subtrahend and minuend every
+single time a `subf` goes by.
 
-Unlike addition, subtraction is *not* associative, so the compiler preserves
-the left-to-right order you write in C. The sequence of instructions directly
-mirrors the sequence of operations — but the operand order inside `subf` is
-always reversed from what you might expect.
+Now, addition can be regrouped because it is associative. Subtraction cannot. So
+the compiler leaves your left-to-right C order intact, and the instructions line
+up one for one with the operations you wrote. What still misleads you is the
+reversed operands inside `subf`.
 
-For the target assembly in this lesson, ask yourself: which instruction comes
-first, and which argument appears as `rA` vs `rB` in the `subf`?
+So with this lesson's target, two things decide it. Which instruction goes first?
+And which argument is `rA` and which is `rB` in that `subf`?
 
 ## Your task
 

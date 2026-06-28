@@ -16,16 +16,15 @@ hints:
 
 # Chaining off a divide
 
-Recall `divw rD, rA, rB` computes `rA / rB` — *divide word*, signed, discarding
-the remainder, with the dividend in `rA` and the divisor in `rB` and no operand
-reversal.
+You've seen `divw rD, rA, rB` already. It's *divide word*, a signed `rA / rB` that
+keeps no remainder, with `rA` holding the dividend and `rB` the divisor. Nothing
+gets swapped the way `subf` swaps its operands, so it reads in the obvious order.
 
-Division is more expensive than multiplication (typically 20+ cycles on PowerPC),
-so a `divw` instruction stands out in disassembly. Like any other arithmetic
-instruction, its result lands in a scratch register and can feed a subsequent
-operation.
+A divide is slow. Twenty-plus cycles on PowerPC is typical, far more than a
+multiply, so a `divw` always stands out in disassembly. The result behaves like
+any other, though. It lands in a scratch register, ready for the next instruction.
 
-Consider `scaled_div(p, q, r)`, which multiplies before dividing:
+Here's `scaled_div(p, q, r)`, which multiplies first and then divides.
 
 ```asm
 mullw r0, r3, r4   # r0 = p * q
@@ -33,13 +32,12 @@ divw  r3, r0, r5   # r3 = r0 / r5  =  (p * q) / r
 blr
 ```
 
-The product `p * q` is computed first into `r0`, then `divw` divides `r0` by
-`r5`. Both arguments to the final operation are in registers — `r0` holds the
-intermediate, `r5` holds `r` (the third argument at entry).
+The product `p * q` lands in `r0`, and `divw` divides it by `r5`. Both operands are
+already in registers by then. `r0` holds the intermediate, and `r5` still holds `r`
+from entry.
 
-For the target assembly in this lesson, identify which argument registers feed
-`divw` directly (no prior computation needed), then look at the second instruction
-to see how the quotient is used.
+So for your target, spot which argument registers reach `divw` directly, then check
+the second instruction for what happens to the quotient.
 
 ## Your task
 

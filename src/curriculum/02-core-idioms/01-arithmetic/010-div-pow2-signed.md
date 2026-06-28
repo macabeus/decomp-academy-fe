@@ -16,10 +16,11 @@ hints:
 
 # Signed division rounds, so it needs a fixup
 
-The unsigned case was a clean `srwi`. Signed division by a power of two is
-trickier: C rounds *toward zero*, but an arithmetic shift rounds *toward
-negative infinity*. For a negative dividend those differ — `-1 / 4` is `0` in C,
-yet `-1 >> 2` is `-1` — so MWCC adds a correction:
+Last lesson the unsigned case reduced to a single clean `srwi`. Signed division
+won't sit still that easily. C rounds *toward zero* while an arithmetic shift
+rounds *toward negative infinity*, and for a negative dividend those two
+disagree. In C, `-1 / 4` is `0`, but `-1 >> 2` comes out as `-1`. To paper over
+the gap, MWCC bolts on a correction:
 
 ```asm
 srawi r0, r3, 2    # x >> 2, biased the wrong way for negatives
@@ -27,12 +28,13 @@ addze r3, r0       # add the carry back: +1 only when x was negative
 blr
 ```
 
-`srawi` sets the carry bit when it shifts a 1 out of a negative value; `addze`
-("add to zero, extended with carry") then nudges the quotient back toward zero
-exactly when needed. A positive dividend produces no carry, so `addze` adds
-nothing. This **`srawi` + `addze`** pair is the unmistakable signature of a
-signed divide by a power of two — distinct from the lone `srwi` of the unsigned
-case.
+The `srawi` does the arithmetic shift, and it sets the carry bit whenever it
+shifts a 1 out of a negative value. Then `addze` ("add to zero, extended with
+carry") reads that carry and nudges the quotient back toward zero, but only when
+it's actually needed. Feed it a positive dividend and there's no carry, so
+`addze` contributes nothing. Whenever you spot the **`srawi` + `addze`** pairing,
+you're looking at a signed divide by a power of two; the unsigned version never
+grows that second instruction.
 
 ## Your task
 

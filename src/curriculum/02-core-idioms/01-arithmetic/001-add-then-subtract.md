@@ -15,11 +15,12 @@ hints:
 
 # Chaining two instructions
 
-So far one expression has meant one instruction. But two operations chained
-together compile to **two** arithmetic instructions, evaluated left-to-right.
-The first result lands in a scratch register and feeds directly into the second.
+Up to now, one expression has bought you one instruction. Chain two operations,
+though, and you get two arithmetic instructions, worked out left-to-right. The
+first result drops into a scratch register, and that register feeds straight into
+the second.
 
-As an example, `p - q + r` (three `int` arguments) compiles to:
+Take `p - q + r` over three `int` arguments. It compiles to this.
 
 ```asm
 subf r0, r4, r3   # r0 = r3 - r4  =  p - q
@@ -27,16 +28,17 @@ add  r3, r5, r0   # r3 = r5 + r0  =  r + (p - q)
 blr
 ```
 
-Notice the threading: the `subf` writes its result into a scratch register `r0`,
-and the `add` reads `r0` back as one of its sources. The intermediate value lives
-in `r0` just long enough to feed the next step, then `r3` holds the final answer.
+Watch how the two instructions hand off. The `subf` parks its result in scratch
+register `r0`, then the `add` pulls `r0` back in as a source. That intermediate
+value sits in `r0` only long enough to feed the next step, after which `r3`
+carries the final answer.
 
-The `subf` reversal from the subtraction lesson still applies here:
-`subf rD, rA, rB` computes `rB - rA`.
+And the `subf` reversal from the earlier subtraction lesson has not gone
+anywhere: `subf rD, rA, rB` computes `rB - rA`.
 
-The target assembly uses a different pair of operations in a different order.
-Read the target asm — identify each instruction, determine what it computes, and
-trace the register threading to reconstruct the original expression.
+Your target pairs up a different two operations in a different order. Work the
+target asm one instruction at a time, figure out what each computes, follow the
+register threading, and the original expression reassembles itself.
 
 ## Your task
 

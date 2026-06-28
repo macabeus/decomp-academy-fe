@@ -17,11 +17,13 @@ hints:
 
 # Three operations, one accumulator
 
-Four arguments, three operations, three instructions — each feeding the next,
-with the partial result accumulating in `r0` until the final instruction writes
-`r3`.
+Three operations, three instructions, and they all hand work to each other through
+`r0`. That register holds the running result the whole way through; only the very
+last instruction writes anything to `r3`. You've traced shorter chains like this
+already, so this is just one more link.
 
-Consider `div_sub(p, q, r)`, which divides and then shifts by a third value:
+A quick warm-up with `div_sub(p, q, r)`, which divides and then subtracts a third
+value:
 
 ```asm
 divw r0, r3, r4   # r0 = p / q
@@ -29,13 +31,13 @@ subf r3, r5, r0   # r3 = r0 - r5  =  (p / q) - r
 blr
 ```
 
-Two instructions, two operations — `divw` produces a quotient in `r0`, and `subf`
-subtracts `r5` from it. (As always, `subf rD, rA, rB` is `rB − rA`, so
-`subf r3, r5, r0` gives `r0 − r5`.)
+`divw` drops the quotient into `r0`. `subf` then takes `r5` away from it. The only
+thing that trips people up is the order — `subf rD, rA, rB` is `rB − rA`, so
+`subf r3, r5, r0` really does mean `r0 − r5`.
 
-The target assembly for this lesson chains three operations rather than the
-example's two. Read each instruction in turn and trace how `r0` carries the
-running total from one into the next to reconstruct the expression.
+Your target is one operation longer. Read it from the top, track what `r0` holds
+after each line, and the last instruction's operands show you how to put the
+expression back together.
 
 ## Your task
 

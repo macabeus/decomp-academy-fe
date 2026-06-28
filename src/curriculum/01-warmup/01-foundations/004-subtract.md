@@ -14,20 +14,20 @@ hints:
 
 # The quirk of `subf`
 
-PowerPC has no plain `sub`. Instead it provides **`subf`** — *subtract from* —
-with a twist: `subf rD, rA, rB` computes `rD = rB - rA`. The operands are
-**reversed** compared to what you might expect.
+There is no plain `sub` on PowerPC. What you get instead is `subf`, short for
+*subtract from*, and it ships with a catch: `subf rD, rA, rB` computes
+`rD = rB - rA`. The operands sit in the reverse order from what your gut expects.
 
-Consider a different example: `subf r3, r3, r4` — here `rA = r3` and `rB = r4`,
-so the result is `r4 - r3`:
+Take a worked example, `subf r3, r3, r4`. Here `rA` is `r3` and `rB` is `r4`, so
+the answer comes out as `r4 - r3`:
 
 ```asm
 subf r3, r3, r4   # r3 = r4 - r3
 blr
 ```
 
-The target assembly uses a different register arrangement. Apply the same
-formula — `rD = rB - rA` — to figure out which C expression matches it.
+Your target wires the registers up differently. Run that same `rD = rB - rA`
+formula over it and you will land on the C expression it wants.
 
 ## Your task
 

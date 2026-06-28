@@ -14,25 +14,26 @@ hints:
 
 # Strength reduction
 
-Compilers replace expensive operations with cheap equivalent ones — **strength
-reduction**. Multiplying by a power of two becomes a left shift, which on
-PowerPC is the `rlwinm` rotate instruction (MWCC prints it via the `slwi`
-extended mnemonic).
+Multiplying by a power of two never actually multiplies. The compiler rewrites
+it as a left shift, which is cheaper and gives the identical answer. That rewrite
+has a name, **strength reduction**, and you'll see it constantly. The shift
+instruction itself is `rlwinm`, though MWCC dresses it up as the `slwi` extended
+mnemonic.
 
-For example, `times16(n) = n * 16` compiles to:
+Say `times16(n) = n * 16`. Out comes:
 
 ```asm
 slwi r3, r3, 4    # n << 4  ==  n * 16
 blr
 ```
 
-The shift amount is the base-2 logarithm of the multiplier: `2^4 = 16`, so the
-shift is 4. If you write `n * 16` *or* `n << 4` in C you get the same
-instruction — they are identical to the compiler.
+The 4 is log base 2 of 16; the shift count is always log base 2 of the
+multiplier. Your C can say `n * 16` or `n << 4`, and neither survives into the
+object code as anything but that single shift.
 
-Look at the shift amount in the target assembly and ask: what power of two does
-that correspond to? That's your multiplier. Either `* N` or `<< log2(N)` will
-match — pick whichever reads more naturally as C.
+A target that shifts left by some amount is hiding a multiply by two to that
+power. Recover the power and you have the multiplier. `* N` and `<< log2(N)` are
+interchangeable here, so the prettier one wins.
 
 ## Your task
 

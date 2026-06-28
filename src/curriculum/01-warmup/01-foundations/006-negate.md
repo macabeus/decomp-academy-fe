@@ -15,27 +15,26 @@ hints:
 
 # One instruction, no zero needed
 
-Some architectures negate a value by subtracting it from zero. PowerPC instead
-provides a dedicated **`neg rD, rA`** instruction (`rD = -rA`). It does the job
-in one step without a zero register.
+Plenty of chips negate a number by subtracting it from zero. PowerPC skips all
+that. There is `neg rD, rA`, which is `rD = -rA`, one instruction that flips the
+sign without ever touching a zero register.
 
-For example, a function that takes two `int`s and returns the negation of the
-second one compiles to:
+Say some function takes two `int`s and returns the negation of the second one. It
+compiles down to this.
 
 ```asm
 neg  r3, r4
 blr
 ```
 
-Here `rA = r4` (the second argument) and the result `rD = -rA` lands in `r3`
-ready to return.
+So `rA` is `r4`, the second argument, and `rD = -rA` settles into `r3`, ready to
+hand back.
 
-This is your first taste of a recurring theme: MWCC almost always reaches for
-the **single dedicated instruction** when one exists, rather than composing the
-operation from smaller pieces. Recognizing those idioms is most of the game.
+You will meet this habit again and again. Where a dedicated instruction exists,
+MWCC grabs it rather than building the operation out of smaller pieces, and
+learning to recognize those idioms is honestly most of the work.
 
-Apply the formula — `rD = -rA` — to the target assembly to work out which C
-expression matches it.
+Run `rD = -rA` against the target and the C expression you need falls right out.
 
 ## Your task
 

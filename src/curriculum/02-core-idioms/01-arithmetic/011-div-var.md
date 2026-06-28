@@ -14,17 +14,18 @@ hints:
 
 # When it really is a divide
 
-Dividing by a *variable* can't be reduced to shifts, so the compiler emits the
-hardware **`divw rD, rA, rB`** (signed divide word):
+When the divisor is a *variable*, none of the shift tricks apply. The compiler
+has to fall back on real hardware division, **`divw rD, rA, rB`** (signed divide
+word):
 
 ```asm
 divw r3, r3, r4
 blr
 ```
 
-Unsigned division by a variable uses `divwu` instead. The signed/unsigned choice
-is driven entirely by the C types — another reminder that *types decide the
-instruction*.
+Swap to unsigned operands and you'd get `divwu` instead. Nothing in the source
+picks between them except the C types, which is one more case of *types decide
+the instruction*.
 
 ## Your task
 

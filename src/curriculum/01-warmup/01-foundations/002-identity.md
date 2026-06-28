@@ -13,21 +13,21 @@ hints:
 
 # Where do arguments come from?
 
-The GC ABI passes the first integer argument in **`r3`** — the *same* register
-used for the return value. That means some functions have nothing at all for
-the compiler to emit except the return instruction itself.
+On the GC ABI, the first integer argument arrives in `r3`. That's the very same
+register the return value goes back in. The overlap has a funny consequence: a
+few functions give the compiler nothing to emit beyond the return instruction.
 
 ```asm
 blr
 ```
 
-That single `blr` is a complete, valid function. Later integer and pointer
-arguments go in `r4`, `r5`, `r6` … up to `r10`. Floating-point arguments are
-separate: they use `f1`–`f8` and don't consume an integer register slot.
+One `blr`, and that's a whole valid function. Further integer and pointer
+arguments stack up in `r4`, `r5`, `r6`, and so on through `r10`. Floats play by
+different rules, riding in `f1`–`f8` without ever eating an integer slot.
 
-When you see only a `blr` and no instructions that touch `r3`, ask yourself:
-what relationship between the input and output would make any computation
-unnecessary?
+So when the listing is just a `blr` with nothing touching `r3`, here's the
+question to ask: what would the input and output have to be for no work to be
+needed at all?
 
 ## Your task
 

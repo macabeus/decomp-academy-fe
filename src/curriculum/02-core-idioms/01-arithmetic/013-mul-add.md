@@ -15,16 +15,16 @@ hints:
 
 # Chaining off a multiply
 
-Recall `mullw rD, rA, rB` computes `rA * rB` — *multiply low word*, keeping the
-low 32 bits, matching C `int` multiplication. Its operand order is
-straightforward: no reversal, no surprises.
+`mullw rD, rA, rB` is just *multiply low word*. It computes `rA * rB` and keeps
+the lower 32 bits, which is exactly what a C `int` multiply means. The operands
+aren't reversed the way `subf`'s are, so what you read is what you get.
 
-When multiplication is followed by a second operation, the pattern looks like
-the chains you have already seen: `mullw` writes an intermediate result into a
-scratch register, and the next instruction picks it up.
+Most of the time a multiply isn't the whole story; something consumes its result.
+That gives the familiar chain where `mullw` writes a scratch register and the
+very next instruction reads it back.
 
-As an example, consider `scale_offset(p, q, r)`, which scales two values and then
-shifts by a third:
+`scale_offset(p, q, r)` is a handy stand-in. It multiplies two of its arguments,
+then subtracts the third:
 
 ```asm
 mullw r0, r3, r4   # r0 = p * q
@@ -32,13 +32,13 @@ subf  r3, r5, r0   # r3 = r0 - r5  =  (p * q) - r
 blr
 ```
 
-`mullw` stores the product in `r0`. The `subf` then reads `r0` as its minuend and
-subtracts `r5` from it. (Recall: `subf rD, rA, rB` computes `rB − rA`, so
-`subf r3, r5, r0` gives `r0 − r5`.)
+So the product lands in `r0`, and `subf` treats `r0` as the minuend before
+subtracting `r5`. (Watch out, `subf rD, rA, rB` computes `rB − rA`, which is why
+`subf r3, r5, r0` yields `r0 − r5`.)
 
-The target assembly for this lesson uses a different second operation. Read the
-target asm above — identify what `mullw` produces, then determine what the
-following instruction does with that product.
+Your target keeps the `mullw` but follows it with something other than a
+subtract. Decide what value the multiply hands off, then read what the second
+instruction does to it.
 
 ## Your task
 

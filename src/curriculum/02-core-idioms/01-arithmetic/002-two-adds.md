@@ -14,12 +14,12 @@ hints:
 
 # When the compiler regroups your chain
 
-Addition is **associative** — `(a + b) + c` equals `a + (b + c)` — and the
-compiler uses that freedom to schedule the work differently from what you might
-expect. Instead of computing left-to-right through the registers, it may defer
-one operand while it pairs two others first.
+Addition is associative. `(a + b) + c` and `a + (b + c)` come out the same, and
+the compiler happily exploits that to schedule the arithmetic however suits it.
+Rather than march left-to-right through the registers, it might hold one operand
+back and pair off two others first.
 
-Consider `sum4`, a four-argument sum:
+Here is `sum4`, a four-argument sum.
 
 ```asm
 add  r0, r4, r5   # r0 = b + c  (computed first)
@@ -29,16 +29,16 @@ add  r3, r4, r3   # r3 = a + ((b + c) + d)
 blr
 ```
 
-The `mr` (*move register*) instruction is a register-to-register copy with no
-arithmetic effect. Here it parks `a` out of the way so the compiler can pair
-`b + c` first, then fold in `d`, then stitch `a` back in last. The result is
-mathematically identical to summing left-to-right; only the grouping changed.
+That `mr` (*move register*) is just a register-to-register copy, no math
+attached. In this case it tucks `a` aside so the compiler can knock out `b + c`
+first, fold in `d`, and slot `a` back in at the very end. Sum it left-to-right or
+sum it this way, the number is identical; all that moved was the grouping.
 
-When you see an `mr` at the top of a function, look for the operand it saves —
-it will show up again in a later `add`. The instruction count tells you how many
-operations the expression contains; the registers tell you which arguments are
-involved. Trace each `add`'s sources back to the argument registers
-(`r3`→`a`, `r4`→`b`, `r5`→`c`) to recover the expression.
+An `mr` near the top of a function is a tell. The operand it saves will resurface
+in a later `add`, so go hunting for it. Count the instructions and you know how
+many operations the expression holds; read the registers and you know which
+arguments take part. Chase every `add`'s sources back to the argument registers
+(`r3`→`a`, `r4`→`b`, `r5`→`c`) and the expression comes back together.
 
 ## Your task
 

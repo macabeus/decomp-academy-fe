@@ -14,23 +14,23 @@ hints:
 
 # Folding a constant into the instruction
 
-When you add a small constant, the compiler doesn't load it into a register
-first — it uses the **immediate** form `addi rD, rA, imm`, where `imm` is the
-literal value baked directly into the instruction:
+Adding a small constant is free of any load. The compiler folds the number
+straight into the instruction with the immediate form `addi rD, rA, imm` — `imm`
+being the literal value, riding along inside the opcode:
 
 ```asm
 addi r3, r3, 5    # r3 = r3 + 5
 blr
 ```
 
-Immediates are signed 16-bit, so the same `addi` handles subtraction of a
-constant too (e.g. `n - 3` → `addi r3, r3, -3`). No separate instruction needed.
-That 16-bit field only spans **-32768 to 32767**; constants outside that range
-take two instructions (`lis` + `addi`). You won't see that here, but spotting the
-pattern later will save you some confusion.
+Because that immediate field is signed and 16 bits wide, the very same `addi`
+also subtracts. Want `n - 3`? You get `addi r3, r3, -3`, and not a single extra
+instruction. The wrinkle is how far it reaches. Sixteen signed bits cover -32768
+up to 32767; ask for anything beyond and the compiler splits the work across
+`lis` plus `addi`. Won't happen in this exercise, but file the shape away,
+because it will trip you up later otherwise.
 
-The target assembly uses `addi` with a specific immediate value — read it off
-the target to know what constant to add.
+Whatever immediate the target `addi` carries is the constant you are after.
 
 ## Your task
 

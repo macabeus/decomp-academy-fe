@@ -17,13 +17,13 @@ hints:
 
 # When a multiply is a shift
 
-Multiplying by a constant power of two never needs `mullw`. The compiler
-strength-reduces it to a left shift: **`slwi rD, rA, n` computes `rA << n`, which
-is `rA × 2ⁿ`**. A `slwi` sitting in a chain is a multiply in disguise — read the
-shift amount and raise two to it.
+The compiler almost never spends a `mullw` on a power-of-two multiply. It shifts
+instead. `slwi rD, rA, n` produces `rA << n`, and that's identical to `rA × 2ⁿ`,
+so a shift buried in a chain is just a multiply by some power of two. Read the
+count, raise two to it, done.
 
-Consider `blend(p, q)`, which scales two values by different powers of two and
-subtracts one from the other:
+Take `blend(p, q)`. It scales two values by different powers of two, then
+subtracts one from the other.
 
 ```asm
 slwi r4, r4, 2    # r4 = q << 2  =  q * 4
@@ -32,13 +32,13 @@ subf r3, r4, r0   # r3 = r0 - r4  =  (p * 8) - (q * 4)
 blr
 ```
 
-Each `slwi` scales one argument independently, then `subf` combines them
-(`subf rD, rA, rB` is `rB − rA`). The shift *amount* is the exponent: shifting by
-2 multiplies by 4, shifting by 3 multiplies by 8.
+Both shifts scale their argument independently, and `subf` ties them off at the
+end (`subf rD, rA, rB` is `rB − rA`). The count is the exponent. A shift of 2 is
+times 4, a shift of 3 is times 8.
 
-The target assembly uses the same shift-as-multiply idea, but with different
-shift amounts and a different combining instruction. Read each `slwi`'s count,
-convert it to a multiplier, and see how the two scaled values are joined.
+Same trick in your target, but the counts change and something other than `subf`
+does the combining. Convert each `slwi` count to its multiplier, then see how the
+two scaled values come together.
 
 ## Your task
 
