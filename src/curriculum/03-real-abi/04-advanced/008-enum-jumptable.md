@@ -17,15 +17,15 @@ hints:
 
 # Two idioms, zero new instructions
 
-You've now seen both halves of this in isolation: an **enum** is int-sized and
-contributes no codegen (lesson 5), and a **dense switch** dispatches through a
-jump table (lesson 1). Put them together — a `switch` over an *enum-typed*
-argument with enough consecutive values — and neither idiom interferes with the
-other. The enum is purely a naming layer; the dispatch is exactly what a switch
-on a bare `int` would produce.
+This lesson stacks two things you have already met. An `enum` is int-sized and
+adds nothing of its own to the generated code, from lesson 5, and a dense
+`switch` dispatches through a jump table, from lesson 1. Combine them into a
+`switch` over an enum-typed argument with consecutive values and the two never
+interfere. The enum is only renaming integers, so the dispatch matches what a
+switch on a plain `int` would emit.
 
-Consider `paint(Brush b)`, switching over an eight-value `Brush` enum
-(`BRUSH_PEN`, `BRUSH_FILL`, …) to return a pixel-cost per tool:
+Take `paint(Brush b)`, which switches over an eight-value `Brush` enum
+(`BRUSH_PEN`, `BRUSH_FILL`, and so on) and returns a pixel cost per tool.
 
 ```asm
 cmplwi r3, 7        # b arrives as a 4-byte int; bounds-check 0..7
@@ -40,11 +40,11 @@ bctr                # jump straight to the case for this brush
 .case1: li r3, 25  blr   # ...the enum names left no trace
 ```
 
-The `cmplwi`/`lwzx`/`mtctr`/`bctr` shape is byte-identical to lesson 1's
-`dispatch` — the only difference is that the argument's *type* is an enum, which
-the object file never sees. The case labels in your C are enum names; the asm
-only knows their ordinals 0..7, and each arm's `li r3, N` tells you what that
-case returns.
+That `cmplwi`/`lwzx`/`mtctr`/`bctr` shape is the lesson 1 `dispatch`, down to
+the byte. What changed is the argument's type, and the enum type stays in the
+source and never reaches the object file. Your C labels the cases with enum
+names while the assembly works with their ordinals 0 through 7, and the
+`li r3, N` in each arm is the value that case returns.
 
 ## Your task
 

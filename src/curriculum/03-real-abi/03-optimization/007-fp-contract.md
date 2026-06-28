@@ -17,21 +17,21 @@ hints:
 
 # One instruction or two?
 
-The Gekko has a **fused multiply-add**: `fmadds f1, fA, fC, fB` computes
-`fA*fC + fB` in a single instruction (and a single rounding step). When
-**`fp_contract`** is **on** — our default — MWCC contracts a multiply-then-add
-pattern into exactly that.
+The Gekko has a **fused multiply-add**. `fmadds f1, fA, fC, fB` works out
+`fA*fC + fB` in one instruction, rounding only once at the end. MWCC reaches for
+it whenever **`fp_contract`** is **on**, which is the default here, collapsing a
+multiply followed by an add straight into the fused form.
 
-Consider `scaleshift(f32 x, f32 scale, f32 offset)` — multiply `x` by a
-scale then add an offset. With `fp_contract` **on**:
+Take `scaleshift(f32 x, f32 scale, f32 offset)`, which scales `x` and tacks on
+an offset. Leave `fp_contract` **on** and that's a single op:
 
 ```asm
 fmadds f1, f1, f2, f3   # x*scale + offset, fused
 blr
 ```
 
-Turn `fp_contract` **off** and the compiler is forbidden from fusing; you get
-the multiply and the add as **two** instructions with two roundings:
+Flip `fp_contract` **off** and fusion is off the table. Now the multiply and the
+add land as **two** separate instructions, each rounding its own result:
 
 ```asm
 fmuls f0, f1, f2        # x*scale
@@ -39,13 +39,14 @@ fadds f1, f3, f0        # + offset
 blr
 ```
 
-This matters constantly in decomp: if a target shows a bare `fmuls` immediately
-followed by `fadds` where you expected an `fmadds`, the original translation
-unit very likely had `fp_contract` disabled. Reproduce it with the in-code
-pragma rather than guessing at a different expression.
+You hit this all the time in decomp. When a target has a lone `fmuls` butting up
+against an `fadds` and you were expecting one `fmadds`, odds are the original
+translation unit compiled with `fp_contract` disabled. Match it by dropping in
+the pragma instead of contorting the expression to dodge fusion.
 
-> The `#pragma fp_contract off` / `reset` lines are part of both the starter and
-> the solution, and apply to the target, so just write the arithmetic body.
+> The `#pragma fp_contract off` / `reset` lines belong to both the starter and
+> the solution and already wrap the target, so all you supply is the arithmetic
+> body.
 
 ## Your task
 

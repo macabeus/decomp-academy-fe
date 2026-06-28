@@ -17,15 +17,14 @@ hints:
 
 # Stacking two carry chains
 
-You've seen the 64-bit add (`addc`/`adde`) and the 64-bit subtract
-(`subfc`/`subfe`) on their own. Real code rarely stops at one operation — it
-threads several together, and each 64-bit step keeps its own low-then-high,
-flag-between-them shape. The trick to reading a chain is to find each *pair*: a
-carrying instruction on the low word followed by its extended partner on the
-high word is **one** arithmetic operation.
+You've used the 64-bit add (`addc`/`adde`) and the 64-bit subtract
+(`subfc`/`subfe`) one at a time. Most functions chain several steps. The shape
+per step stays fixed. Low word first, high word second, a flag in between. Read
+a chain by finding its pairs. A carrying low-word instruction and its extended
+high-word partner count as one operation.
 
-Consider `accumulate(p, q, r)`, which adds the first two 64-bit values and then
-adds a third:
+Here is `accumulate(p, q, r)`. It adds the first two 64-bit values and folds in
+a third:
 
 ```asm
 addc   r4, r4, r6     # (p + q) low,  carry out
@@ -35,17 +34,13 @@ adde   r3, r7, r0     # (... + r) high, + carry  -> final result in r3:r4
 blr
 ```
 
-Read it as two stacked pairs. The first `addc`/`adde` builds `p + q` into a
-register pair; the second `addc`/`adde` takes that pair as its input and folds
-in `r`. Notice the running high word lives in a scratch register (`r0`) between
-the two steps, and only the *last* `adde` writes the final high word back to
-`r3`.
+Two pairs. The first `addc`/`adde` makes `p + q` in a register pair. The second
+`addc`/`adde` adds `r` to it. The high word waits in scratch register `r0`
+between the steps. Only the last `adde` writes the high word to `r3`.
 
-The target for this lesson mixes the two operations you know: one carrying pair
-adds, the next carrying pair subtracts. Each flag is consumed by its own
-extended instruction — the carry from the `addc` never reaches the `subfe`.
-Find the two pairs, read whether each is an `add` or a `subf`, and reconstruct
-the expression.
+Your target uses both operations. First pair adds. Second pair subtracts. Each
+pair keeps its own flag. The `addc` carry never reaches the `subfe`. Split the
+assembly into two pairs. Label each `add` or `subf`. Then write the expression.
 
 ## Your task
 

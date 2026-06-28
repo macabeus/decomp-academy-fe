@@ -17,20 +17,20 @@ hints:
 
 # When does MWCC pick which?
 
-The table form and the compare chain are *both* in MWCC's toolbox, and the
-choice is mechanical: it depends on how many cases there are and how densely
-they pack. Two rules of thumb that this compiler follows:
+MWCC keeps both the table form and the compare chain in its toolbox, and it picks
+between them by rote. What decides it is the number of cases and how tightly they
+pack. Two rules of thumb capture how this compiler behaves.
 
-- **Dense and few → compare chain.** A run of `0..5` (six consecutive cases)
-  still bisects with `cmpwi` / `beq-` / `bge-`. The crossover on this
-  toolchain is **seven** consecutive cases: `0..6` and up switch to the table.
-  Concretely: `0..5` (six cases) stays a compare chain; `0..6` (seven cases)
-  is the first to cross into table form; lesson 1's `0..7` (eight cases) sits
-  comfortably above the threshold. The rule is "at least seven," not "more than
-  eight."
-- **Sparse → compare chain, always.** Cases like `2, 20, 200, 1000` are far
-  apart. A table indexed by `x` would need 1000 entries (mostly default) — far
-  too big — so MWCC bisects them no matter how many there are:
+- **Dense and few → compare chain.** Six cases in a row, `0..5`, still bisect
+  with `cmpwi` / `beq-` / `bge-`. The line gets crossed at **seven** consecutive
+  cases on this toolchain, where `0..6` and anything longer flips to the table.
+  So `0..5` (six cases) stays a chain, `0..6` (seven cases) is the first to tip
+  into table form, and lesson 1's `0..7` (eight cases) sits well clear of the
+  edge. Read the rule as "at least seven," not "more than eight."
+- **Sparse → compare chain, always.** Values like `2, 20, 200, 1000` sprawl too
+  far apart. Indexing a table by `x` would mean 1000 entries, nearly all of them
+  default, which is plainly too big, so MWCC falls back to bisecting them however
+  many there are:
 
 ```asm
 cmpwi r3, 200      # probe the middle case value
@@ -51,11 +51,11 @@ b     .default
            blr         # ...only the dispatch above differs from the table form
 ```
 
-So when you're matching a switch, **count the cases and check their spread
-first**. A lone `cmplwi` + `bctr` means dense-and-many (write consecutive
-cases). A staircase of `cmpwi`/`beq-` against scattered constants means the
-original values were sparse — and the *constants in the asm* tell you exactly
-which case labels to write.
+When you're matching a switch, **count the cases and check their spread
+first**. One `cmplwi` followed by `bctr` points to dense-and-many, so you write
+consecutive cases. A staircase of `cmpwi`/`beq-` against scattered constants
+points the other way, to sparse originals, and the *constants in the asm* hand
+you the exact case labels to write.
 
 ## Your task
 

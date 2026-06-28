@@ -17,13 +17,14 @@ hints:
 
 # Inline result, then a carry chain
 
-Bitwise ops and carry arithmetic look very different in the assembly — one has
-no flag between halves, the other lives or dies by it. When they appear in one
-expression, you can read them in order: the bitwise pair runs first, parks its
-two-word result in registers, and the carrying pair consumes it.
+Two operators, two very different shapes in the assembly. A bitwise `or` works
+each 32-bit half on its own and sets no carry flag, so its two instructions can
+even swap order. A carry op cannot: `addc` sets the flag, `adde` reads it, low
+word then high. Put a bitwise pair and a carry pair in the same expression and
+they simply run in turn, the first feeding its `r0:r4` result to the second.
 
-Consider `mask_then_sub(p, q, r)`, which ORs two 64-bit values together and then
-subtracts a third:
+Here is `mask_then_sub(p, q, r)`. It ORs two 64-bit values and then subtracts a
+third:
 
 ```asm
 or     r4, r4, r6     # (p | q) low   -- no carry between halves
@@ -33,15 +34,15 @@ subfe  r3, r7, r0     # (... - r) high, consume borrow
 blr
 ```
 
-The two `or`s are the bitwise stage: each half is independent, so there's no
-flag and they can run in either order. The result sits in the `r0:r4` pair,
-which then feeds the `subfc`/`subfe` subtract. The borrow flag only appears in
-the second stage — the bitwise op never touches it.
+Stage one is the two `or`s, low into `r4` and high into `r0`. No flag links
+them. Stage two is the `subfc`/`subfe` pair, which reads that `r0:r4` value and
+subtracts `r`. The borrow belongs to stage two alone. Nothing in the `or`s ever
+sets it.
 
-The target keeps this two-stage shape but swaps which bitwise operator runs
-first and which arithmetic operation follows. Identify the bitwise pair by its
-flag-free mnemonic, then read the carrying pair to recover the second operation,
-and thread the running value from one stage into the next.
+Your target wears the same two-stage shape but with different operators. Name
+the flag-free pair to get the first operation. Name the carrying pair to get the
+second. Carry the `r0:r4` value from the first into the second, and the
+expression is yours.
 
 ## Your task
 

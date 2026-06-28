@@ -15,13 +15,13 @@ hints:
 
 # Putting the instructions back in source order
 
-The other half of the SFA pragma pair is **`scheduling off`**. It tells MWCC to
-emit instructions in (essentially) source order instead of reordering them to
-hide latency. When a target was built this way, the scheduled "loads-first"
-shape you saw earlier **does not appear** — the loads sit right next to the work
-that consumes them.
+That pragma has a twin, `scheduling off`. Switch it on and MWCC stops reordering
+for latency, writing instructions out in more or less the order you typed them.
+So the loads-first shape from before never shows up in a target built this way.
+Loads end up wedged right against whatever consumes them.
 
-Same two-sums-times body as lesson 1, but with scheduling disabled:
+Here's lesson 1's body again, two sums and a multiply, except this time
+scheduling is off.
 
 ```asm
 lwz   r4, 0(r3)
@@ -33,14 +33,15 @@ add   r0, r4, r0    # b computed immediately after its loads
 mullw r3, r5, r0
 ```
 
-The four loads are *not* batched; each pair sits with its `add`. That ordering —
-and the different register coloring it produces — is the fingerprint of
-`scheduling off`. As with peephole, you bracket the region and always pair
-`off` with `reset`. The two pragmas are frequently used together around a whole
-function in real decomp.
+See how the four loads never get gathered up front. Each pair stays welded to its
+own `add`, and that ordering, plus the register numbers it drags along, is the
+tell for `scheduling off`. Peephole worked the same way. You bracket the region
+and you always close an `off` with a `reset`, and in real decomp the two pragmas
+tend to travel together around an entire function.
 
-> The `#pragma scheduling off` / `reset` lines are supplied in both the starter
-> and the solution, and apply to the target, so concentrate on the body.
+> The `#pragma scheduling off` / `reset` lines are already there in the starter
+> and the solution, and they apply to the target as well, so your job is only the
+> body.
 
 ## Your task
 

@@ -18,13 +18,8 @@ hints:
 
 # The whole chapter in one function
 
-This is the finale exercise for 64-bit integers. It threads three of the
-operations you've learned — a carry chain, a borrow chain, and a bitwise mask —
-into a single expression across **four** 64-bit operands. The reading strategy
-never changes: scan for *pairs*, identify each as add / subtract / bitwise by
-its mnemonic, and follow the running value from one pair into the next.
-
-Consider `blend3(p, q, r, s)`, which adds three 64-bit values and then ORs the
+Four 64-bit operands, three operations, one expression. That is the finale, and
+`blend3(p, q, r, s)` shows the shape: it adds three 64-bit values, then ORs the
 sum with a fourth:
 
 ```asm
@@ -37,17 +32,16 @@ or     r3, r9, r0     # (sum | s) high
 blr
 ```
 
-Three stages, six instructions plus the `blr`. The first `addc`/`adde` build
-`p + q`; the second `addc`/`adde` fold in `r`, leaving the running sum split
-across a scratch high word and a low word; the two `or`s then mask in `s` with
-no carry between halves. The fourth 64-bit argument `s` arrives in the `r9:r10`
-pair — keep tracking register numbers, because by now the operands no longer sit
-where they started.
+Three stages, six instructions and the `blr`. The opening `addc`/`adde` build
+`p + q`, then the next pair folds in `r`, leaving the running sum spread across a
+scratch high word and a low word. From there the two `or`s mask in `s`, no flag
+crossing the halves. One thing to mind: the fourth argument `s` lands in
+`r9:r10`, so by now the operands sit nowhere near where they started.
 
-The target rearranges the operators: it still has three stages over four
-operands, but the middle stage carries a *borrow* rather than a carry, and the
-final stage uses a different bitwise op. Break it at each pair boundary, name
-each operation from its instruction, and rebuild the full expression in order.
+Your target reuses this skeleton with two swaps. The middle pair borrows where
+`blend3` carried, and the closing pair masks with a bitwise op that isn't `or`.
+Name each operator from its pair, and since every pair feeds the next, the
+`r3:r4` value at the `blr` is the whole four-operand expression.
 
 ## Your task
 

@@ -17,15 +17,17 @@ hints:
 
 # Reading a memory-mapped register
 
-The GameCube exposes hardware through **memory-mapped registers** — fixed
-addresses in the `0xCC000000` range where each read returns live device state.
-The idiomatic access is a cast through a `volatile` pointer (`vu32` is
-`volatile u32`). The `volatile` is load-bearing in the most literal sense —
-without it, reading the register twice would CSE to one load and you'd miss
-whatever changed between reads.
+The GameCube wires its hardware into the address space, so a block of fixed
+addresses up in the `0xCC000000` range act as memory-mapped registers whose
+reads return whatever the device is doing right now. To get at one you cast its
+address through a `volatile` pointer, which is what the `vu32` typedef
+(`volatile u32`) is for. That `volatile` is doing real work here, because if
+you dropped it the compiler would CSE two reads of the register into a single
+load and you would never see whatever changed in between.
 
-Two reads of the same hardware register therefore stay two reads. For example,
-reading `0xCC005000` (the DMA controller) twice and adding the results:
+So two reads of the same register stay two reads in the output. The example
+below reads `0xCC005000`, the DMA controller, twice and adds the two results
+together.
 
 ```asm
 lis r3, -13312       # build the high half of the address (0xCC000000)
@@ -35,14 +37,15 @@ add r3, r0, r3
 blr
 ```
 
-`lis` materializes the upper 16 bits and the `lwz` displacement carries the
-lower half. (objdump prints the `lis` immediate as the signed `-13312`: the bit
-pattern `0xCC00` is `52224` read unsigned but `-13312` as a signed 16-bit value
-— `lis` shifts it left 16 to give `0xCC000000`, and the displacement completes
-the full address.) Every access reloads from the device. This repeated
-load-from-a-fixed-address pattern, with no store between the loads, is the
-signature of polling a hardware register — and recovering it means casting the
-address through a `volatile` pointer, not bolting on a workaround.
+The `lis` builds the upper 16 bits of the address and the `lwz` displacement
+supplies the lower half. One detail trips people up. objdump shows the `lis`
+immediate as a signed `-13312`, because the bit pattern `0xCC00` reads as
+`52224` unsigned but as `-13312` when interpreted as a signed 16-bit value, and
+`lis` shifts whichever it is left by 16 to land on `0xCC000000`, with the
+displacement filling in the rest. Either way, every access goes back out to the
+device. When you see the same fixed address loaded again and again with no
+store in between, you are looking at code polling a hardware register, and the
+way to bring it back is to cast that address through a `volatile` pointer.
 
 ## Your task
 

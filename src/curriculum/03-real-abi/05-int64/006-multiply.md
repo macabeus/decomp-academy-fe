@@ -15,9 +15,10 @@ hints:
 
 # The multiply burst
 
-Unlike division, a 64-bit multiply is done **inline** — but it expands into a
-distinctive cluster of instructions. Only the low 64 bits of the product matter,
-which works out to three partial products plus the high-half of one of them:
+Now and then you'll hit a function that fires off three or four multiplies back
+to back on the same register pairs. That isn't several multiplies. It's one
+64-bit multiply expanded inline, because only the low 64 bits of the product are
+kept, and producing them takes three partial products plus the high half of one:
 
 ```asm
 mulhwu r7, r4, r6     # high 32 bits of (a_lo * b_lo)
@@ -29,15 +30,15 @@ add    r3, r3, r0     # result high word
 blr
 ```
 
-The key player is **`mulhwu`** ("multiply high word unsigned"), which gives the
-*upper* 32 bits of a 32×32 product — the bits that would otherwise be lost and
-need to be carried into the high word. Seeing `mulhwu` next to a few `mullw`s,
-all feeding into the same register pair, is the signature of a 64-bit multiply.
+Walk through it. `mulhwu r7, r4, r6` takes the top 32 bits of `a_lo * b_lo`, the
+carry that has to climb into the high word. The three `mullw`s handle
+`a_hi * b_lo`, `a_lo * b_hi`, and `a_lo * b_lo` itself, and the two `add`s fold
+everything into `r3:r4`. The `mulhwu` is what gives it away; 32-bit code never
+wants the high half of a 32×32 product.
 
-Note the asymmetry with downcasting: a `u32 = u64 * u64` downcast collapses to a
-**single `mullw`**, indistinguishable from an ordinary 32-bit multiply — so unlike
-addition, multiplication leaves *no* fingerprint once the result is truncated.
-The full burst above only appears when the result is genuinely 64-bit wide.
+Truncation hides all of it. Return a `u32` and the burst shrinks to one `mullw`,
+no different from an ordinary 32-bit multiply. A clipped add still leaves its
+carry on show, but a clipped multiply gives you nothing to spot.
 
 ## Your task
 

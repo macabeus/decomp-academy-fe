@@ -18,19 +18,20 @@ hints:
 
 # CSE in the floating-point unit
 
-CSE is not just an integer trick. When the **same product** appears more than
-once in a float expression, `-O4` computes it a single time — and then
-`fp_contract` (lesson 7) folds the surrounding multiply-and-add into one
-`fmadds`. The striking result: a value that the source uses twice ends up living
-in **one** register that the `fmadds` reads in two of its operand slots.
+CSE isn't only an integer trick. Let the **same product** show up twice in a
+float expression and `-O4` evaluates it just once, after which `fp_contract`
+(lesson 7) wraps the multiply-and-add around it into a single `fmadds`. What you
+end up with is neat. A value the source mentions twice lives in **one** register,
+and the `fmadds` reads that register in two of its operand slots.
 
-This is the reading skill to build here. An `fmadds fD, fA, fC, fB` computes
-`fA*fC + fB`. If you see the *same* register in the `fA`/`fC`/`fB` slots, that
-register is a reused subexpression — CSE put it there once and the contraction
-consumed it.
+Here's the reading skill to pick up. An `fmadds fD, fA, fC, fB` computes
+`fA*fC + fB`. Spot the *same* register filling two of the `fA`/`fC`/`fB` slots
+and you're looking at a reused subexpression; CSE wrote it once, and the
+contraction swallowed it.
 
-Consider `ramp(f32 s, f32 g)` — it squares `s`, then returns that square plus the
-square scaled by `g`:
+Square a float and reuse the square, and you can watch this play out.
+`ramp(f32 s, f32 g)` does just that. It squares `s`, then gives back the square
+plus a `g`-scaled copy of the same square:
 
 ```asm
 fmuls  f0, f1, f1      # s*s computed ONCE (the square is the reused product)
@@ -38,16 +39,15 @@ fmadds f1, f2, f0, f0  # g*(s*s) + (s*s)   — f0 reused in two slots, fused
 blr
 ```
 
-Only one `fmuls`: the square `s*s` is shared, so CSE emits it once into `f0`.
-Then `fmadds f1,f2,f0,f0` is `g * f0 + f0` — the same `f0` is both the
-multiplicand and the addend, and the whole `× + ` collapses into one fused
-instruction. Two transforms, two instructions, for what reads as four operations
-in C.
+Notice the lone `fmuls`. The square `s*s` is shared, so CSE lays it into `f0` just
+the once. Then `fmadds f1,f2,f0,f0` evaluates `g * f0 + f0`, where `f0` is the
+multiplicand and the addend at the same time, which is exactly what lets the
+multiply and add fuse. Four operations in the C, two instructions on the chip.
 
-Your `fmix` reuses a product the same way, but it is a product of **two distinct
-arguments** rather than a square, and a **third** argument supplies the scale.
-Read which register repeats across the `fmadds` operands to see which
-subexpression was shared.
+Your `fmix` recycles a product the same way, except the product is of **two
+distinct arguments** instead of a square, and a **third** argument does the
+scaling. Watch for the register that repeats across the `fmadds` operands; that's
+the subexpression being shared.
 
 ## Your task
 

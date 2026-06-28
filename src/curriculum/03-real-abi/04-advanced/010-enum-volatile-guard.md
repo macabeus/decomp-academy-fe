@@ -19,15 +19,17 @@ hints:
 
 # A typed gate in front of a volatile read
 
-Engine code often refuses to touch hardware unless the object is in the right
-state. That's two idioms back to back: an **enum** state check (lesson 5) acting
-as an early-return *guard*, and then — only if the guard passes — a **volatile**
-access that defeats CSE (lesson 6). Reading the asm means splitting it at the
-conditional branch: everything before is the guard, everything after is the work.
+Engine code often refuses to touch hardware until the object is in the right
+state. What you get is two idioms back to back. First an `enum` state check, the
+kind from lesson 5, acts as an early-return guard, and only when that guard
+passes does the function reach a `volatile` access that defeats CSE, the kind
+from lesson 6. To read the assembly, split it at the conditional branch, since
+everything ahead of the branch is the guard and everything past it is the
+actual work.
 
-Consider `read_if_armed(struct Sensor *s)`, which bails with a sentinel unless
-`s->state` is the enum value `ARMED` (ordinal 1), then reads a
-`volatile int g_raw` twice:
+Take `read_if_armed(struct Sensor *s)`, which bails out with a sentinel unless
+`s->state` is the enum value `ARMED` (ordinal 1), and otherwise reads a
+`volatile int g_raw` twice.
 
 ```asm
 lwz   r0, 0(r3)            # load the 4-byte enum field
@@ -40,13 +42,15 @@ add   r3, r3, r0
 blr
 ```
 
-The guard is the `lwz`/`cmpwi K`/`bnelr-` trio: load the enum field, compare
-against an ordinal, and `bnelr-` returns early when it doesn't match — with the
-sentinel already sitting in `r3` from the speculative `li`. (Pick a non-zero
-sentinel: a `return 0` arm lets MWCC flatten the whole guard into a branchless
-mask, hiding the `bnelr-`.) Past the branch, the
-**two `lwz` of the same `@sda21` symbol with no store between** is the volatile
-double-read fingerprint: a plain `int` would load once and `add r3, r0, r0`.
+The guard is that `lwz`/`cmpwi K`/`bnelr-` trio. It loads the enum field,
+compares it against an ordinal, and `bnelr-` returns straight away when the two
+differ, with the sentinel already waiting in `r3` thanks to the speculative
+`li`. One thing worth knowing is that the sentinel needs to be non-zero, because
+a `return 0` arm lets MWCC flatten the guard into a branchless mask and the
+`bnelr-` disappears. Once you are past the branch, the two `lwz` of the same
+`@sda21` symbol with nothing storing between them is the volatile double-read
+fingerprint, where a plain `int` would have loaded once and done
+`add r3, r0, r0`.
 
 ## Your task
 

@@ -16,22 +16,22 @@ hints:
     `register`-qualified so they sit in GPRs.
 ---
 
-# When inline asm is the right tool
+# Why paired-singles need a hand-written asm block
 
-In decompilation the aim is clean C that byte-matches the target, so inline
-`asm{}` is something you generally steer clear of — pasted assembly proves
-nothing about the original source. There is one situation where it's genuinely
-justified: the **paired-single load/store** instructions `psq_l` and `psq_st`
-(and the `ps_*` arithmetic family). The reason is simple: **MWCC GC/2.0
-has no intrinsic for them.** The exception you saw in the prologue lesson is
-narrow: a callee-save `psq_st` falls out *automatically* with a fixed
-register-and-offset pattern, but you cannot deliberately direct a `psq_l` (or
-the `ps_*` arithmetic family) at an arbitrary pointer from C at all. So when the
-original code deliberately packed two floats and loaded or moved them as a unit,
-the only faithful recovery is a tiny `asm{}` block.
+Most of the time, inline `asm{}` is a smell in a decomp. It proves nothing
+about the source you're trying to recover. Paired-singles are the one place it
+belongs.
 
-It compiles cleanly here as long as the pointer operands are
-`register`-qualified (the assembler needs them already in a GPR):
+The reason is that MWCC has no intrinsic for the paired-single loads and
+stores, or for the `ps_*` math. You saw a hint of this in the prologue lesson,
+where a callee-save `psq_st` just appeared on its own, its register and offset
+fixed by the compiler. That one you got for free. You can't ask for it, and no
+C you can write will aim a `psq_l` at a pointer you chose. When the original
+code packed two floats and carried them together, hand-written assembly is the
+only faithful way back.
+
+Both pointer arguments need the `register` qualifier or the build fails. The
+assembler wants them already living in a GPR.
 
 ```asm
 psq_l  f0, 0(r4), 0, 0   # load two packed 32-bit floats from src into f0
@@ -39,12 +39,12 @@ psq_st f0, 0(r3), 0, 0   # store both halves to dst
 blr
 ```
 
-Read the operand form `psq_l fD, offset(rA), W, I`: `W` selects 1-vs-2 values,
-`I` picks a graphics-quantization mode (`0` = no scaling, plain `f32`). One last
-trap: **stock objdump mis-decodes paired-singles as PowerPC VSX**. A GameCube
-decomp toolchain uses a patched objdump and disassembles with **`-M gekko`** (the
-compiler service here already does) — without it, `psq_l` shows up as garbage VSX
-mnemonics and you'll think the match is broken when it isn't.
+The operand form is `psq_l fD, offset(rA), W, I`. `W` says whether you move one
+value or two. `I` selects a graphics-quantization mode, where `0` means no
+scaling, plain `f32`. One last gotcha. Stock objdump thinks paired-singles are
+PowerPC VSX and decodes them into nonsense, so a GameCube toolchain patches
+objdump and passes **`-M gekko`** — the service here does this for you. Without
+it, `psq_l` looks like VSX garbage and you'll think a good match is broken.
 
 ## Your task
 

@@ -19,19 +19,19 @@ hints:
 
 # Casting after an indexed load
 
-When you read `(u8)tbl[i]` from an `int` array, the load itself is unchanged — a
-word is still fetched with `lwzx` because the array's element type is `int`. The
-cast happens *afterward*, on the value already sitting in a register. Narrowing a
-register to a byte isn't a different load; it's a **mask**: `clrlwi rD, rA, 24`
-clears the top 24 bits and keeps the low 8 — that is the `(u8)`.
+A cast like `(u8)tbl[i]` doesn't touch the load at all. You still pull a full
+word with `lwzx`, because the array elements are `int`. What the cast does, it
+does later, once the word is sitting in `r0`, with no second trip to memory. The
+narrowing is one instruction, `clrlwi rD, rA, 24`, clearing the top 24 bits and
+keeping the low 8. There's your `(u8)`.
 
-This is different from a *byte global*, which loads with `lbz` directly. Here the
-storage is a word, so you load a word and then throw away the high bits. Seeing
-`lwzx` followed by `clrlwi ..., 24` is "read an int element, then cast it to a
-byte." (A `(u16)` would be `clrlwi ..., 16`; a signed narrow would use
-`extsb`/`extsh` instead.)
+Compare that to a *byte global*, where `lbz` would just fetch the byte. No such
+luck with word storage. You read all 32 bits and then mask the top ones, which is
+exactly what `lwzx` then `clrlwi ..., 24` is doing: an int element trimmed down to
+a byte. Same idea for `(u16)`, only the count becomes `16`. For a signed narrow
+you'd reach for `extsb` or `extsh`.
 
-Consider `channel(k)`, which reads element `k` of the int array `gPixels` and
+Here's `channel(k)`. It pulls element `k` out of the int array `gPixels` and
 returns it as a `u8`:
 
 ```asm
@@ -43,9 +43,9 @@ clrlwi r3, r0, 24       # r3 = r0 & 0xFF    (the (u8) cast)
 blr
 ```
 
-The first four instructions are the plain indexed read; the `clrlwi ..., 24` is
-the narrowing tacked on. The target assembly indexes a different array and
-narrows to the same width — confirm the cast from the `clrlwi` count.
+The first four lines are the plain indexed read. Only the trailing `clrlwi ...,
+24` narrows anything. Your target hits a different array but narrows to the same
+width, so count the bits in its `clrlwi` to confirm the cast.
 
 ## Your task
 

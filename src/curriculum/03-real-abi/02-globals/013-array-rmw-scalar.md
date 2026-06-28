@@ -21,21 +21,21 @@ hints:
 
 # One element, loaded and stored, plus a scalar global
 
-This is the indexed read and the indexed write fused into a single
-read-modify-write, with a small-data scalar mixed in. The pattern `tbl[i] =
-tbl[i] + g` builds the array base and scaled index **once**, loads the element
-with `lwzx`, adds the scalar global (an ordinary `@sda21` load), and stores the
-sum back with `stwx` — reusing the very same base and index registers.
+Take an indexed read, glue it to an indexed write, and drop a small-data scalar
+in the middle. That's all `tbl[i] = tbl[i] + g` is. The base and the scaled index
+get built **once**. Then `lwzx` loads the element, the scalar global rides in on
+an ordinary `@sda21` load, the two get added, and `stwx` writes the sum back
+through the very same base and index.
 
-The tell is that the `lwzx` and the `stwx` share both address operands. The
-compiler computed `&tbl` (`@ha`/`@l`) and `i * 4` (`slwi`) up front and held them
-in registers across the whole operation, so the load and the store address the
-identical element. Meanwhile a lone `lwz ...@sda21` appears for the scalar — a
-different global reached the small-data way, not through the array's address
-pair.
+What gives it away is that `lwzx` and `stwx` share both address operands. The
+compiler worked out `&tbl` (`@ha`/`@l`) and `i * 4` (`slwi`) up front and parked
+them in registers for the duration, so load and store land on the identical
+element. The scalar shows up separately as a lone `lwz ...@sda21`. That's a
+different global, reached the small-data way rather than through the array's
+address pair.
 
-Consider `advanceCell(k)`, which adds the int global `gStep` to element `k` of
-the int array `gCells`, in place:
+Here's `advanceCell(k)`. It adds the int global `gStep` to element `k` of the int
+array `gCells`, in place:
 
 ```asm
 lis   r4, gCells@ha     # high half of &gCells
@@ -48,11 +48,10 @@ stwx  r0, r4, r5        # gCells[k] = sum   (same base r4, same index r5)
 blr
 ```
 
-Notice `r4` (base) and `r5` (index) are written once and read by both `lwzx` and
-`stwx`; the `gStep` scalar comes in through its own `@sda21` load. The target
-assembly does the same in-place update on a different array with a different
-scalar — match the reloc names and confirm the load and store hit the same
-element.
+`r4` (base) and `r5` (index) get written once, then both `lwzx` and `stwx` read
+them back; the `gStep` scalar arrives through its own `@sda21` load. Your target
+does the same in-place update, just on a different array with a different scalar.
+Match the reloc names, and check that the load and store hit the same element.
 
 ## Your task
 

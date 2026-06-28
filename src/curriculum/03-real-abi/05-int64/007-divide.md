@@ -15,10 +15,10 @@ hints:
 
 # When there's no instruction for it
 
-There is no hardware instruction to divide 64-bit integers on the GameCube/Wii,
-so the compiler can't do it inline. Instead it emits a **call to a runtime helper
-function** (a compiler *intrinsic*). Because the function now makes a call, it
-also grows a real prologue and epilogue to save the link register:
+Now and then a 64-bit function suddenly sprouts a stack frame and a `bl` to some
+`__`-prefixed symbol. That's division. PowerPC has no 64-bit divide instruction,
+so the compiler can't inline it the way it inlines a multiply; it calls a runtime
+helper, and the call forces a prologue and epilogue to save the link register:
 
 ```asm
 stwu   r1, -16(r1)    # prologue: open a stack frame
@@ -31,11 +31,11 @@ addi   r1, r1, 16
 blr
 ```
 
-The helper for unsigned 64-bit division is **`__div2u`**. Its signed sibling is
-`__div2i`, and modulo uses `__mod2u` / `__mod2i`. Seeing a `bl` to one of these
-`__…2u`/`__…2i` symbols is an immediate, unambiguous flag that a 64-bit divide or
-modulo is happening — and unlike multiply, a downcast doesn't hide it, because the
-call is made regardless of how wide the result is.
+The `bl __div2u` in the middle is the whole point. `__div2u` is the unsigned
+64-bit divide; `__div2i` is the signed one, and `__mod2u` and `__mod2i` cover
+modulo. Spot a `bl` to any of those `__…2u` or `__…2i` names and you know a 64-bit
+divide or modulo is in play. A multiply can vanish behind a downcast, but this
+never does, because the call happens whatever the width of the result.
 
 ## Your task
 

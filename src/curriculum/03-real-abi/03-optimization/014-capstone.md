@@ -18,20 +18,19 @@ hints:
 
 # Everything at once
 
-Time to combine the chapter. A linear interpolation — computing a value that
-sits proportionally between two endpoints — is the beating heart of game code
-(it's literally what SFA's lighting lerps do). Write two of them and sum the
-results, and three optimizations fire together:
+This is where the chapter comes together. Linear interpolation, the trick of
+landing a value some fraction of the way between two endpoints, runs through game
+code everywhere (SFA's lighting lerps are built on it). Write a pair of them, add
+the results, and three of the passes you've met all go off at once:
 
-- **fp_contract** fuses the multiply-then-add in each lerp into one `fmadds`
-  per lerp (after the `fsubs` for the difference).
-- **scheduling** hoists all four `lfs` loads to the front and **interleaves**
-  the two lerps so their latencies overlap.
-- the whole thing stays branch-free and tightly register-allocated thanks to
-  `-O4`.
+- **fp_contract** collapses the multiply-then-add in each lerp into a single
+  `fmadds`, once the `fsubs` for the difference is out of the way.
+- **scheduling** drags all four `lfs` loads up front and **interleaves** the two
+  lerps so one's latency hides behind the other's work.
+- `-O4` keeps the result branch-free and packs it into a tight set of registers.
 
-For comparison, here is a *three-component* version (`mix2`) to show what
-`fp_contract` + scheduling looks like at a different arity:
+To see the same shape at a different arity, here's a *three-component* take,
+`mix2`, where `fp_contract` and scheduling do their thing on three lerps:
 
 ```asm
 lfs    f5, 0(r3)       # p[0]
@@ -51,13 +50,14 @@ fadds  f1, f1, f0
 blr
 ```
 
-Each lerp's `fsubs` and `fmadds` pair is interleaved rather than sequential —
-that's the scheduler at work. Had this unit used `#pragma scheduling off`, each
-lerp would appear as a self-contained block before the next begins.
+See how each lerp's `fsubs` and `fmadds` are braided into the next rather than
+sitting in their own block? That's the scheduler. Compile the same unit with
+`#pragma scheduling off` and every lerp would stand alone, finished before the
+following one starts.
 
-Count the `lfs` instructions in the target asm for `blend` to know how many
-arrays are involved and how many elements each covers; each `fsubs`/`fmadds`
-pair is one lerp.
+For your `blend`, tally the `lfs` instructions in the target asm to learn how
+many arrays show up and how many elements each one reaches; every `fsubs`/`fmadds`
+pair marks one lerp.
 
 ## Your task
 

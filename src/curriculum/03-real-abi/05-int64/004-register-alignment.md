@@ -15,18 +15,15 @@ hints:
 
 # Why a register sometimes gets skipped
 
-The ABI requires a 64-bit argument's register pair to **start on an odd-numbered
-register** (r3, r5, r7, r9). Most of the time that's automatic. But when a
-narrower argument comes first, it can leave a register **unused** to keep the
-pair aligned.
+Now and then you'll read a function whose first argument sits in `r3` while the
+second seems to ignore `r4` completely. That isn't a bug. It follows from the
+rule that a 64-bit argument's register pair must begin on an odd register, one of
+r3, r5, r7, r9.
 
-Consider `show_align(u32 x, u64 y)`:
-
-- `x` (a `u32`) takes `r3`.
-- `y` would naturally fall into `r4:r5` — but `r4` is **even**, so it's skipped.
-- `y` aligns up to **`r5:r6`** instead, leaving `r4` empty.
-
-So `return y + 10;` operates on `r5:r6`, not the `r4:r5` you might expect:
+Walk through `show_align(u32 x, u64 y)`. The `u32 x` takes `r3`. The pair for `y`
+would be `r4:r5`, except `r4` is even, so `y` aligns up to `r5:r6` and `r4` goes
+unused. That is why `return y + 10;` operates on `r5:r6` and not the `r4:r5` you
+might have read straight off the prototype:
 
 ```asm
 li     r3, 10
@@ -36,10 +33,9 @@ adde   r3, r5, r0     # high: y_hi (r5) + 0 + carry
 blr
 ```
 
-This is a frequent source of confusion when reading real code: an argument
-register appears to go unused for no reason. The reason is alignment — the 64-bit
-value behind it had to bump up to the next odd register. Spot the skipped
-register and the signature suddenly makes sense.
+When a 64-bit value leads the argument list none of this happens; the pair
+already starts on an odd register. It only bites when a narrower argument forces
+the gap. Find the skipped register first and the rest of the signature lines up.
 
 ## Your task
 

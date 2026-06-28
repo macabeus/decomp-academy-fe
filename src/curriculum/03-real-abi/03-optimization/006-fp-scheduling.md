@@ -15,13 +15,14 @@ hints:
     woven between them.
 ---
 
-# FP latencies are long — so the scheduler tries hardest here
+# Long FP latencies are where the scheduler works hardest
 
-Floating-point loads and `fmuls` have multi-cycle latencies, so the `,p`
-scheduler is most visibly active on FP code. Written in source order you would
-expect: load pair, multiply, load pair, multiply-add. The scheduler hoists
-later loads and starts a second product early, weaving the two computations
-together:
+Floating-point loads and `fmuls` both take several cycles to land, which is why
+the `,p` scheduler shows its hand most plainly on FP code. In source order you'd
+expect something tidy, a load pair then a multiply, then another load pair and a
+closing multiply-add. The scheduler refuses to leave it that way. It drags later
+loads forward and starts the second product early, threading the two halves of
+the work through each other.
 
 ```asm
 lfs    f1, 4(r3)     # second element of a loaded first
@@ -33,18 +34,19 @@ fmadds f1, f2, f1, f0
 blr
 ```
 
-The loads and the two FP ops are **interleaved**, not grouped per term. The
-source was written as two independent products summed together; the scheduler
-decided when to issue each load. This is the same scheduler from lesson 2, but
-the payoff is larger because FP stalls are longer.
+The loads and the two FP ops come out interleaved, not bundled term by term. The
+source is just two independent products added together, and the scheduler alone
+decided when each load fired. It's the same scheduler from lesson 2; the
+difference is that FP stalls run longer, so the rearrangement buys more.
 
-Note that `fmadds` comes from `fp_contract` fusion, *not* from the scheduler —
-they're two independent mechanisms both active at `-O4,p`. The next lesson
-covers `fp_contract` in detail; for now just notice it exists so you don't
-attribute the fused multiply-add to scheduling.
+One caution. The `fmadds` isn't the scheduler's doing at all. It comes from
+`fp_contract` fusion, a separate mechanism that also happens to be on at `-O4,p`.
+The next lesson digs into `fp_contract` properly. For now just be aware it exists,
+so you don't chalk the fused multiply-add up to scheduling.
 
-When an FP target's loads look shuffled across the multiplies, suspect the
-scheduler before you suspect an exotic source expression.
+So when an FP target has its loads scattered through the multiplies, reach for the
+scheduler as the explanation before you go inventing some exotic source
+expression.
 
 ## Your task
 

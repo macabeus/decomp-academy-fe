@@ -18,14 +18,15 @@ hints:
 
 # Read the device, then branch on what it said
 
-Hardware polling rarely stops at the read. You fetch a status word from a
-memory-mapped register, then *act on its value* — and "act on" is frequently a
-`switch`. This chains two idioms you've met: the **volatile hardware read**
-(lesson 7) supplies the value, and a **switch** (lessons 1–2) dispatches on it.
-The density rule still decides table-vs-chain, applied to the register's value.
+Polling hardware almost never ends at the read itself. You pull a status word
+out of a memory-mapped register and then you do something with it, and that
+something is very often a `switch`. So this lesson is the volatile hardware read
+from lesson 7 feeding straight into a `switch` from lessons 1 and 2. Whether
+that switch becomes a table or a compare chain still comes down to the same
+density rule, only now it is applied to the value the register handed back.
 
-Consider `classify_port(void)`, which reads the SI controller register at
-`0xCC006400` and bisects four scattered status codes:
+Take `classify_port(void)`, which reads the SI controller register at
+`0xCC006400` and then bisects four scattered status codes.
 
 ```asm
 lis   r3, -13312     # 0xCC000000 high half
@@ -43,12 +44,14 @@ b     .default
 .case8: li r3, 1  blr   # each arm is the usual li/blr
 ```
 
-Two fingerprints stacked: the `lis`/`lwz` from the `0xCC00` range is the
-volatile read, and the `cmpwi`/`beq-`/`bge-` staircase that follows is a sparse
-switch — note it compares `r0` (the value just loaded), never `r3`. The probe
-constants are far apart, so MWCC bisects rather than building a table. The asm
-hands you everything: the `lwz` displacement is the register offset, each
-`cmpwi` is a case label, each `li r3, N` is a return value.
+There are two fingerprints sitting on top of each other here. The `lis`/`lwz`
+pair against the `0xCC00` range is the volatile read, and the
+`cmpwi`/`beq-`/`bge-` staircase after it is a sparse switch, comparing `r0`, the
+value that was just loaded, rather than `r3`. Because the probe constants are
+spread far apart, MWCC bisects them instead of building a table. Everything you
+need is sitting in the assembly, with the `lwz` displacement giving the register
+offset, each `cmpwi` giving a case label, and each `li r3, N` giving a return
+value.
 
 ## Your task
 

@@ -18,9 +18,9 @@ hints:
 
 # Putting the idioms together
 
-Real engine code rarely shows one idiom at a time. A frame's state-machine step
-might check a `volatile` abort flag, then dispatch on an `enum` state through a
-`switch`. Each piece you've learned is visible in the asm — stacked:
+Real engine code rarely hands you one idiom at a time. A state-machine step
+might check a `volatile` abort flag and then dispatch on an `enum` state through
+a `switch`, which is what the assembly below does.
 
 ```asm
 lwz    r0, g_abort@sda21(r2) # volatile read of the abort flag...
@@ -39,11 +39,13 @@ mtctr  r0
 bctr                         # jump straight to the case for this state
 ```
 
-Three lessons in one fingerprint: the **`volatile` guard** (a single `lwz` of
-the flag feeding a `beq-` early-return), the **enum** (the state arrives as a
-plain 4-byte int — naming, no codegen cost), and the **jump table** (eight dense
-states cross the threshold into `cmplwi`/`lwzx`/`mtctr`/`bctr`). Recovering
-this means recognizing all three at once and writing each in its natural C form.
+Walk it top to bottom and the three lessons fall out in order. The function
+opens by loading `g_abort` once and branching on it with `beq-`, which is the
+`volatile` guard taking its early return. Past `.run`, the state is still in a
+register as a plain 4-byte int, so the `enum` costs nothing but the names. The
+eight dense cases are too many for a compare chain, which is why the
+`cmplwi`/`lwzx`/`mtctr`/`bctr` sequence shows up as a jump table. Recover it by
+recognising those three shapes and writing each in the C that produces it.
 
 ## Your task
 

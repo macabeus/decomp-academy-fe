@@ -17,15 +17,15 @@ hints:
 
 # The fp pair, scaled up a term
 
-Lesson 6 showed the scheduler weaving the loads of a **two**-term dot product;
-lesson 7 showed `fp_contract` fusing a multiply-then-add into `fmadds`. They are
-independent mechanisms, and both fire on any sum of products. Here you read them
-together at a **larger arity**, where the pattern becomes a fixed shape: the
-first product seeds an `fmuls`, and every further term folds in as an `fmadds`.
-Around that arithmetic the scheduler shuffles the `lfs` loads to cover their
-latencies.
+Two passes from earlier in the chapter meet here. In lesson 6 the scheduler
+braided together the loads of a **two**-term dot product. In lesson 7
+`fp_contract` glued a multiply-then-add into one `fmadds`. Neither knows about the
+other, yet any sum of products sets both off. Bump up to a **larger arity** and
+the shape settles into something you can predict. The first product comes out as
+a bare `fmuls`, each term after it rolls in as an `fmadds`, and the scheduler
+keeps reshuffling the `lfs` loads so their latencies hide behind the math.
 
-Recall the two-term case from lesson 6, `proj(f32 *u, f32 *w)`:
+Cast your mind back to the two-term version from lesson 6, `proj(f32 *u, f32 *w)`:
 
 ```asm
 lfs    f1, 4(r3)      # loads interleaved by the scheduler
@@ -37,14 +37,15 @@ fmadds f1, f2, f1, f0 # second term fused into a multiply-add
 blr
 ```
 
-One `fmuls` plus one `fmadds`: two terms. Add a third term and the shape extends
-predictably — one more `fmadds`, two more `lfs`, all re-scheduled. The count of
-fused FP ops tells you the number of terms, and the load offsets tell you which
-elements of each array are paired.
+An `fmuls` and a single `fmadds` mean two terms. Tack on a third and nothing
+surprising happens; you get one more `fmadds` and two more `lfs`, the whole thing
+re-scheduled around them. So count the fused FP ops to get the term count, and
+read the load offsets to see which array elements pair off against each other.
 
-Your `dot3` is the next size up. Read the `lfs` offsets to see how many elements
-of each array participate and how they pair, then write the dot product as a
-single flat expression and let `fp_contract` fuse and the scheduler interleave.
+Your `dot3` is one notch larger. Use the `lfs` offsets to work out how many
+elements from each array take part and how they line up, then put the dot product
+down as one flat expression and leave the fusing to `fp_contract` and the
+interleaving to the scheduler.
 
 ## Your task
 

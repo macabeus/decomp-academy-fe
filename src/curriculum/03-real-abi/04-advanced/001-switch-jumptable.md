@@ -17,11 +17,11 @@ hints:
 
 # The other kind of switch
 
-In the control chapter you met the **compare chain** — a cascade of `cmpwi` /
-`beq-` / `bge-` that bisects a handful of cases. But when the cases are
-**dense and numerous** (here `0..7`, all consecutive), MWCC stops comparing
-one value at a time and builds a **computed jump**: it uses `x` itself as an
-index into a table of code addresses.
+Back in the control chapter you saw the **compare chain**, a cascade of `cmpwi` /
+`beq-` / `bge-` that narrows down a handful of cases. That breaks down once the
+cases get **dense and numerous**. With `0..7` all in a row, MWCC quits testing
+values one by one and reaches for a **computed jump** instead, treating `x` as a
+straight index into a table of code addresses.
 
 ```asm
 cmplwi r3, 7        # bounds check: is x in 0..7?
@@ -34,12 +34,13 @@ mtctr  r0           # move it into the count register
 bctr                # branch to CTR  -> jump straight to case x
 ```
 
-Three fingerprints give it away: the **single `cmplwi` bounds check** (note
-`cmplwi`, unsigned — a negative `x` wraps to a huge value and fails the check
-for free), the `slwi r0, r3, 2` index scaling, and the
-`lwzx` → `mtctr` → `bctr` trio that loads an address from a `@switch` rodata
-table and jumps through it. After `bctr`, each case is its own tiny
-`li r3, N` / `blr` block. No per-case compares at all — the dispatch is O(1).
+Three things give it away once you know to look. The bounds check is a **single
+`cmplwi`**, and because `cmplwi` is unsigned, a negative `x` wraps round to some
+enormous value and fails the check at no extra cost. The index gets scaled by
+`slwi r0, r3, 2`. Then the `lwzx` → `mtctr` → `bctr` trio fetches an address from
+a `@switch` rodata table and jumps through it. Everything after `bctr` is a small
+`li r3, N` / `blr` block, one per case. Notice there's not a single per-case
+compare; the dispatch is O(1) flat.
 
 ## Your task
 

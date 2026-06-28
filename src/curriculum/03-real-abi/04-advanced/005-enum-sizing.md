@@ -17,13 +17,12 @@ hints:
 
 # An enum compiles to nothing special
 
-Under the compiler flags used here (`-enum int`, equivalently `#pragma enum int`),
-every `enum` is exactly **int-sized — 4 bytes**. That has a liberating
-consequence: an enum-typed field and an `int` field generate **identical**
-code.
+Here the compiler runs with `-enum int` (the same as `#pragma enum int`), which
+pins every `enum` to 4 bytes, the width of an `int`. An enum-typed field
+therefore compiles to exactly the instructions an `int` field would.
 
-Consider `is_raging(struct Enemy *e)`, which checks whether `e->phase` equals
-the third enum value (`PHASE_RAGE = 3`):
+Take `is_raging(struct Enemy *e)`, which asks whether `e->phase` holds the
+third enum value `PHASE_RAGE = 3`.
 
 ```asm
 lwz    r0, 0(r3)      # load the 4-byte phase field
@@ -33,22 +32,20 @@ srwi   r3, r0, 5      # the "==" idiom -> 0/1
 blr
 ```
 
-That `lwz` (a full word, not `lbz`/`lhz`) confirms the field is 4 bytes wide.
-One wrinkle from the control chapter: that lesson compared two *variables* with
-`subf`, but when one side is a **compile-time constant** MWCC uses
-`subfic` instead — subtract-from-immediate — computing `r0 = K - field`, which
-is zero exactly when `field == K`. Read the immediate to find the enum ordinal.
+The `lwz` reads a full word rather than `lbz` or `lhz`, so the field is
+genuinely 4 bytes. Something shifted since the control chapter, where comparing
+two *variables* produced `subf`. With a compile-time constant on one side, MWCC
+emits `subfic` (subtract-from-immediate) and computes `r0 = K - field`, which
+is zero precisely when `field == K`, so the immediate stands in for the enum
+ordinal you need to identify.
 
-The key point: this is byte-for-byte identical whether you write the enum name
-(`PHASE_RAGE`) or the bare integer literal (`3`). The enum names contribute
-*zero* bytes to the object file.
+You can write `PHASE_RAGE` or the literal `3` and the object file comes out
+byte-for-byte the same, because the names never reach the machine code.
 
-So **recovering an enum is a naming decision, not a codegen one.** When the asm
-loads a 4-byte field and compares it against a small constant via `subfic`, you
-can introduce an `enum` and meaningful names — it won't change a single
-instruction, it just makes the C readable and the intent obvious. Look up what
-ordinal position the constant corresponds to in the provided enum to choose the
-right name.
+So when you find a 4-byte field compared against a small constant through
+`subfic`, reintroducing an `enum` with descriptive names costs nothing in
+codegen and makes the C readable again. Find the right name by counting the
+constant's position in the provided enum.
 
 ## Your task
 

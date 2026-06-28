@@ -15,9 +15,10 @@ hints:
 
 # Shifting a value wider than the shifter
 
-A 32-bit shift instruction can't move bits across the boundary between the two
-halves of a 64-bit value, so a variable-distance 64-bit shift also defers to a
-**runtime helper** — same pattern as division: a prologue, a `bl`, an epilogue:
+A single shift instruction reaches across 32 bits, so it can't carry bits over
+the seam between the two halves of a `u64`. That's why a variable-distance 64-bit
+shift hands off to a runtime helper, the same shape division uses, with a
+prologue, a `bl`, and an epilogue:
 
 ```asm
 stwu   r1, -16(r1)
@@ -31,16 +32,16 @@ addi   r1, r1, 16
 blr
 ```
 
-The left-shift helper is **`__shl2i`**. Right shifts pick the helper by
-signedness: **`__shr2u`** for a logical (unsigned) shift and `__shr2i` for an
-arithmetic (signed) one. As with division, the `mr r5, r6` beforehand is the
-compiler arranging the arguments the helper expects — here, moving the shift
-distance into place.
+Here `bl __shl2i` is the left-shift helper. Right shifts split by signedness:
+`__shr2u` for a logical (unsigned) shift and `__shr2i` for an arithmetic (signed)
+one. The `mr r5, r6` just ahead of the call is the compiler lining up the
+arguments the helper wants, dropping the shift distance into place, much as a
+divide marshals its operands.
 
-So the full set of 64-bit operations that *can't* be done inline — and therefore
-announce themselves with a `bl __…2i`/`__…2u` — is **divide, modulo, and shift**.
-Everything else (add, subtract, multiply, and the bitwise ops coming up next)
-stays inline.
+That rounds out the short list of 64-bit operations the hardware can't do inline.
+Divide, modulo, and shift are the three, and each one announces itself with a
+`bl __…2i` or `__…2u`. Add, subtract, multiply, and the bitwise ops coming up
+next all stay inline.
 
 ## Your task
 

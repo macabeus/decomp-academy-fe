@@ -15,9 +15,10 @@ hints:
 
 # Turning a 64-bit subtract into a boolean
 
-A 64-bit comparison reuses the subtract-with-borrow machinery from `sub_64`, then
-extracts the single bit it actually cares about. For an unsigned `a < b`,
-returned as a `0`/`1` boolean:
+Now and then you'll find a 64-bit subtract whose result nobody uses, followed by
+a `subfe` that subtracts a register from itself and a `neg`. That's a comparison.
+It runs the subtract-with-borrow from `sub_64`, then keeps only the borrow bit.
+Here's an unsigned `a < b` returned as a `0`/`1` boolean:
 
 ```asm
 subfc  r0, r6, r4     # low:  a_lo - b_lo, set borrow
@@ -27,17 +28,16 @@ neg    r3, r3         # turn -1/0 into 1/0
 blr
 ```
 
-The first two instructions are exactly the 64-bit subtract you already know. The
-clever part is the third: **`subfe r3, r4, r4`** subtracts a register from itself,
-so the arithmetic is zero — but it still *reads the carry/borrow* left by the
-high-word `subfe`. The result is `0` or `-1` depending on whether the full 64-bit
-subtraction borrowed (i.e. whether `a < b`). **`neg`** then flips `-1`→`1`, giving
-a clean boolean — no branch required.
+The first two lines are the subtract you already know, taking `a - b` over both
+halves. Line three is where it gets cute. `subfe r3, r4, r4` subtracts a register
+from itself, so the value works out to zero, yet it still folds in the borrow the
+high `subfe` left in the carry. You end up with `-1` if the subtraction borrowed
+and `0` if it didn't. `neg r3, r3` then flips `-1` to `1`, and there's your
+branchless boolean.
 
-Crucially, comparisons are **downcast-proof**: the result is already a single
-bit, so there's nothing to truncate. A 64-bit compare always looks like a 64-bit
-compare, which makes it one of the most reliable confirmations that the values
-involved really are `long long`.
+Comparisons can't be hidden by a downcast either. The answer is one bit already,
+so there's nothing to truncate, and a 64-bit compare always shows up as a 64-bit
+compare. It's among the surest signs the operands really are `long long`.
 
 ## Your task
 
