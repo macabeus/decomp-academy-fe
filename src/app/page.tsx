@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  IconBrandGithub,
-  IconBinaryTree,
-  IconCode,
-  IconCircleCheck,
-} from "@tabler/icons-react";
+import { IconBrandGithub } from "@tabler/icons-react";
 import { chaptersWithLessons, LESSONS, TIERS } from "@/lib/lessons/registry";
 import { CurriculumMap } from "@/components/CurriculumMap";
 import { MatchLog } from "@/components/MatchLog";
@@ -69,30 +64,6 @@ export default function Home() {
         </div>
       </nav>
       <Hero total={total} firstLessonId={firstLesson?.id} />
-
-      {/* How it works — the loop, in three beats. */}
-      <section className="bg-bg-soft/30">
-        <div className="mx-auto grid max-w-5xl gap-4 px-5 py-10 sm:grid-cols-3">
-          <HowStep
-            n={1}
-            icon={<IconBinaryTree size={18} className="text-accent" />}
-            title="Read the assembly"
-            body="Study the target PowerPC the retail compiler produced, instruction by instruction."
-          />
-          <HowStep
-            n={2}
-            icon={<IconCode size={18} className="text-accent" />}
-            title="Write the C"
-            body="Reconstruct the original source. Hints and a reference solution are a click away."
-          />
-          <HowStep
-            n={3}
-            icon={<IconCircleCheck size={18} className="text-good" />}
-            title="The compiler grades it"
-            body="The real MWCC GC/2.0 compiles your code and diffs it — match every byte to win."
-          />
-        </div>
-      </section>
 
       <section id="curriculum" className="mx-auto max-w-5xl scroll-mt-16 px-5 pb-24 pt-14">
         <div className="mb-6 flex items-baseline justify-between">
@@ -215,33 +186,5 @@ function FooterLink({
         </Link>
       )}
     </li>
-  );
-}
-
-function HowStep({
-  n,
-  icon,
-  title,
-  body,
-}: {
-  n: number;
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div
-      className="relative animate-slide-up-fade rounded-xl bg-bg-soft/50 p-5"
-      style={{ animationDelay: `${(n - 1) * 90}ms` }}
-    >
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-bg-inset">
-          {icon}
-        </span>
-        <span className="font-mono text-2xs text-content-faint">STEP {n}</span>
-      </div>
-      <div className="font-semibold text-content-primary">{title}</div>
-      <p className="mt-1 text-sm leading-relaxed text-content-muted">{body}</p>
-    </div>
   );
 }
