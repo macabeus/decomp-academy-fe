@@ -14,30 +14,32 @@ hints:
 
 # Same value, two ways to fill the top bits
 
-Widening a narrow *value already in a register* (not a fresh load) shows the
-sign/unsigned split clearly. A **`u8 → u32`** widen zero-extends with a
-rotate-mask, printed as **`clrlwi`** (clear left word immediate) — here clearing
-the top 24 bits:
+This split is easiest to see when the narrow value is *already in a register*
+instead of coming from a fresh load. Widening a **`u8 → u32`** zero-extends, and
+the compiler does it with a rotate-mask that disassembles to **`clrlwi`** (clear
+left word immediate). Here it clears the top 24 bits:
 
 ```asm
 clrlwi r3, r3, 24   # keep low 8 bits, zero the rest
 blr
 ```
 
-A signed **`s8 → s32`** widen instead sign-extends with **`extsb`**:
+The signed version, a **`s8 → s32`** widen, uses **`extsb`** instead. That copies
+the sign bit upward rather than masking the high bits to zero:
 
 ```asm
 extsb r3, r3        # replicate bit 7 into the top 24 bits
 blr
 ```
 
-`clrlwi r3, r3, 24` and `extsb r3, r3` differ only in whether the high bits become
-zeros or copies of the sign bit — exactly the unsigned-vs-signed choice. (For
-this lesson we widen the *unsigned* case.)
+So `clrlwi r3, r3, 24` and `extsb r3, r3` do almost the same job. The only
+difference is what lands in the high bits, zeros for the unsigned case and copies
+of the sign bit for the signed one. (This lesson is the *unsigned* one.)
 
-`clrlwi` is just a readable spelling of an `rlwinm` rotate-mask: `clrlwi r3, r3,
-24` is the same instruction as `rlwinm r3, r3, 0, 24, 31`. Some disassemblers
-print the raw `rlwinm` form, so treat the two as identical when reading a diff.
+Watch out for the `rlwinm` alias as well. `clrlwi` is just the readable name for a
+particular rotate-mask, so `clrlwi r3, r3, 24` and `rlwinm r3, r3, 0, 24, 31` are
+the same encoding. If your disassembler prints the raw `rlwinm`, treat it as the
+`clrlwi` you expected.
 
 ## Your task
 

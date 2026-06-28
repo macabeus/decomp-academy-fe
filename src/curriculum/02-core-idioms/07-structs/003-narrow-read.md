@@ -14,19 +14,20 @@ hints:
 
 # The field's type picks the load
 
-A field's C type decides both its **size** and the **load instruction**. For
-`u8` fields (one byte, unsigned) the compiler emits `lbz` (*load byte
-zero-extend*). For `u16` fields (two bytes, unsigned) it emits `lhz` (*load
-halfword zero-extend*). The offset in the instruction gives you the field's
-position; the instruction mnemonic gives you its width and signedness.
+A field's C type settles its **size** and its **load instruction** at once. The
+narrow unsigned types are the interesting case. An unsigned byte (`u8`)
+zero-extends through `lbz` (*load byte zero-extend*), and a two-byte `u16`
+through `lhz` (*load halfword zero-extend*). The offset pins the position; the
+mnemonic encodes width and signedness.
 
-An `lbz`/`lhz` is a strong decompilation signal: the field at that offset is
-`u8`/`u16`, not `int`. Avoid `char` for an unsigned byte — `char` is
-implementation-defined and would produce a spurious `extsb` sign-extension after
-the load.
+Either mnemonic is worth treating as evidence. An `lbz` at some offset says the
+field is a `u8`, an `lhz` says `u16`, and neither is a plain `int`. One trap to
+sidestep is modeling an unsigned byte as `char`. Its signedness is
+implementation-defined, so the compiler can slip in a stray `extsb` to
+sign-extend after the load.
 
-Here is an example reading the *third* byte field of the same Color struct
-(offset 2):
+The snippet below reads the *third* byte field of the same Color struct, at
+offset 2:
 
 ```c
 typedef struct { u8 r; u8 g; u8 b; u8 a; } Color;
@@ -41,8 +42,9 @@ lbz     r3,2(r3)    # load c->b (offset 2)
 blr
 ```
 
-The offset 2 corresponds to `b` because `r` occupies byte 0 and `g` byte 1.
-Now inspect the target assembly and determine which field its offset points to.
+That offset 2 resolves to `b`, given that `r` sits in byte 0 and `g` in byte 1.
+Apply the same reading to the target assembly to see which field its offset
+names.
 
 ## Your task
 

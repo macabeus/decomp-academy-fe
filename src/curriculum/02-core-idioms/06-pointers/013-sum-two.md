@@ -15,18 +15,17 @@ hints:
 
 # Two loads feed one operation
 
-Everything so far has read or written a *single* location. Real code rarely
-stops there — it pulls several values out of an array and combines them. The
-pattern is exactly what you would guess from stacking the earlier lessons: one
-**load per element**, each at its own constant displacement, then an arithmetic
-instruction that joins the loaded registers.
+Up to now each lesson poked one location. Real code isn't that tidy. It pulls a
+handful of values from an array and mashes them into a result. No new trick is
+involved, only the earlier lessons stacked. You load every element on its own,
+each from its own constant displacement, then run a single arithmetic instruction
+across the loaded registers.
 
-The loads come first because each must land in a register before the combine can
-run. The displacements identify which elements were read — divide each by the
-element size, just as in the constant-index lesson.
+The loads have to come first. A combine can't fire until both of its inputs are
+already in registers. The displacements tell you which elements were read, so
+divide each by the element size, same move as the constant-index lesson.
 
-Consider `diff_two(q)`, which reads two `int`s from an array and subtracts the
-first from the third:
+Here's `diff_two(q)`, reading two `int`s and subtracting the first from the third.
 
 ```asm
 lwz  r4, 0(r3)    # q[0]
@@ -35,11 +34,11 @@ subf r3, r4, r0   # r0 - r4  =  q[2] - q[0]
 blr
 ```
 
-Two independent loads, then one `subf` (`subf rD, rA, rB` is `rB − rA`). The
-displacements `0` and `8` name the elements; the combining instruction names the
-operation. The target assembly uses the same two-loads-then-combine shape, but
-read its displacements and its combining instruction to see which elements and
-which operation it wants.
+Two separate loads, one `subf` (and `subf rD, rA, rB` gives `rB − rA`). The `0`
+and `8` say which elements got read, while the `subf` says what's done with them.
+Your target wears the same two-loads-then-combine shape. Read its displacements
+and its combining instruction and they'll point you at the elements and the
+operation.
 
 ## Your task
 

@@ -18,14 +18,16 @@ hints:
 
 # Putting the chapter together
 
-This is the chapter capstone. A realistic accessor pulls **several fields of one
-struct** — scalars and a member-array element — and folds them into a single
-value. Everything here you have already met: fields are loaded at their byte
-offsets, a member array element is a fixed displacement, and the loads combine
-through scratch registers in expression order, with the base pointer reused as
-the address for every load until it's no longer needed.
+This is where the chapter cashes out. A real accessor doesn't touch just one
+field. It grabs **several fields of one struct** at once, some scalars and a
+member-array element, and crushes them into a single number. Nothing below is new
+to you, though. Each field loads from its byte offset. An array element is that
+same idea plus a fixed displacement. The values gather in scratch registers in
+whatever order the expression calls for, and `r3` keeps doubling as the load
+address until there's nothing left to load.
 
-Consider a signal struct mixing scalar fields with a sampled-data array:
+Take a signal struct that mixes plain scalar fields with a little array of
+samples:
 
 ```c
 typedef struct {
@@ -40,9 +42,9 @@ int Signal_value(Signal* s) {
 }
 ```
 
-Lay out the offsets: `kind` 0, `rate` 4, `samples` 8 (so `samples[1]` is at
-`8 + 4 = 12`), `offset` at `8 + 16 = 24`. The compiler loads the operands,
-multiplies two of them, then threads the rest through:
+Work the offsets out first. `kind` at 0, `rate` at 4, `samples` at 8, so
+`samples[1]` lands at `8 + 4 = 12`, and `offset` sits at `8 + 16 = 24`. Then the
+compiler pulls the operands, multiplies two of them, and threads the rest in:
 
 ```asm
 lwz    r4, 4(r3)     # rate          (offset 4)
@@ -55,15 +57,15 @@ subf   r3, r3, r0    # - offset
 blr
 ```
 
-Four fields, four offsets, one expression. Each `lwz` displacement maps to a
-field through the struct layout; the `mullw`, `add`, and `subf` show how they
-combine (`subf rD, rA, rB` is `rB − rA`). Note the loads aren't in offset order —
-they follow the order the operands are needed by the arithmetic.
+Four fields, four offsets, one expression. Match each `lwz` displacement to a
+field through the layout, and the `mullw`, `add`, and `subf` tell you how they
+combine (`subf rD, rA, rB` is `rB − rA`, mind the order). Notice the loads ignore
+offset order entirely. They show up exactly when the arithmetic wants them, not a
+moment sooner.
 
-The target assembly accesses a different struct with the same flavour: scalar
-fields plus one member-array element, multiplied and added and subtracted into a
-result. Decode every offset against the layout below, then rebuild the
-expression.
+The target works a different struct the same way, scalar fields plus one
+member-array element, multiplied and added and subtracted into a result. Decode
+each offset against the layout below, then rebuild the expression.
 
 ## Your task
 

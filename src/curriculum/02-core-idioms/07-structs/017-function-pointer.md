@@ -15,9 +15,10 @@ hints:
 
 # Indirect calls: load, mtctr, bctrl
 
-Storing a function pointer in a struct is how C fakes virtual methods. To call
-it, the compiler **loads the pointer, moves it into the count register (CTR),
-then branches to CTR**. Given:
+Stash a function pointer inside a struct and you've reinvented the virtual method
+without a line of C++. Calling one takes three moves. The compiler loads the
+pointer out of the struct, drops it into the count register (CTR), and branches
+through CTR. The struct in question:
 
 ```c
 typedef struct Actor {
@@ -26,8 +27,9 @@ typedef struct Actor {
 } Actor;
 ```
 
-`update` is at offset 4. Because this function makes a call, it is **non-leaf**
-and needs a frame to preserve the return address. The full listing is:
+`update` sits at offset 4. And because this function actually calls something,
+it's **non-leaf**, so it has to stand up a frame and stash the return address
+somewhere safe. Here's the whole thing:
 
 ```asm
 stwu   r1, -16(r1)  # open a stack frame
@@ -42,11 +44,12 @@ addi   r1, r1, 16   # tear down the frame
 blr
 ```
 
-The `stwu`/`mflr`/`stw` prologue and the matching epilogue are the standard
-non-leaf frame; the indirect call itself is the middle three lines. The trio
-`lwz r12, off(rX)` → `mtctr r12` → `bctrl` is the unmistakable signature of an
-**indirect call through a struct field** — a vtable dispatch or callback. The
-argument `a` is already in `r3`, so no extra setup is needed before the call.
+Strip away the `stwu`/`mflr`/`stw` prologue and its mirror-image epilogue, the
+usual non-leaf bookkeeping, and the real work is three instructions in the
+middle. `lwz r12, off(rX)` → `mtctr r12` → `bctrl`. See that trio and you're
+looking at an **indirect call through a struct field**, whether that's a vtable
+dispatch or a plain callback. Notice too that `a` is already parked in `r3`, so
+nothing extra needs to happen before the branch.
 
 ## Your task
 

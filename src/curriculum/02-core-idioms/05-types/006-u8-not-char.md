@@ -17,13 +17,15 @@ hints:
 
 # A common byte-matching mix-up: char vs u8
 
-In MWCC's world, a plain **`char` is signed**. That one fact bites constantly.
-Whenever a `char` value is *promoted* — passed to a function, used in arithmetic,
-returned as `int` — the compiler must sign-extend it first with an **`extsb`**.
-A **`u8`** never sign-extends, because it is already unsigned.
+The thing to internalise about MWCC is that a bare **`char`** is *signed*, and it
+causes more wrong diffs than almost anything else at this level. The moment a
+`char` is *promoted* into a wider context, say an argument or an `int` return
+value, an **`extsb`** has to run first to stretch its sign across the register.
+None of that touches a **`u8`**, which is unsigned to begin with, so there is no
+sign to carry upward.
 
-Watch what happens when a byte is loaded and handed to a function that takes an
-`int`. With `char`, an extra `extsb` appears:
+Load a byte, pass it into a function expecting an `int`, and the difference shows
+up right away. The `char` version drags an `extsb` along in front of the call:
 
 ```asm
 lbz   r3, 0(r4)
@@ -32,7 +34,7 @@ bl    scale
 stb   r3, 0(r31)
 ```
 
-With **`u8`**, the loaded byte feeds the call directly — the `extsb` is **gone**:
+The unsigned version carries no such baggage, and the byte feeds the call as-is:
 
 ```asm
 lbz   r3, 0(r4)
@@ -40,14 +42,14 @@ bl    scale       # no extsb: u8 is already zero-extended
 stb   r3, 0(r31)
 ```
 
-The trailing `stb` needs no cleanup either way: a *store* only ever copies the
-low 8 bits, so writing `scale`'s `int` result back through a byte pointer
-truncates for free — don't reach for `& 0xFF`, which would add a `clrlwi` the
-target doesn't have.
+Either way the trailing `stb` is already correct, since a *store* drops
+everything above the low 8 bits on its own. So `scale`'s `int` result narrows
+back through the byte pointer for nothing, and adding `& 0xFF` would only conjure
+a `clrlwi` the target was never built with.
 
-If your output has one stray `extsb` the target doesn't, the cause is almost
-always a `char` that should have been a `u8`. That's the key takeaway of this
-chapter: **for a raw byte, prefer `u8` over `char`.**
+A single orphaned `extsb` in your output, one the target does not have, is nearly
+always the fingerprint of a `char` where a `u8` belonged. **For a raw byte, reach
+for `u8` rather than `char`.**
 
 ## Your task
 

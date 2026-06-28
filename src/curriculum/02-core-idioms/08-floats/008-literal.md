@@ -16,10 +16,7 @@ hints:
 
 # Float literals don't fit in an immediate
 
-There is no "load immediate float" instruction — a 32-bit constant can't be
-encoded inline. Instead MWCC parks the value in the **small data area (SDA)** and
-loads it with **`lfs`** (load floating single), addressed relative to `r2`/`r13`.
-A function that doubles its argument, for example, compiles to:
+PowerPC has no load-immediate for floats. A 32-bit constant just won't fit inside an instruction word. So MWCC stashes the value in the **small data area (SDA)** and pulls it back with **`lfs`** (load floating single), addressed off `r2`/`r13`. A function that doubles its input compiles like this:
 
 ```asm
 lfs   f0, ...      # load 2.0f from the SDA
@@ -27,12 +24,7 @@ fmuls f1, f0, f1   # single-precision multiply
 blr
 ```
 
-The `...` is a relocation the linker fills in; in the disassembler you'll see a
-concrete SDA-relative offset off `r2`, e.g. `lfs f0, 0x20(r2)` (or a symbolic
-`lfs f0, lit@sda21(r2)`). When you spot `lfs` feeding straight into an
-`fmuls`/`fadds`, the original C almost certainly had a float literal (an `f`
-suffix constant) in the expression. The constant loaded by `lfs` is the literal
-value itself — read it from the disassembly symbol or the SDA entry.
+Those `...` are a relocation; the linker resolves them, and in the disassembler you'll instead read a real SDA-relative offset off `r2`, something like `lfs f0, 0x20(r2)` or the symbolic `lfs f0, lit@sda21(r2)`. See an `lfs` flowing straight into an `fmuls`/`fadds` and you can bet the source had a float literal, an `f`-suffixed constant, sitting in that expression. Whatever number `lfs` pulls in is the literal itself. Read it off the disassembly symbol or the SDA entry.
 
 ## Your task
 

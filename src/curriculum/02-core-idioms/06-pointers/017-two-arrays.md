@@ -16,14 +16,14 @@ hints:
 
 # One offset, two bases
 
-When two arrays are indexed by the *same* variable, the scaled byte offset is
-computed a single time and reused. The index `i*size` lands in one register, and
-each `lwzx` pairs it with a different base pointer — the two arrays arrive in `r3`
-and `r4`. This is the cleanest illustration that the indexed load takes *two*
-register operands: hold the offset constant and swap the base to walk a second
-array.
+Index two arrays by the *same* variable and the compiler computes the scaled
+byte offset once, then leans on it twice. `i*size` ends up in a single register.
+Each `lwzx` then pairs that offset with its own base pointer, and the two array
+bases show up in `r3` and `r4`. It's the clearest demonstration that an indexed
+load wants *two* register operands. Freeze the offset, swap the base, and you're
+walking a second array.
 
-Consider `add_arrays(x, y, j)`, which reads `x[j]` and `y[j]` and adds them:
+`add_arrays(x, y, j)` reads `x[j]` and `y[j]`, then adds them:
 
 ```asm
 slwi r0, r5, 2    # j * 4   (j is the third arg, in r5)
@@ -33,10 +33,10 @@ add  r3, r3, r0   # x[j] + y[j]
 blr
 ```
 
-One `slwi` scales `j`; the offset in `r0` feeds both `lwzx` instructions, only
-the base register changing between them. The target combines two arrays at the
-shared index with a different operation — read the instruction after the two
-`lwzx` to see which.
+A lone `slwi` scales `j`. The offset sits in `r0` and drives both `lwzx`
+instructions; only the base register differs between the two. Your target also
+combines two arrays at the shared index, but with a different operation. Check
+the instruction right after the two `lwzx` to find out which.
 
 ## Your task
 

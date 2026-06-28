@@ -14,16 +14,16 @@ hints:
     relocation R_PPC_EMB_SDA21."
 ---
 
-# How a global is addressed
+# Globals live a short hop from r13
 
-A 32-bit GameCube address won't fit in an instruction, so the compiler can't just
-`lwz` a global by its absolute address. MWCC's answer is the **Small Data Area
-(SDA)**: at startup, register **`r13`** is pointed at a fixed base, and frequently
-used globals are gathered into a window reachable by a signed 16-bit offset from
-it. That window is only 64 KB wide (±32 KB from the base), so on a large game
-some globals spill out and have to be reached the longer way (the `@ha`/`@l`
-addressing a few lessons from now). For anything that fits, reading one is a
-single load with that offset baked in by the linker:
+Here is the problem. A GameCube address is 32 bits, and a single PowerPC
+instruction has nowhere to put all of them, so you cannot `lwz` a global from its
+absolute address. The **Small Data Area** is how MWCC gets around that. Boot code
+points register **`r13`** at one fixed base, and the globals a game leans on most
+are packed into a window that a signed 16-bit offset off `r13` can cover. It is
+not a big window, just 64 KB, ±32 KB to either side. Spill past it on a large
+game and a global has to take the long way around with `@ha`/`@l`, which shows up
+later. While it fits, one load does the job, and the linker bakes the offset in:
 
 ```asm
 lwz   r3, g@sda21(r13)   # load global g, r13-relative
@@ -33,11 +33,11 @@ blr
 R_PPC_EMB_SDA21   g
 ```
 
-The `@sda21` operand is a **relocation** — in an unlinked object the disassembler
-prints `lwz r3, 0(0)` with an attached `R_PPC_EMB_SDA21 g` line, because the
-offset and base register aren't filled in until link time. That `R_PPC_EMB_SDA21`
-line is the unmistakable signature of an ordinary (non-array) global. Whether the
-global is `extern` or defined in this file, the access looks identical.
+The `@sda21` is a **relocation**, not a real address. An unlinked object
+disassembles to `lwz r3, 0(0)` plus a dangling `R_PPC_EMB_SDA21 g` line, because
+the offset and base register stay unresolved until link time. That
+`R_PPC_EMB_SDA21` line is your tell for a plain, non-array global, and it shows up
+the same way whether the global is `extern` or defined right here.
 
 ## Your task
 

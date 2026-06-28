@@ -16,9 +16,7 @@ hints:
 
 # Sign-bit instructions
 
-Two tiny, single-instruction operations round out the chapter. Floating-point
-**negation** is `fneg` (it flips the sign bit), and **absolute value** is
-`fabs` (it clears the sign bit). Used separately, each is one instruction:
+A couple of one-instruction operations close out the chapter, and both are dead simple. Floating-point **negation** is `fneg`, which flips the sign bit. **Absolute value** is `fabs`, which clears it. On their own, each costs exactly one instruction:
 
 ```asm
 # absval(f32 v):
@@ -30,17 +28,11 @@ fneg  f1, f1       # flip sign bit
 blr
 ```
 
-The single-precision intrinsic `__fabsf` lowers straight to `fabs`.
+Reach for the single-precision intrinsic `__fabsf` and it lowers straight to `fabs`.
 
-Unlike `fadds`/`fmuls`, the sign-bit instructions have **no `s` variant**: they
-appear as `fabs`/`fneg` even on an `f32`. This is one of the few exceptions to
-the single/double suffix rule from earlier — flipping or clearing a sign bit is
-bit-identical at single and double precision, so there is nothing to round and no
-need for a separate form.
+Here's the quirk. These two skip the `s` suffix entirely, so even on an `f32` you'll read `fabs` and `fneg`, never an `s`-tagged form. That breaks the single/double naming rule from before, and for good reason. Toggling a sign bit gives identical bits at single or double width, so there's nothing to round and no second variant to define.
 
-When you see both instructions back to back, consider which sign-bit operation
-comes first and which comes second — they are not commutative. The C expression
-that produces each one in sequence should be clear from the order.
+Spot the two instructions one after another and the order is everything. They don't commute, so which sign-bit op runs first and which runs second changes the meaning. The C that lays them down in that exact sequence follows from what you read off the disassembly.
 
 ## Your task
 

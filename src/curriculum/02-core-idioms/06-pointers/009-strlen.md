@@ -14,17 +14,17 @@ hints:
 
 # Advancing a pointer in a loop
 
-Reading through a byte buffer means loading one byte per iteration with `lbz`,
-advancing the pointer register with `addi`, and testing the loaded value. Because
-the element type is `u8` (unsigned), the zero test uses `cmplwi` (compare logical
-word immediate — unsigned) rather than `cmpwi`.
+Walking a byte buffer is a small loop. Each pass loads a byte with `lbz`, bumps
+the pointer with `addi`, and checks what came back. The element is a `u8`, so it's
+unsigned, and that nudges the zero test to `cmplwi` (compare logical word
+immediate) instead of the signed `cmpwi`.
 
-MWCC lays out the loop with the test **at the bottom**: an initial `b` jumps
-straight to the first check, so a zero-length input skips the body entirely. The
-back-edge branch carries a `+` hint — the compiler statically predicts loops will
-iterate, so the branch-taken path is marked likely.
+MWCC puts the test at the bottom of the loop. An opening `b` jumps right to that
+check first, which means an empty input never enters the body. The back-edge
+branch wears a `+` hint as well, MWCC's static guess that a loop usually loops, so
+it marks the taken path as the likely one.
 
-Here is a different example that sums the byte values instead of counting them:
+Here's a different one, summing the byte values rather than counting them:
 
 ```c
 int byte_sum(u8* s) {
@@ -49,10 +49,10 @@ mr      r3,r4
 blr
 ```
 
-Notice the `lbz`/`cmplwi`/`bne+` trio at the loop check, the pointer advancing
-via `addi r3,r3,1`, and the accumulator held in `r4` until the final `mr`. Now
-consider how the loop body changes when the goal is *counting* iterations instead
-of summing byte values — what instruction replaces `add`?
+See the `lbz`/`cmplwi`/`bne+` trio doing the loop check, the pointer creeping
+forward with `addi r3,r3,1`, and `r4` holding the running total until the closing
+`mr`. Now picture the body when you only want to *count* the iterations, not add
+up byte values, what takes the place of `add`?
 
 ## Your task
 

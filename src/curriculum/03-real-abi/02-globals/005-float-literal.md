@@ -17,10 +17,11 @@ hints:
 
 # Where does `0.5f` come from?
 
-There's no "load immediate float" instruction, so a literal like `0.5f` can't be
-encoded inline. MWCC parks it as an anonymous **pooled constant** in small data
-and loads it with `lfs`, just like a named global — except the symbol is a
-compiler-generated label such as `@5` rather than a name you wrote:
+PowerPC has no load-immediate-float instruction, so a literal like `0.5f` can't
+ride along inside the encoding. MWCC's workaround is to stash it as an anonymous
+**pooled constant** in small data and load it with `lfs`, exactly the way it
+would load a named global. The one difference is the symbol. Instead of a name
+you chose, you get a compiler-minted label like `@5`:
 
 ```asm
 lfs   f0, @5@sda21(r2)   # load the pooled constant 0.5f
@@ -31,11 +32,11 @@ blr
 R_PPC_EMB_SDA21   @5
 ```
 
-That `@5` relocation against an `R_PPC_EMB_SDA21` entry is a **literal pool** load.
-Identical machinery to a global float read — the only tell that it's a literal and
-not a named global is the synthetic `@N` symbol. When you see an `lfs` of an `@N`
-symbol feeding straight into an arithmetic op, the original C had a float
-constant in the expression.
+An `@5` symbol relocated through `R_PPC_EMB_SDA21` is a **literal pool** load. The
+machinery is the same as a global float read, and the only thing giving away that
+it's a literal rather than something you named is that synthetic `@N` symbol. So
+when an `lfs` of an `@N` symbol feeds straight into an arithmetic op, you know the
+source expression carried a float constant.
 
 ## Your task
 

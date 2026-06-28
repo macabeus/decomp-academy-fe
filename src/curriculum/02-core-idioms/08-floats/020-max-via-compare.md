@@ -17,12 +17,14 @@ hints:
 
 # Selecting one of two floats
 
-Choosing the larger or smaller of two floats is a float compare feeding a
-branch — `fcmpo` to set the condition register, then a *conditional return*. If
-the test passes, control returns one argument as-is; otherwise an `fmr` moves
-the other argument into `f1` before the final `blr`.
+Want the larger of two floats? Or the smaller? Either way it is one compare and
+one branch. `fcmpo` writes the result of the comparison into the condition
+register. Then a *conditional return* looks at that and decides. When the test
+holds, one argument is already where the return value lives, so nothing else
+happens. When it does not, `fmr` copies the other argument into `f1` and the
+`blr` follows.
 
-Consider `smaller(p, q)`, returning whichever of two values is less:
+Take `smaller(p, q)`, handing back whichever value is the lesser one:
 
 ```asm
 fcmpo cr0, f1, f2    # compare p against q
@@ -31,16 +33,16 @@ fmr   f1, f2         # else f1 = q
 blr
 ```
 
-The pattern: `fcmpo` then a `b<cond>lr-` that returns the first argument when the
-test holds, with a trailing `fmr` + `blr` for the other case. The branch
-*condition* tells you the comparison — `bltlr` is "branch (return) if less
-than", so the C `if` tested `p < q`. The `-` suffix is just a static
-branch-prediction hint; ignore it when decoding the logic. The argument left in
-`f1` on the early return is the value returned untouched.
+Here is the shape. An `fcmpo`, a `b<cond>lr-` that returns the first argument
+while the test holds, and then an `fmr` + `blr` to cover the miss. Everything
+hinges on the *condition* glued to that branch. `bltlr` says "return if less
+than", which tells you the C `if` compared `p < q`. Don't read anything into the
+`-`; it is a static prediction hint and nothing more. And the argument that
+happens to be in `f1` at the early return is the one passed back as-is.
 
-The target assembly has the same `fcmpo` → conditional-`blr` → `fmr` shape but a
-*different* branch condition. Read that condition to determine which comparison
-is being made and therefore which argument each path returns.
+Your target is built the same way, `fcmpo` → conditional-`blr` → `fmr`, except
+the branch condition is not the same. Decode it, name the comparison, and you
+will know which argument leaves by which path.
 
 ## Your task
 

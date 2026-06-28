@@ -18,17 +18,18 @@ hints:
 
 # The indexed load, in reverse
 
-Writing `tbl[i] = v` is the mirror of reading `tbl[i]`. You build the array's
-base address with the same `@ha`/`@l` pair (arrays aren't small-data), scale the
-index by the element size with `slwi`, and then — instead of an indexed *load* —
-emit an indexed *store*. `stwx rS, rA, rB` stores `rS` at `rA + rB`, exactly the
-addressing of `lwzx` with the data flowing the other way.
+Flip `tbl[i]` around and you have `tbl[i] = v`. The setup doesn't budge. Build the
+base from the `@ha`/`@l` pair, because an array still won't fit in small-data, and
+scale `i` by the element size with `slwi`. Only the tail differs. Where the read
+finished on an indexed *load*, the write finishes on an indexed *store*. `stwx
+rS, rA, rB` drops `rS` at `rA + rB`, the identical addressing `lwzx` uses, just
+with the data heading the other way.
 
-Nothing about the address machinery changes between read and write; only the
-final opcode flips. `lwzx` ⟶ `stwx` is the same `lwz` ⟶ `stw` swap you saw for
-scalars, just in the indexed form.
+None of the address machinery shifts when you go from reading to writing. Only the
+last opcode does. Trading `lwzx` for `stwx` is just the scalar `lwz`-to-`stw` swap
+again, this time wearing its indexed form.
 
-Consider `storeAt(n, x)`, which writes `x` into element `n` of the int array
+Take `storeAt(n, x)`, which writes `x` into element `n` of the int array
 `gBuffer`:
 
 ```asm
@@ -39,11 +40,11 @@ stwx  r4, r3, r0        # gBuffer[n] = x   (x is in r4)
 blr
 ```
 
-The `lis`/`slwi`/`addi` are identical to the indexed-read lesson — base address
-plus scaled index — and the only new instruction is `stwx`, with the value to
-store (`x`, in `r4`) as its first operand. The target assembly stores a different
-argument into a different array; trace which register holds the value and which
-holds the index.
+That `lis`/`slwi`/`addi` trio is word-for-word the indexed-read lesson, base plus
+scaled index. The one newcomer is `stwx`, and it carries the value being stored,
+`x` over in `r4`, as its first operand. Your target writes a different argument
+into a different array. The work is just spotting which register holds the value
+and which holds the index.
 
 ## Your task
 

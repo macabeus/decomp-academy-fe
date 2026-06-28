@@ -17,15 +17,15 @@ hints:
 
 # A chain of fused multiply-adds
 
-Extend the sum-of-products to three terms — a 3D dot product — and a clear
-pattern emerges: **one `fmuls` to start the accumulator, then one `fmadds` per
-remaining term**, each folding its product into the running total. This
-`fmuls` + `fmadds` + `fmadds` shape is the canonical accumulation idiom, and it
-generalizes to any number of terms.
+Stretch the sum-of-products to three terms and you have a 3D dot product. The
+shape it compiles to is easy to spot once you have seen it. One `fmuls` kicks
+off the accumulator. After that, one `fmadds` per term, each dropping its
+product onto the running total. `fmuls` then `fmadds` then `fmadds`, that is the
+accumulation idiom, and it keeps going for as many terms as you have.
 
-Reading struct fields adds `lfs` loads at each offset. Consider `weigh3(t, wa,
-wb, wc)` summing each field of a `{f32 a,b,c}` struct scaled by a matching
-weight argument:
+Fields out of a struct each cost an `lfs`. Here is `weigh3(t, wa, wb, wc)`,
+adding up the fields of a `{f32 a,b,c}` struct, each scaled by its own weight
+argument:
 
 ```asm
 lfs    f0, 4(r3)      # t->b
@@ -37,17 +37,16 @@ fmadds f1, f2, f3, f0 # f1 = t->c*wc + f0       (fold in last term)
 blr
 ```
 
-The compiler may interleave the `lfs` loads and even reorder which product seeds
-the `fmuls`, but the structure is fixed: as many `lfs` pairs as there are
-multiplied terms, one `fmuls`, and `fmadds` accumulators threading the running
-sum to `f1`. Read each `lfs` offset to know which field (0/4/8 ⇒ first/second/
-third) it fetched.
+Loads can be interleaved, and the compiler picks whichever product seeds the
+`fmuls`. None of that changes the bones of it. An `lfs` pair per multiplied term,
+one `fmuls`, then `fmadds` after `fmadds` carrying the sum into `f1`. The offset
+on each `lfs` is the field number, 0 then 4 then 8 for first, second, third.
 
-The target assembly multiplies the matching fields of two `Vec3`s (in `r3` and
-`r4`) and sums the three products. Trace the `lfs` offsets to pair up the fields,
-then confirm the products accumulate together.
+Your target multiplies the matching fields of two `Vec3`s, one parked in `r3`,
+the other in `r4`, and sums the three products. Walk the `lfs` offsets to match
+the fields up, then make sure those products all feed one accumulator.
 
-The two arguments point to this struct:
+Both arguments point at this struct:
 
 ```c
 typedef struct { f32 x, y, z; } Vec3;

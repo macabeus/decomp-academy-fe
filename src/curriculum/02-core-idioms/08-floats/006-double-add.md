@@ -14,19 +14,14 @@ hints:
 
 # `f64` is double precision
 
-A `f32` is single precision; an `f64` (`double`) is **double precision**, and the
-hardware has a parallel set of instructions *without* the trailing `s`. The same
-`a + b`, typed as `f64`, compiles to `fadd` instead of `fadds`:
+Single precision is `f32`. Double precision is `f64`, the C `double`, and the hardware mirrors every float op in a second flavor *without* that trailing `s`. So `a + b` on `f64` operands lands on `fadd`, not `fadds`:
 
 ```asm
 fadd f1, f1, f2    # f1 = a + b, double precision
 blr
 ```
 
-So `fadd`/`fmul`/`fsub`/`fdiv` are the double-precision forms, and
-`fadds`/`fmuls`/`fsubs`/`fdivs` are single. **The presence or absence of that one
-letter tells you the operand type** — which is exactly the kind of clue you use
-to recover the original C declarations.
+So `fadd`/`fmul`/`fsub`/`fdiv` handle doubles and `fadds`/`fmuls`/`fsubs`/`fdivs` handle singles. **One letter, and it pins down the operand type.** That little difference is gold when you're rebuilding the original C declarations from nothing but disassembly.
 
 ## Your task
 

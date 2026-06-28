@@ -15,10 +15,11 @@ hints:
 
 # Filling r3, r4, … before you branch
 
-To call a function you must place its arguments into the same `r3`, `r4`, `r5`…
-slots the callee will read. This is **argument marshalling**. Consider
-`pass_on(s32 x) { return merge(x, x - 2); }`, which passes `x` as the first
-argument and a derived value as the second:
+A `bl` reads its arguments straight out of registers, so before you branch
+they had better be in the right ones. `r3` holds the first, `r4` the second,
+`r5` the third. Setting that up is **argument marshalling**. Here is
+`pass_on(s32 x) { return merge(x, x - 2); }`, forwarding `x` first and a value
+derived from it second:
 
 ```asm
 stwu   r1,-16(r1)
@@ -32,14 +33,14 @@ addi   r1,r1,16
 blr
 ```
 
-Crucially, `x` arrived in `r3` and the *first* argument also goes in `r3`, so it
-needs no move — the compiler computes the second argument into `r4` and leaves
-`r3` alone. The result of `merge` comes back in `r3`, which is already where
-our own return value belongs, so the epilogue can return it directly.
+`x` already sat in `r3`, and that is where the first argument belongs, so the
+compiler never touches it. It only has to build the second argument in `r4`.
+`merge` returns into `r3` as well, the same register our own return value uses,
+so the epilogue just falls through and returns it.
 
-Now look at the target assembly for `forward`. The first argument passes through
-in `r3`, and the instruction before the `bl` loads `r4`. Work out what
-relationship between `x` and the second argument that `addi` encodes.
+The target assembly for `forward` works the same way. `r3` carries the first
+argument untouched, and the lone instruction ahead of the `bl` sets up `r4`.
+Read that `addi` and decide how the second argument relates to `x`.
 
 ## Your task
 

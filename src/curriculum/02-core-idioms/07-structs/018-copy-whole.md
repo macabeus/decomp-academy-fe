@@ -17,13 +17,14 @@ hints:
 
 # One assignment, many loads and stores
 
-Assigning one whole struct to another is not a single instruction on PowerPC.
-For a small struct the compiler **unrolls the copy**: it loads each word
-from the source and stores it to the destination, marching through the byte
-offsets in order. There is no `memcpy` call to spot; the copy is open-coded right
-into the function.
+PowerPC won't copy a struct in one instruction, so MWCC does the next best thing.
+It writes the copy out longhand. For a small struct that means reading a word
+from the source, parking it at the same offset in the destination, then doing it
+again one word along, all the way to the end. You won't spot a `memcpy` anywhere,
+because there isn't a call at all. Every load and store is sitting right there in
+the body.
 
-Consider a three-word glyph record copied between two pointers:
+Take a three-word glyph record handed two pointers:
 
 ```c
 typedef struct { u32 code; u32 w; u32 h; } Glyph;
@@ -33,7 +34,7 @@ void Glyph_copy(Glyph* out, Glyph* in) {
 }
 ```
 
-With `out` in `r3` and `in` in `r4`, MWCC emits:
+`out` arrives in `r3`, `in` in `r4`, and MWCC gives you:
 
 ```asm
 lwz   r5, 0(r4)    # in->code
@@ -45,16 +46,16 @@ stw   r0, 8(r3)    # out->h
 blr
 ```
 
-The compiler moves two words at a time — loading into `r5` and `r0`, then storing
-both — and finishes any odd leftover word on its own (here the third, `h`).
-Nothing in this sequence names a field; the displacements `0, 4, 8` simply sweep
-the whole 12-byte struct from one pointer to the other. When you see a block of
-`lwz`/`stw` whose offsets cover **every** byte of a struct, source pointer to
-destination pointer, that is a single struct assignment — not hand-written field
-copies.
+The pattern is pairs of words. Two loads land in `r5` and `r0`, two stores send
+them home, and a leftover word with no partner gets its own load and store at the
+back (that's `h`, the third one). The thing to notice is everything the code
+doesn't say. No field by name, ever. Offsets `0, 4, 8` and nothing else, sweeping
+all 12 bytes from one pointer over to the other. Once a block of `lwz`/`stw`
+lands on **every** byte of a struct, source to destination, you've found a struct
+assignment, not a column of field copies somebody typed out by hand.
 
-The target below copies a wider struct the same way. Read the offsets to confirm
-they span the whole struct, then express it as one assignment.
+What's below is the same move on a wider struct. Make sure the offsets blanket it
+end to end, then fold it back down to the assignment it always was.
 
 ## Your task
 

@@ -18,12 +18,12 @@ hints:
 
 # The middle step can be any arithmetic
 
-The byte counter taught the three-phase byte read-modify-write: **`lbz`** to pull
-a byte into a register (zero-extended), an arithmetic step at 32-bit width, then
-**`stb`** to truncate the result back to memory. That middle step isn't limited
-to `addi` — it can be *any* arithmetic, including a constant multiply.
+You met the three-phase byte read-modify-write with the counter: a byte comes in
+through `lbz` already zero-extended, something happens to it in a full register,
+and `stb` hands the trimmed result back. Nothing pins that middle act to `addi`,
+though. Any arithmetic fits, a constant multiply included.
 
-Consider `add5(p)`, which adds `5` to the byte at `p[1]`:
+Take `add5(p)`, which tacks `5` onto the byte at `p[1]`:
 
 ```asm
 lbz   r4, 1(r3)   # load p[1], zero-extended
@@ -32,9 +32,9 @@ stb   r0, 1(r3)   # truncate the result back to one byte
 blr
 ```
 
-Now swap the `addi` for a multiply. A constant multiply by a non-power-of-two
-uses **`mulli`** (*multiply immediate*); the whole 32-bit product is computed,
-then `stb` keeps only its low byte:
+Trade the `addi` for a multiply and very little changes. Multiplying by a
+constant that is not a power of two calls for `mulli`, the immediate multiply,
+which works out the entire 32-bit product before `stb` skims off its low byte:
 
 ```asm
 lbz   r0, 0(r3)   # load p[0]
@@ -43,12 +43,13 @@ stb   r0, 0(r3)   # store low byte (truncates for free)
 blr
 ```
 
-The truncation is the key idea: arithmetic always happens in a full register, but
-writing through a byte pointer discards everything above the low 8 bits — so
-`200 * 6 = 1200` (`0x4B0`) stores as `0xB0 = 176`. Don't add a `& 0xFF`; the
-`stb` already does it, and the mask would emit a `clrlwi` the target lacks.
+Truncation is doing all the work here. The math runs in a full register, but a
+write through a byte pointer keeps only the bottom 8 bits and lets the rest go,
+so `200 * 6 = 1200` (`0x4B0`) lands in memory as `0xB0 = 176`. Resist the urge to
+tack on `& 0xFF`. The `stb` has already trimmed for you, and the mask would only
+conjure a `clrlwi` that the target never had.
 
-The target multiplies by a different constant. Read the `mulli` immediate.
+Your target scales by some other constant, so read it off the `mulli` immediate.
 
 ## Your task
 

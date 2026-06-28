@@ -18,14 +18,14 @@ hints:
 
 # Sign lives in the load, width lives in the store
 
-Move the read-modify-write up to halfword width, and add signedness. The
-three-phase shape is unchanged — load, modify, store — but two instructions
-change with the type. Because the data is **signed** `s16`, the load must
-sign-extend, so it's **`lha`** (*load halfword algebraic*), not `lhz`. The store
-is **`sth`**, the halfword store, which truncates like any store.
+Push the read-modify-write up to halfword width and let the value be signed. Same
+three beats as before, load then modify then store, but the type drags two of the
+instructions along with it. A `s16` is signed, so the load has to carry the sign
+upward, and that makes it `lha`, the algebraic load, rather than `lhz`. On the way
+out it is `sth`, the halfword store, truncating the way every store does.
 
-Consider `quad(p)`, which scales the signed halfword at `p[0]` by 4. A multiply
-by a power of two strength-reduces to a left shift (**`slwi`**):
+Say `quad(p)` takes the signed halfword at `p[0]` and quadruples it. Since 4 is a
+power of two, the compiler trades the multiply for a left shift, `slwi`:
 
 ```asm
 lha   r0, 0(r3)   # load p[0], sign-extended (s16 is signed)
@@ -34,14 +34,15 @@ sth   r0, 0(r3)   # truncate back to a halfword
 blr
 ```
 
-The split is worth fixing in your head: the **load** carries the signedness
-(`lha` vs `lhz`), the arithmetic runs in a full 32-bit register, and the
-**store** only carries the width (`sth` keeps the low 16 bits, sign be damned).
-If you read this value back later through a signed pointer, *that* load
-sign-extends again — the store never does.
+Worth burning into memory is where each responsibility sits. Signedness rides on
+the load, `lha` against `lhz`; the arithmetic plays out in a roomy 32-bit
+register; and width is the store's only concern, since `sth` simply keeps the
+bottom 16 bits and could not care less about the sign. Read the same location
+back later through a signed pointer and that later load sign-extends all over
+again. The store never did.
 
-The target uses a different arithmetic step than the worked example. Identify the
-instruction between the `lha` and the `sth`, and read its operand.
+Your target reaches for a different operation than the worked example does. Find
+whatever sits between the `lha` and the `sth`, and read its operand straight off.
 
 ## Your task
 

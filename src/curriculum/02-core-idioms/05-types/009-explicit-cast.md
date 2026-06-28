@@ -15,29 +15,30 @@ hints:
 
 # An explicit cast can be a whole instruction
 
-A cast isn't always free. Casting a wide signed value *down* to a signed narrow
-type and back up forces the value through that narrow range, which means
-sign-extending from the cast width.
+Not every cast is free. Push a wide signed value *down* into a narrower signed
+type and then let it widen back, and the value has to be squeezed through that
+narrow range, so it gets sign-extended from the cast's width on the way out.
 
-For example, a function that narrows an `int` to a signed halfword range:
+Here is a function that narrows an `int` into the range of a signed halfword:
 
 ```asm
 extsh r3, r3        # narrow to s16 width, sign bit re-spread
 blr
 ```
 
-**`extsh`** (*extend sign halfword*) keeps the low 16 bits but replicates bit 15
-into the top 16 — the register result is a sign-extended 32-bit value. The
-byte-width equivalent is **`extsb`** (*extend sign byte*), which replicates bit 7
-into the top 24 bits:
+What **`extsh`** (*extend sign halfword*) does is hold onto the low 16 bits and
+copy bit 15 up across the top 16, so the register ends up holding a properly
+sign-extended 32-bit value. Drop down a width and you get **`extsb`** (*extend
+sign byte*), which does the same trick from bit 7 across the top 24:
 
 ```asm
 extsb r3, r3        # narrow to s8 width, sign bit re-spread
 blr
 ```
 
-A lone `extsb` or `extsh` in the disassembly often comes straight from an
-explicit narrowing cast in the source, not from a load.
+When you spot a stray `extsb` or `extsh` on its own in the disassembly, it has
+usually come from an explicit narrowing cast in the source rather than from a
+load.
 
 ## Your task
 

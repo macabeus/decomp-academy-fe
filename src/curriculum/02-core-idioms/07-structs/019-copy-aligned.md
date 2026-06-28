@@ -17,14 +17,14 @@ hints:
 
 # Float registers move integer data
 
-When a struct contains a 64-bit member, the whole struct becomes **8-byte
-aligned**. That alignment unlocks a faster copy: instead of moving 4 bytes per
-`lwz`/`stw`, MWCC moves **8 bytes at a time** with the floating-point
-load/store-doubleword instructions, `lfd` and `stfd` — *even if the struct
-contains no floating-point fields*. The float registers are being used purely as
-64-bit movers; no arithmetic happens.
+Drop a 64-bit member into a struct and the whole thing snaps to **8-byte
+alignment**. That changes the game for copies. Now MWCC can shovel **8 bytes a
+step** through `lfd` and `stfd`, the doubleword float load and store, instead of
+crawling 4 bytes at a time with `lwz`/`stw`. And here's the twist: the struct
+doesn't need a single float in it. The float registers are just wide buckets
+here. Nothing gets added, multiplied, or rounded.
 
-Here is a 24-byte record made of three 64-bit integers:
+Here's a 24-byte record built from three 64-bit integers:
 
 ```c
 typedef struct { u64 lo; u64 mid; u64 hi; } Wide;
@@ -44,14 +44,15 @@ stfd  f0, 16(r3)    # out->hi
 blr
 ```
 
-Three doublewords, copied in `lfd`/`stfd` pairs with a leftover single — the same
-shape as the integer-word copy from the previous lesson, but eight bytes per step
-instead of four. The giveaway is `lfd`/`stfd` touching a struct that has no
-`f32`/`f64` fields: that is an aligned struct copy, not float math. Reading it
-back, do not be tempted to give the struct floating-point members.
+Three doublewords, moved in `lfd`/`stfd` pairs with one single left at the end.
+Same skeleton as the integer-word copy from last lesson, just eight bytes a step
+rather than four. So when you spot `lfd`/`stfd` hauling a struct that holds no
+`f32`/`f64` anywhere, that's an aligned copy talking, not float math. Whatever
+you do reading it back, don't hand the struct floating-point members it never
+had.
 
-The target copies a smaller 8-byte-aligned struct. Notice the doubleword float
-moves and reproduce the assignment.
+The target does this to a smaller 8-byte-aligned struct. Clock the doubleword
+float moves, then reproduce the assignment they came from.
 
 ## Your task
 

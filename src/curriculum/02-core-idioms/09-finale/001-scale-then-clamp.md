@@ -17,15 +17,16 @@ hints:
 
 # Two chapters in one function
 
-The first two chapters gave you the pieces separately: an *affine* expression
-(`x * k + c`, built from a `mulli`/`slwi` and an `addi`), and a one-sided
-*clamp* (a `cmpwi` whose taken branch returns a fixed bound). A real function
-strings them together — do the arithmetic, then keep the result in range.
+Up to now you've seen these two ideas on their own. An *affine* expression,
+`x * k + c`, falls out of a `mulli` (or a `slwi`) and an `addi`. A one-sided
+*clamp* is a `cmpwi` whose taken branch returns some fixed bound. The thing is,
+working code rarely keeps them separate. It computes a value and then pins that
+value inside a range, all in the same handful of instructions.
 
-The trick to reading these is to split the body at the compare. Everything
-*before* the `cmpwi` is one expression; the compare and its branch are the cap
-bolted on top. Consider `bias_cap(x)`, which doubles a value, biases it, and
-holds it under 50:
+So where does one idea end and the next begin? At the compare. Everything before
+the `cmpwi` builds a single expression; the `cmpwi` and the branch riding behind
+it are the cap. Take `bias_cap(x)`, which doubles its input, biases it, and keeps
+the answer below 50:
 
 ```asm
 slwi  r4,r3,1     # x * 2   (×2 is a shift, not a mulli)
@@ -37,15 +38,16 @@ mr    r3,r0       # no  -> return the computed value
 blr
 ```
 
-Read it in two halves. The `slwi`+`addi` rebuild `x * 2 + 7`; the multiplier is
-a power of two so it strength-reduced to a shift. Then `li 50` parks the ceiling
-in the return register *speculatively*, and `bgtlr-` either keeps it (value too
-big) or lets `mr r3,r0` overwrite it with the real result.
+So, two halves. `slwi` plus `addi` give you `x * 2 + 7` — the multiply became a
+shift only because the factor was a power of two. The clever bit is `li 50`, which
+loads the ceiling into `r3` early, on spec, well before the compare runs. `bgtlr-`
+is what decides. Too big? The 50 you stashed is already the answer. Otherwise `mr
+r3,r0` drops the computed value in over it.
 
-Your `scale_clamp` has the same two-halves shape, but the scale factor isn't a
-power of two — so the multiply shows up as a `mulli`, not a `slwi`. Read the
-`mulli` and `addi` to recover the affine expression, then the `cmpwi`/`bgtlr-`
-pair to recover the bound and its direction.
+`scale_clamp` is the same machine with one part swapped. Its factor isn't a power
+of two, so the multiply stays a `mulli` and never folds down to a shift. Read off
+the expression from that `mulli` and the `addi`, then let `cmpwi`/`bgtlr-` give
+you the bound and the direction of the clamp.
 
 ## Your task
 

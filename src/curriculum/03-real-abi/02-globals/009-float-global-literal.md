@@ -18,20 +18,21 @@ hints:
 
 # Two `lfs` loads, only one is a global
 
-You have read a float global (`lfs` of a named symbol) and you have seen a float
-literal become a pooled `@N` constant (`lfs` of a synthetic symbol). Put them in
-one expression and you get *two* `lfs` loads that look almost identical — the
-only difference is the relocation name. One reloc is a global you named; the
-other is a compiler-minted `@N` label standing in for the constant.
+Two pieces of this are already familiar from earlier. A float global reads as an
+`lfs` of a named symbol. Pool a float literal as an `@N` constant and it reads as
+an `lfs` too, just of a synthetic symbol instead. Once both land in one
+expression, you're staring at *two* `lfs` loads that are nearly twins, and the
+relocation name is the one thing that pries them apart. One came from a global you
+wrote. The other is a compiler-minted `@N` label standing in for the constant.
 
-After both are in FPRs, an `fmuls` multiplies them and an `stfs` writes the
-single-precision result into the destination float global. Remember from the
-literal lesson: the suffix matters. A bare `0.5` is a `double` and drags the
-whole expression to double precision (`lfd`/`fmul`/`frsp`); the `f` suffix keeps
-it `lfs`/`fmuls`/`stfs`.
+With both values in FPRs, an `fmuls` does the multiply and an `stfs` sends the
+single-precision result back to the destination float global. The suffix still
+bites, just as the literal lesson flagged. Drop the `f` and a bare `0.5` is a
+`double`, which lifts the expression to double precision and gives you
+`lfd`/`fmul`/`frsp`. The `f` is the only reason you stay on `lfs`/`fmuls`/`stfs`.
 
-Consider `spin()`, which multiplies the float global `gAngle` by `1.5f` and
-stores it into `gWobble`:
+Here's `spin()`, which multiplies the float global `gAngle` by `1.5f` and stashes
+the result in `gWobble`:
 
 ```asm
 lfs   f1, @5@sda21(r2)      # load the pooled literal 1.5f
@@ -41,10 +42,11 @@ stfs  f0, gWobble@sda21(r2) # gWobble = result
 blr
 ```
 
-Both loads are `lfs` through `r2` (the `.sdata2` base from the read-float
-lesson), but `@5` is the constant and `gAngle` is the global. The target assembly
-multiplies a *different* float global by a *different* literal before storing —
-read the two reloc names and the literal's value off the disassembly.
+Both loads come through `r2`, the `.sdata2` base from the read-float lesson, and
+yet `@5` is the constant where `gAngle` is the real global. Your target does the
+same multiply-then-store over a *different* float global and a *different*
+literal. The two reloc names and the literal's value are all there in the
+disassembly.
 
 ## Your task
 

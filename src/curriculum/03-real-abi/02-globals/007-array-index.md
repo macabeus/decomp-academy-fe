@@ -18,10 +18,10 @@ hints:
 
 # Base address plus a scaled index
 
-Reading `tbl[i]` from a global array combines the address-building you just saw
-with a **scaled, indexed load**. The base comes from the `@ha`/`@l` pair (arrays
-aren't small-data), the index `i` is multiplied by the element size, and a single
-indexed load (`lwzx` — "load word zero, indexed") fetches the element:
+`tbl[i]` from a global array is two ideas you've already met, bolted together.
+Build the address, then run a **scaled, indexed load**. Arrays don't sit in small
+data, so the base is still the `@ha`/`@l` pair. Scale `i` by the element size and
+let `lwzx` ("load word zero, indexed") grab the element off base-plus-index:
 
 ```asm
 lis   r4, tbl@ha        # high half of &tbl
@@ -35,16 +35,16 @@ R_PPC_ADDR16_HA   tbl
 R_PPC_ADDR16_LO   tbl
 ```
 
-`slwi r0, r3, 2` is "shift left word immediate by 2" = multiply by 4, the
-`int` element size. `lwzx rD, rA, rB` loads from `rA + rB` — base plus the scaled
-offset, no displacement needed. The two `R_PPC_ADDR16` relocations confirm it's a
-global array rather than a small-data scalar.
+`slwi r0, r3, 2` shifts left by 2. That's a multiply by 4, which is the size of
+an `int`. After it, `lwzx rD, rA, rB` reads from `rA + rB`, the base plus that
+scaled offset, no displacement field anywhere. And those two `R_PPC_ADDR16`
+relocations give it away as a global array rather than a small-data scalar.
 
-Notice the `slwi` lands *between* the `lis` and the `addi` even though it has
-nothing to do with building the base address. That's instruction scheduling, not
-meaning: the index scaling is independent of the address pair, so MWCC slots it
-into the gap to hide the `lis` latency. Order like this is normal in real
-CodeWarrior output — don't read it as significant.
+One detail worth a second look. The `slwi` sits *between* the `lis` and the
+`addi`, even though it has no part in forming the base. That's scheduling, not
+meaning. Its scaling doesn't depend on the address pair, so MWCC drops it into
+the gap to hide the `lis` latency. Real CodeWarrior output reorders things like
+this constantly, so don't read anything into it.
 
 ## Your task
 

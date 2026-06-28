@@ -14,28 +14,28 @@ hints:
 
 # Widening a signed type keeps its sign
 
-Converting between two *signed* widths follows the value's own sign. Promoting an
-**`s8`** to an **`s16`** must preserve negativity, so the byte is sign-extended —
-and since the byte is the narrower type, that's an **`extsb`** (the halfword
-result still carries the correct sign in its low 16 bits):
+When both widths are *signed*, the conversion just carries the value's sign along
+with it. Widen an **`s8`** up to an **`s16`** and a negative byte still needs to
+read as negative, which means sign-extending it. The byte is the narrower side, so
+that job lands on **`extsb`**, and the halfword it produces is correct in its low
+16 bits:
 
 ```asm
 extsb r3, r3        # s8 -> s16, sign preserved
 blr
 ```
 
-The rule generalizes: when the *source* is signed, a widening conversion
-sign-extends from the source width. When the source is unsigned, the same
-conversion would zero-extend (a `clrlwi`) instead — a `u8 → u16` widen keeps the
-low 8 bits and clears the rest:
+Flip the source to unsigned and the picture changes. There is no sign worth
+preserving now, so a widening conversion zero-extends with a `clrlwi` rather than
+sign-extending. A `u8 → u16` widen keeps the low 8 bits and clears the rest:
 
 ```asm
 clrlwi r3, r3, 24   # u8 -> u16, zero-extended (no sign to preserve)
 blr
 ```
 
-The signedness of the value you start from is what picks `extsb`/`extsh` versus a
-mask.
+What you start from is what matters. A signed source pulls in `extsb` or `extsh`,
+and an unsigned source pulls in a mask.
 
 ## Your task
 

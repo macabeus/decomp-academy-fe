@@ -14,31 +14,32 @@ hints:
 
 # Two names, one address
 
-A **union** lets several fields share the *same* storage — they all start at
-offset 0. Reading a different member just reinterprets the same bytes with a
-different type. Given:
+Stuff several fields into a union and they all share one patch of storage, every
+one of them starting at offset 0. Pick a different member and you're just reading
+those same bytes through a different type. Here's the union:
 
 ```c
 typedef union { f32 f; u32 bits; } FloatBits;
 ```
 
-both `f` and `bits` are at offset 0 and both occupy 4 bytes. The difference is
-in the *instruction* the compiler emits: the member's **type** determines whether
-you get an integer load or a float load. Reading the `f` member produces:
+Here `f` and `bits` both sit at offset 0, both 4 bytes wide. What changes between
+them is the instruction the compiler picks. A member's type decides whether the
+bytes come in through an integer load or a float load. Ask for the `f` member and
+you get:
 
 ```asm
 lfs  f1, 0(r3)
 blr
 ```
 
-Reading the `bits` member instead uses an integer load — same displacement (0),
-different instruction, different destination register class.
+Ask for `bits` instead and the displacement stays at 0, but now it's an integer
+load landing in a different register class entirely.
 
-This is the clean way to express **type punning** — pulling the raw bit pattern
-out of a float, or viewing a 32-bit word as four bytes. A pointer cast like
-`*(u32*)&u->f` would compile to the same integer load, so the asm alone can't
-tell the two source forms apart — but a union member is the idiomatic MWCC
-spelling, and the one to prefer when you recover this load.
+That's type punning at its cleanest. You yank the raw bit pattern out of a float,
+or you treat a 32-bit word as four separate bytes. You could write a pointer cast
+like `*(u32*)&u->f` and it would compile to the very same integer load, so the
+assembly can't tell the two apart on its own. When you do recover a load like
+this, reach for the union member anyway. It's the idiomatic MWCC spelling.
 
 ## Your task
 

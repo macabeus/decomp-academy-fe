@@ -17,12 +17,13 @@ hints:
 
 # Two clamps, one running value
 
-A two-sided clamp pins a value between a floor and a ceiling: two independent
-`if`s, each comparing against a constant and conditionally overwriting. Because
-the candidate value lives in `f1` the whole time, there's **no store or reload
-between the two checks** — the running value just stays in the register.
+A two-sided clamp squeezes a value between a floor and a ceiling. Two `if`s,
+nothing fancier, each testing against a constant and overwriting when the value
+steps out of line. And since the candidate stays in `f1` from start to finish,
+there is **no store or reload between the checks**. It just rides in the
+register.
 
-Consider `clampPct(v)`, pinning a value into the range `[0, 100]`:
+Take `clampPct(v)`, holding a value inside `[0, 100]`:
 
 ```asm
 lfs   f0, ...        # load 0.0f
@@ -37,15 +38,16 @@ fmr   f1, f0         #   else v = 100
 blr
 ```
 
-Two rules carry over from earlier compares. First, each forward branch uses the
-**inverted** condition of its `if` — `bge-` skips the body of `if (v < 0)`,
-because the branch jumps when the test is *false*. Second, the **last** clamp can
-fold its skip into a conditional return (`blelr-`) instead of jumping over a
-`fmr`. Each `lfs` reveals one bound; read the two constants to recover the range.
+A couple of habits from earlier compares resurface here. Each forward branch
+carries the *inverted* condition of its `if`, which is why `bge-` is what skips
+the body of `if (v < 0)`. The branch jumps when the test is false, not when it
+is true. The final clamp gets a shortcut too. Rather than hopping over an `fmr`,
+it folds the skip straight into a conditional return, `blelr-`. As for the
+bounds, they are the `lfs` constants. Two loads, two numbers, that is your range.
 
-The target assembly has the same two-clamp skeleton with different bounds. Read
-each `lfs` constant and each branch condition to recover the floor, the ceiling,
-and which order they're applied.
+Same two-clamp skeleton waits in the target, only the bounds differ. Read each
+`lfs` constant and each branch condition and you can pin down the floor, the
+ceiling, and the order they apply in.
 
 ## Your task
 

@@ -15,15 +15,16 @@ hints:
 
 # Values that must outlive a call
 
-A function call may clobber any **volatile** register (`r3`–`r12`). So if a value
-has to still be around *after* a call returns, the compiler can't leave it in a
-volatile register — it moves it into a **non-volatile** (callee-saved) register,
-`r14`–`r31`, which the ABI promises any callee will preserve. MWCC fills these
-from the top down, so the first such value goes in **`r31`**.
+Call something and it can scribble over any of `r3` through `r12`, the
+**volatile** registers. That is a problem for a value you still need once the
+call returns. It has to move out of harm's way, into a **non-volatile** register
+from `r14` to `r31`. The ABI guarantees a callee restores those before it hands
+control back. MWCC works from the top, so the very first value it rescues ends
+up in **`r31`**.
 
-Consider `preserve_z(s32 x, s32 y, s32 z)`, which calls `modify(y)` and then
-returns `z`. The third argument `z` arrives in `r5` and must be available after
-the call, so the compiler parks it in `r31`:
+Here is `preserve_z(s32 x, s32 y, s32 z)`: it calls `modify(y)` and returns `z`.
+`z` shows up in `r5`, but the return needs it long after `modify` has run, so the
+compiler tucks it into `r31` before branching.
 
 ```asm
 stwu   r1,-16(r1)
@@ -41,14 +42,14 @@ addi   r1,r1,16
 blr
 ```
 
-Two new instructions join the prologue/epilogue: `stw r31, 12(r1)` saves the
-incoming value of `r31` (so we can hand it back untouched), and the matching
-`lwz r31, 12(r1)` restores it. Seeing a `stw r31` paired with a `mr r31, ...`
-before a `bl` tells you a value is being preserved across the call.
+Holding onto `r31` is not free. `stw r31, 12(r1)` stashes whatever the caller
+left in `r31`, and `lwz r31, 12(r1)` hands it back at the end, so nobody upstream
+notices we borrowed it. A `stw r31` sitting next to a `mr r31, ...` just before a
+`bl` is the tell: something is riding across the call.
 
-Now read the target assembly for `keep`. Find which register is stashed into
-`r31` before the `bl` and returned with `mr r3, r31` afterwards, and trace it
-back to a parameter.
+Now the target assembly for `keep`. Spot the register that gets dropped into
+`r31` before the `bl` and pulled back out with `mr r3, r31` afterward, then chase
+it back to whichever parameter fed it.
 
 ## Your task
 

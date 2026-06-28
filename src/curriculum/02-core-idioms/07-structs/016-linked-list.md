@@ -15,15 +15,19 @@ hints:
 
 # p = p->next
 
-A self-referential struct holds a pointer to its own type. Walking the list is a
-loop that **reloads the `next` field each iteration** until it's NULL. Given:
+A struct can hold a pointer to its own type. That's all a linked list really is,
+each node knowing where the next one lives. So to land on the final node, you
+walk. Loop over the chain, and every time around grab `next` from memory again
+before you test it for NULL. Skip the re-fetch and the loop never advances; you'd
+read the same node until the heat death of the console.
 
 ```c
 typedef struct Node { struct Node* next; int value; } Node;
 ```
 
-`next` is at offset 0, so following it is `lwz r0, 0(r3)`, then a compare against
-zero decides whether to continue:
+`next` comes first in the struct, offset 0, so following it is a lone
+`lwz r0, 0(r3)`. Then zero-compare the result. Nonzero, keep walking. Zero,
+you're done.
 
 ```asm
        b       check
@@ -34,14 +38,14 @@ check: lwz     r0, 0(r3)    # load n->next
        blr                  # return last node (still in r3)
 ```
 
-The repeated `lwz` of the same offset feeding a NULL test and a branch is the
-fingerprint of a linked-list traversal. The `cmplwi` (unsigned compare) reflects
-that `next` is a pointer, not a signed integer.
+Load from offset 0, check for NULL, branch back, repeat. That rhythm is a
+traversal and nothing else. Worth a glance: the compare is `cmplwi`, unsigned.
+`next` is an address, and addresses don't go negative.
 
-Don't be fooled by the leading `b check`: MWCC compiles the `while` loop into a
-"test at the bottom" shape, branching to the condition first so the body and the
-test share one block. A plain `while` in C produces this exact asm — you do *not*
-need a `do`/`while` to match it.
+That `b check` sitting before the loop label isn't a mistake. MWCC builds the
+`while` as a bottom-tested loop, so control jumps to the condition first and the
+body folds in next to it. Plain old `while` in C gives you this exact thing.
+Reach for `do`/`while` and you've gone one step too far.
 
 ## Your task
 

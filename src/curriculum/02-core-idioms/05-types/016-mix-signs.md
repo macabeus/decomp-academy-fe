@@ -19,14 +19,15 @@ hints:
 
 # Signedness is decided per operand, not per expression
 
-When one operand is signed and the other unsigned, there is no single rule for
-the whole expression — each value is extended according to **its own** type. The
-unsigned one zero-extends (`clrlwi`), the signed one sign-extends
-(`extsb`/`extsh`), and then the arithmetic combines the two full-width results.
-Mixing signedness in one expression therefore shows *both* extend kinds
-side-by-side.
+A mixed-sign expression has no house rule. Sign one operand, leave the other
+unsigned, and the compiler quietly asks each value on its own how it means to
+grow to 32 bits. Whichever one is unsigned gets a `clrlwi` to scrub its upper
+bits clean, while the signed value instead has its sign dragged upward by `extsb`
+or `extsh`. Only with both stretched to full width does the arithmetic get its
+turn, which is the whole reason you end up staring at two different extends parked
+right beside each other.
 
-Consider `merge(a, b)` adding a signed `s16` and an unsigned `u8`:
+Look at `merge(a, b)`, which adds a signed `s16` to an unsigned `u8`:
 
 ```asm
 extsh  r3, r3      # a: sign-extend (s16 is signed)
@@ -35,15 +36,16 @@ add    r3, r3, r0
 blr
 ```
 
-The `extsh` and the `clrlwi` sitting next to each other are the tell: this is one
-signed and one unsigned operand. Read each extend independently — its kind gives
-the signedness, its width (the `clrlwi` shift, or `extsb` vs `extsh`) gives the
-width.
+Spot `extsh` next to `clrlwi` and the story tells itself, one signed operand
+sharing the expression with one unsigned. The trick is to read them apart instead
+of as a pair. Whichever extend you are looking at, its kind nails down the
+signedness, while the width is whatever its reach implies, be that the `clrlwi`
+count or the `extsb`-versus-`extsh` pick.
 
-The target subtracts rather than adds, so it ends in **`subf`** instead of `add`.
-Recall `subf rD, rA, rB` computes `rB − rA` — the operand order in the C
-expression decides which widened value is subtracted from which, so match it
-carefully.
+Your target subtracts where this one added, so its final instruction is `subf`
+rather than `add`. The wrinkle to remember is that `subf rD, rA, rB` works out
+`rB − rA`, so the order your operands take in the C is precisely what decides
+which widened value gets pulled out of which. Get that ordering right.
 
 ## Your task
 

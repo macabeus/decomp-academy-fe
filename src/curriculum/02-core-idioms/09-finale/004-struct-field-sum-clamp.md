@@ -18,17 +18,18 @@ hints:
 
 # Walking an array of structs, then capping the result
 
-This is the array-of-structs idiom from the structs chapter, driven by a loop,
-with a clamp stapled on the end. Three shapes you already know, stacked:
+This is the array-of-structs idiom from the structs chapter, run inside a loop,
+with a clamp bolted onto the tail. Nothing here is unfamiliar; it's three shapes
+you've met before, sitting on top of each other.
 
-- **Element addressing**: `&a[i]` is `base + i * sizeof(element)`. A
-  non-power-of-two struct size shows up as `mulli r0, r4, <size>`; the field is
-  then a displacement load, `lwz <offset>(...)`.
-- **The loop skeleton** drives `i` from 0 to `n`, accumulating the field.
-- **A one-sided clamp** caps the finished sum with `cmpwi`/`bgtlr-`.
+The first is element addressing. `&a[i]` is just `base + i * sizeof(element)`, and
+a struct size that isn't a power of two surfaces as `mulli r0, r4, <size>`. The
+field you want is then a displacement load, `lwz <offset>(...)`. Next is the loop
+skeleton, walking `i` from 0 up to `n` and adding the field as it goes. Last is
+the one-sided clamp, capping the finished sum with a `cmpwi`/`bgtlr-` pair.
 
-Consider an 8-byte element and a function `total_weight(it, count)` that sums one
-field across the array and holds the result under 255:
+Picture an 8-byte element. Here's `total_weight(it, count)`, summing one field
+across the array and keeping the result under 255:
 
 ```c
 typedef struct { int kind; int weight; } Item;   // sizeof == 8
@@ -51,15 +52,15 @@ mr    r3,r7        # no  -> the sum
 blr
 ```
 
-Read the element size off the index scale and the field off the load
-displacement: here `×8` and offset `4` say "the second `int` of an 8-byte pair."
-After the loop, the `cmpwi`/`bgtlr-` is the same clamp shape from earlier
-lessons, now applied to the accumulated total.
+The index scale gives you the element size, the load displacement the field.
+Here, `×8` and offset `4` together say "the second `int` of an 8-byte pair." Once
+the loop drains, that `cmpwi`/`bgtlr-` is the same clamp you've written before,
+now chewing on the accumulated total.
 
-Your `total_hp` walks a *different* struct — its size and the field offset both
-differ, and because the size isn't a power of two you'll see `mulli` where the
-example had `slwi`. Recover `sizeof` from the index multiplier, the field from
-the load offset, and the cap from the final compare.
+`total_hp` walks a *different* struct, with its own size and its own field offset
+to read off the load. Since that size isn't a power of two, the scale comes
+through as `mulli` rather than the `slwi` above. Pull `sizeof` from the index
+multiplier, the field from the load offset, and the cap from the final compare.
 
 ## Your task
 

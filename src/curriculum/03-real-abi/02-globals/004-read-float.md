@@ -17,15 +17,15 @@ hints:
 
 # Floats get their own small-data section
 
-Floating-point globals live in the SDA too, but conceptually in a *second*
-small-data area. The GameCube ABI reserves **two** small-data base registers:
-`r13` for the read/write sections (`.sdata`/`.sbss`) and **`r2`** for the
-read-only ones (`.sdata2`, where const data and float constants sit). Don't read
-`r2` as "the immutable global" register, though: MWCC parks float globals in
-`.sdata2` *by default*, so even a writable `f32` like `gGravity` here is reached
-through `r2`, while a plain `int` global goes to `.sdata` and uses `r13`. The
-base register tracks the *section the compiler chose*, not the C `const`-ness. A
-float global is read with **`lfs`** (load floating single) straight into an FPR:
+Float globals live in the SDA too, but really in its second half. The ABI sets
+aside two base registers here. `r13` is the base for the read/write sections,
+`.sdata` and `.sbss`. Const data and float constants go elsewhere, into the
+read-only `.sdata2`, and that's what `r2` addresses. Tempting as it is to call
+`r2` the const register, that isn't what it means. MWCC files float globals under
+`.sdata2` by default, mutable or not, so the writable `f32` `gGravity` still
+comes in off `r2`, while a plain `int` global would land in `.sdata` behind
+`r13`. The base register reports the section MWCC picked, not your C `const`.
+Reading the float is a single `lfs` (load floating single) into an FPR:
 
 ```asm
 lfs   f1, fg@sda21(r2)   # load global float fg into f1
@@ -35,11 +35,10 @@ blr
 R_PPC_EMB_SDA21   fg
 ```
 
-The relocation is still spelled `R_PPC_EMB_SDA21` — that one reloc type covers
-both small-data windows, and the linker resolves it against whichever base
-(`r13` or `r2`) the symbol's section uses. So an `lfs sym@sda21` feeding an FPR
-result tells you `sym` was a global `f32`. No address computation, no constant
-pool — just one load.
+The relocation reads `R_PPC_EMB_SDA21` either way. That one reloc type spans both
+windows, and it's the linker that binds it to `r13` or `r2` by the symbol's
+section. See an `lfs sym@sda21` land its result in an FPR and you've caught `sym`
+as a global `f32`, no address built first, no constant pool involved.
 
 ## Your task
 

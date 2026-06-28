@@ -16,10 +16,10 @@ hints:
 
 # A loop inside a loop
 
-Nesting just stacks two skeletons: the outer loop's body *is* the inner loop. The
-inner counter `j` is re-initialized to 0 at the top of every outer pass, and the
-outer counter `i` only advances after the inner loop completes. Each shape is the
-same pre-tested loop you already know:
+A nested loop is just two skeletons stacked, where the outer loop's body *is* the
+inner loop. The inner counter `j` resets to 0 at the top of every outer pass,
+while the outer counter `i` waits and only moves on once the inner loop has run to
+completion. Each half is the same pre-tested loop you've seen all chapter.
 
 ```asm
 li   r6, 0          # accumulator = 0
@@ -43,9 +43,9 @@ mr   r3, r6
 blr
 ```
 
-The `mullw` appears because the inner body computes a *variable* product (no
-constant to shift by). The giveaway for nesting is that inner-counter reset
-(`li r5, 0`) sitting inside the outer body.
+That `mullw` is there because the inner body multiplies two variable quantities,
+with no constant to turn into a shift. And the dead giveaway that you're looking
+at a nest? The inner-counter reset, that `li r5, 0` tucked inside the outer body.
 
 > `#pragma optimization_level 1` keeps both loops rolled.
 

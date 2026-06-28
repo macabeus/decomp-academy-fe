@@ -14,17 +14,18 @@ hints:
 
 # The signature idiom: index × sizeof
 
-This is one of the most recognizable shapes in all of GameCube decompilation.
-To find `a[i].field`, the compiler computes the element address as
-`base + i * sizeof(element)`, then loads the field's offset on top. Given:
+Of all the patterns in GameCube decompilation, this is probably the one you'll
+learn to recognize first. When the code says `a[i].field`, the compiler builds
+the element's address as `base + i * sizeof(element)` and then adds the field's
+own offset to land on the value. Here's the element type we'll use:
 
 ```c
 typedef struct { int x; int y; int z; } Vec3i;   // sizeof == 12
 ```
 
-To reach any element, the index is multiplied by the struct size. The first
-field (offset 0 from the element) can be loaded with an indexed `lwzx` after the
-multiply, since no additional displacement is needed:
+Getting to an element comes down to scaling the index by the size of the struct.
+The first field sits at offset 0, so once the multiply is done there's nothing
+left to add. An indexed `lwzx` reads it directly, no displacement involved:
 
 ```asm
 mulli  r0, r4, 12   # i * sizeof(Vec3i)
@@ -32,12 +33,12 @@ lwzx   r3, r3, r0   # load field at offset 0 of &a[i]
 blr
 ```
 
-That **`mulli` by a non-power-of-two struct size is a dead giveaway** for an
-array of structs. (If the struct size were a power of two — say 8 — you'd see
-`slwi` instead, e.g. `slwi r0, r4, 3`.) When you spot a `mulli`/`slwi` feeding
-an `add` then a load, reconstruct the element type from the multiplier: the
-constant *is* `sizeof`. The subsequent load displacement tells you which field
-within the element is accessed.
+When that multiply is a `mulli` and the constant isn't a power of two, you're
+almost certainly looking at an array of structs. (A power-of-two size, 8 for
+instance, would have the compiler emit `slwi` instead, like `slwi r0, r4, 3`.)
+Anytime a `mulli` or `slwi` feeds an `add` that feeds a load, take the multiplier
+at face value as the element's `sizeof`, and let the load's displacement tell you
+which field inside the element got read.
 
 ## Your task
 

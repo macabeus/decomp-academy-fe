@@ -17,16 +17,16 @@ hints:
 
 # Pointer reads meet integer arithmetic
 
-The values you pull out of an array are just integers once they are in registers,
-so all the arithmetic idioms from the Integer Arithmetic chapter apply to them.
-A common case: load an element, scale it by a constant, then fold in another
-element. When the constant is not a power of two, the multiply shows up as
-`mulli rD, rA, n` — *multiply low immediate* — with the multiplier sitting right
-in the instruction. (A power-of-two constant would strength-reduce to `slwi`
-instead, exactly as in the arithmetic lessons.)
+In a register, an array element is nothing special, just an integer, and
+everything from the Integer Arithmetic chapter still applies. Here the work is
+small. An element gets loaded, multiplied by some constant, and added to a
+neighbour. When the constant isn't a power of two the compiler can't shift, so
+it reaches for `mulli rD, rA, n` (*multiply low immediate*) and parks the
+multiplier `n` inside the instruction itself. Powers of two stay the exception,
+folding down to a `slwi` the way they did in those earlier lessons.
 
-Consider `blend(q)`, which reads three elements, scales the middle one by 5, and
-combines all three:
+`blend(q)` is a good example. Three elements come in, the middle one gets scaled
+by 5, and the three are combined:
 
 ```asm
 lwz   r0, 4(r3)    # q[1]
@@ -38,11 +38,11 @@ subf  r3, r3, r0   # r0 - q[3]
 blr
 ```
 
-The loads gather the elements, `mulli` applies the constant scale, and the
-`add`/`subf` thread the running total. Read each displacement to recover the
-index and the `mulli` immediate to recover the multiplier. The target uses the
-same load-scale-combine pattern with its own indices, multiplier, and combining
-operation.
+Loads gather the elements. `mulli` handles the scale. The running total flows
+through `add` and `subf`. To recover the C, read the assembly backwards. Each
+displacement becomes an index, and the `mulli` immediate becomes the multiplier.
+Your target wears the same load-scale-combine shape, only with different indices,
+a different multiplier, and a different combine at the end.
 
 ## Your task
 

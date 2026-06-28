@@ -12,22 +12,23 @@ hints:
   - "`return p[0];` on an `s16*` compiles to a single `lha r3, 0(r3)`."
 ---
 
-# When the high bits must be filled with the sign
+# Filling the top bits with the sign
 
-Reading a **signed** narrow value into a 32-bit register can't just zero the top
-bits — a negative `s8` like `-1` (`0xFF`) must become `0xFFFFFFFF`. PowerPC has
-a dedicated **`lha`** (*load halfword algebraic*) that sign-extends a halfword as
-it loads:
+Read a **signed** narrow value into a 32-bit register and zeroing the top bits
+won't do, since a negative `s8` such as `-1` (`0xFF`) has to widen into
+`0xFFFFFFFF` rather than `0x000000FF`. Halfwords get their own instruction for
+that, **`lha`** (*load halfword algebraic*), which fills the high bits with the
+sign as it reads:
 
 ```asm
 lha  r3, 0(r3)   # halfword, sign-extended into r3
 blr
 ```
 
-Bytes are the odd one out: there is **no** "load byte algebraic". A signed byte
-that needs widening loads with `lbz` and is then fixed up with a separate
-**`extsb`** (*extend sign byte*). You'll see that pair when an `s8` is widened to
-an `int`:
+The byte case is the awkward exception, because there is **no** "load byte
+algebraic" to match it. A signed byte that needs widening comes in on `lbz` and
+then gets a separate **`extsb`** (*extend sign byte*) to clean it up, a pairing
+you'll spot any time an `s8` is widened to an `int`:
 
 ```asm
 lbz   r3, 0(r3)

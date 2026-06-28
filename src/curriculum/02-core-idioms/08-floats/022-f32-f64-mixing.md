@@ -17,14 +17,16 @@ hints:
 
 # When the math goes double and comes back single
 
-Promote `f32` operands to `f64` and the whole expression switches register
-flavor: the arithmetic becomes the **suffix-less** double forms (`fmul`, `fadd`,
-…), and any literal is loaded as a *double* with `lfd` rather than `lfs`. A
-single-precision value slots straight into a double operation — it's exactly
-representable, so no widening instruction is needed. But returning an `f32` from
-double math means the result must be rounded down with **`frsp`** at the end.
+Promote your `f32` operands to `f64` and the whole expression changes flavor.
+The arithmetic drops its `s` suffix and becomes the plain double forms, `fmul`
+and `fadd` and friends, while any constant arrives as a *double* through `lfd`
+instead of `lfs`. A single-precision value can step straight into a double op, no
+widening instruction required, because it is already exactly representable. The
+catch comes at the end. Hand back an `f32` from double math and the result has to
+be rounded down with **`frsp`** first.
 
-Consider `avg2(p, q)`, averaging two values in double precision before narrowing:
+Take `avg2(p, q)`, which averages two values in double precision and then
+narrows:
 
 ```asm
 fadd  f0, f1, f2     # double add: (double)p + (double)q
@@ -34,16 +36,17 @@ frsp  f1, f1         # round the f64 result back to f32 for return
 blr
 ```
 
-The signatures of double math are everywhere here: `fadd`/`fmul` with no `s`, an
-`lfd` (not `lfs`) for the constant, and a closing `frsp`. That `frsp` is the
-unmistakable mark of *double-computed, single-returned* code — if you write the
-same expression in pure `f32`, you'd get `fadds`/`fmuls`/`lfs` and **no** `frsp`.
-So the presence of `frsp` plus suffix-less ops tells you the original C cast its
-operands up to `double`.
+Double math leaves fingerprints all over this. `fadd` and `fmul` with no `s`, an
+`lfd` rather than `lfs` for the constant, and that `frsp` at the close. The
+`frsp` is the giveaway for *double-computed, single-returned* code. Write the
+same thing in straight `f32` and you would see `fadds`/`fmuls`/`lfs` with no
+`frsp` anywhere. So whenever a `frsp` shows up next to suffix-less ops, the
+original C cast its operands up to `double`.
 
-The target assembly does a different double-precision computation that ends in
-`frsp`. Read the suffix-less ops, the `lfd` constant, and the closing `frsp` to
-recover where the cast to `f64` happens and what the final narrowing is.
+Your target runs a different double-precision computation that still finishes on
+`frsp`. Read the suffix-less ops, the `lfd` constant, and that closing `frsp`,
+and you can locate where the cast to `f64` happens and what the final narrowing
+does.
 
 ## Your task
 

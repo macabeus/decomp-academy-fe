@@ -18,17 +18,18 @@ hints:
 
 # A loop that sets one bit per element
 
-Here the loop doesn't accumulate a *sum* — it accumulates a *bitmask*, setting
-the bit at position `i` whenever element `i` passes a test. That weaves together
-the loop skeleton, an `if` guard inside the body, and the bit-setting idiom from
-the bitwise chapter: take `1`, shift it into position, OR it in.
+No running total this time. The loop builds a *bitmask* instead, flipping bit `i`
+on the moment element `i` passes its test. Three familiar things are stacked
+together here. You've got the loop skeleton, an `if` guard down in the body, and
+that old bit-set trick where you grab `1`, walk it into position, and OR it home.
 
-The new wrinkle is that the shift amount is the loop counter, a runtime value.
-That means **`slw` (shift-left-by-register), not `slwi`** — the constant-count
-shift you've seen until now can't express a variable position.
+The shift is the new part. Its distance is the loop counter, a value that doesn't
+exist until the loop is running. A `slwi` carries its constant baked in, so it
+can't encode "shift by whatever `i` happens to be right now." That's where `slw`
+earns its keep, reading the count straight out of a register.
 
-Consider `mark_negatives(v, n)`, which returns a mask with bit `i` set for every
-negative element:
+Take `mark_negatives(v, n)`. It returns a mask with bit `i` lit for every element
+that came out negative:
 
 ```asm
 body:
@@ -46,13 +47,14 @@ cmpw  r5,r4
 blt+  body
 ```
 
-The guard is an ordinary `cmpwi 0` whose `bge-` skips the set when the element
-*isn't* negative. The bit-set itself is the familiar `1 << i` built with
-`li 1` + `slw`, folded in with `or`.
+Nothing exotic in the guard. It's a `cmpwi 0`, and the `bge-` walks away from the
+set any time the element isn't negative. The set itself is your `1 << i` again,
+written as `li 1`, then `slw`, then `or` to fold the new bit into the mask so far.
 
-Your `mask_above` builds its mask under a *different* test — read the compare and
-its branch direction to find which elements get a bit. The `li 1` / `slw` / `or`
-machinery is identical; only the condition steering the guard changes.
+`mask_above` runs that exact machinery, only under a *different* test. So read its
+compare, watch which way the branch leans, and you'll see which elements earn a
+bit. The `li 1` / `slw` / `or` trio doesn't move. The condition steering the guard
+is the one thing that does, and changing it changes the whole function.
 
 ## Your task
 

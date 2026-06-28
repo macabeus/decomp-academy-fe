@@ -15,13 +15,15 @@ hints:
 
 # A rule that decides r31 vs r30
 
-When **two** values must survive calls, both get non-volatile homes — the first
-in `r31`, the second in `r30` (MWCC allocates downward from the top). Which
-value is "first"? It is set by the **order the locals are declared** in your C:
-the first-declared surviving local takes the highest register, `r31`.
+Picture two locals that both have to be alive once a call returns. A volatile
+register would get trampled, so each one retreats to a callee-saved register
+instead. MWCC hands those out starting at the high end, which means `r31` before
+`r30`. The order they get claimed traces straight back to your source. Whichever
+local you declared earlier walks off with `r31`, and the later one is stuck with
+`r30`.
 
-Consider `order_alt(s32 x, s32 y)` below, where `beta` is declared first and
-`alpha` second, both receiving their values from `scale()` calls:
+`order_alt(s32 x, s32 y)` puts that on display. `beta` appears above `alpha`,
+and both draw their value from a `scale()` call.
 
 ```asm
 stwu   r1,-16(r1)
@@ -44,14 +46,15 @@ addi   r1,r1,16
 blr
 ```
 
-`beta`, declared first, ends up in `r31`. `alpha`, declared second, lives in
-`r30`. The key lever for decompilers: **if the target assembly has the register
-assignments flipped**, swap the declaration order in your C and recompile.
+`beta` went first and bagged `r31`, leaving `alpha` down in `r30`. There is real
+leverage in that. Catch a target with its registers reversed and you fix it by
+swapping the two declarations and building again.
 
-Now look at the target assembly for `order_demo`. Two locals land in `r31` and
-`r30` across two `transform` calls. Identify which parameter feeds which local
-and which register that local settles in — that tells you the declaration order.
-Then determine what the final instruction does with those two values.
+Now `order_demo`, the one you actually write. Its target calls `transform` twice
+and hangs onto both answers, one in `r31` and one in `r30`. Walk each parameter
+to the local it feeds and notice the register that local ends up in; the
+declaration order falls right out of that. Whatever the last instruction does to
+the two values is the operation you owe the return.
 
 ## Your task
 

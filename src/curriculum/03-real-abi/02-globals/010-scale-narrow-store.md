@@ -18,19 +18,19 @@ hints:
 
 # The store width follows the destination, not the source
 
-When you read a wide global, do some arithmetic, and write the result into a
-*narrower* global, the load and store opcodes come from two different types. The
-read is `lwz` because the source is an `int`; the write is `stb` (or `sth`)
-because the *destination* is a byte (or halfword). There is no separate "narrow
-the value" instruction — `stb` already stores only the low 8 bits, so the high
-bits of the computed word just fall off the end.
+Read a wide global, run some arithmetic, then write into a *narrower* global, and
+the two memory opcodes end up coming from different types. The load is `lwz`,
+because the source happens to be an `int`. The store is `stb` (or `sth`), because
+the *destination* is a byte (or halfword). Nothing in between narrows the value
+for you. A `stb` already keeps only the low 8 bits, so the upper part of the
+computed word just drops on the floor.
 
-This is the narrow-store rule (`stb`/`sth` from the type lesson) showing up after
-some arithmetic instead of after a bare load. Read the *store* opcode to learn
-the destination's width; read the *load* opcode to learn the source's.
+It's the same narrow-store rule from the type lesson, `stb`/`sth` and all, except
+now it follows arithmetic rather than a plain load. The *store* opcode hands you
+the destination's width, and the *load* opcode hands you the source's.
 
-Consider `stepPhase()`, which reads the int global `gTicks`, multiplies it by a
-constant, and stores the low byte into the `u8` global `gPhase`:
+Here's `stepPhase()`. It reads the int global `gTicks`, multiplies by a constant,
+and drops the low byte into the `u8` global `gPhase`:
 
 ```asm
 lwz   r0, gTicks@sda21(r13)  # read int global gTicks
@@ -39,11 +39,12 @@ stb   r0, gPhase@sda21(r13)  # gPhase = (u8) result
 blr
 ```
 
-`mulli` is the general constant multiply (5 isn't a power of two, so it can't
-strength-reduce to a shift). The result fills a full word in `r0`, but `stb`
-commits only the low byte to the `u8` global — that *is* the `(u8)` cast. The
-target assembly scales a different int global by a different constant before its
-narrow store. Read the `mulli` immediate and the store opcode.
+`mulli` is the catch-all constant multiply, and 5 isn't a power of two, so
+there's no shift to strength-reduce it into. That product fills the whole of
+`r0`, and yet `stb` writes back only the low byte to the `u8` global, which *is*
+the `(u8)` cast made flesh. Your target scales a different int global by a
+different constant ahead of its own narrow store. The `mulli` immediate and the
+store opcode are what you read off it.
 
 ## Your task
 

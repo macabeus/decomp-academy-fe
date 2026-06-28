@@ -19,18 +19,19 @@ hints:
 
 # Putting the chapter together
 
-This capstone combines every idiom from the chapter: a constant-index load, a
-variable-index `lwzx`, a neighbor reached from the computed base, a
-register-register multiply of two loaded values, and a final subtract. Nothing
-here is new — it is the build-up lessons stacked into one function.
+By now you've met every move in this function separately. It loads an element at
+a fixed index, loads another at a variable index with `lwzx`, grabs a neighbor
+off the computed base, multiplies two loaded values together
+register-to-register, and subtracts at the end. So nothing here is unfamiliar.
+The earlier lessons have just been bolted together into one routine.
 
-The key efficiency to recognize: the variable index is scaled **once** with
-`slwi`, and that single offset serves both the indexed load `lwzx` and the
-neighbor (via `add` to form the base, then a displacement load). The fixed
-element at index 0 is a plain `lwz 0(r3)`.
+The efficiency worth catching is that the variable index only gets scaled
+**once**, by `slwi`. After that, the same offset does two jobs. It drives the
+indexed `lwzx`, and it also locates the neighbor, whose base falls out of an
+`add` before a displacement load finishes the read. The element at index 0 never
+goes near that path, since a plain `lwz 0(r3)` reaches it directly.
 
-Consider `mix(q, j)`, which combines the first element with the product of two
-neighbors:
+`mix(q, j)` blends the first element with the product of two neighbors:
 
 ```asm
 slwi r0, r4, 2     # j * 4
@@ -43,13 +44,13 @@ add  r3, r5, r0    # q[0] + q[j]*q[j+1]
 blr
 ```
 
-Watch how the lone `slwi` feeds both the `lwzx` and the `add`-built base, how
-`mullw` multiplies two *loaded* values (so it is `mullw`, not `mulli`), and how
-the fixed element folds in last. The target assembly has the same ingredients —
-a fixed element, an indexed element, and a neighbor — but a different arrangement
-of multiply and subtract. Trace each loaded register from its load to the
-instruction that consumes it, recover the indices from the displacements, and
-reconstruct the full expression.
+Here the single `slwi` is what powers both the `lwzx` and the `add`-built base,
+and because the multiply takes two *loaded* values it comes out as `mullw` rather
+than `mulli`, with the fixed element joining only at the close. Your target is
+built from the same parts, but it puts the multiply and the subtract in different
+places. So work each loaded register forward from its load to whatever consumes
+it, recover the indices from the displacements, and the expression reassembles
+itself.
 
 ## Your task
 

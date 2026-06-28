@@ -16,9 +16,7 @@ hints:
 
 # A float divide that isn't a divide
 
-Dividing a float by a **power-of-two constant** doesn't need `fdivs` at all.
-MWCC folds it into a multiply by the *exactly representable* reciprocal — a
-single `fmuls`. For example, `y / 8.0f` compiles as:
+Here's a divide the hardware never performs. Hand MWCC a **power-of-two constant** divisor and it skips `fdivs`. Why? The reciprocal of a power of two is *exactly representable*, so the compiler stores that number and multiplies. One `fmuls`, done. Watch `y / 8.0f`:
 
 ```asm
 lfs   f0, ...      # load the reciprocal constant 0.125f from the pool
@@ -26,14 +24,9 @@ fmuls f1,f1,f0    # y * 0.125f  — no fdivs in sight
 blr
 ```
 
-The reciprocal constant lives in a read-only float pool and is loaded with
-`lfs`. The divide is gone entirely. This fold only happens when the reciprocal
-is *exact* — i.e. powers of two. `y / 3.0f` keeps a real `fdivs`, because
-`1/3` can't be stored exactly.
+The constant rides in a read-only float pool. `lfs` fetches it, `fmuls` applies it, and the division is gone. Exactness is the whole game. Powers of two qualify; almost nothing else does. Ask for `y / 3.0f` and the divide comes back as `fdivs`, since `1/3` can't be written exactly in binary.
 
-When you see `lfs` + `fmuls` in target assembly, your job is to identify which
-power-of-two divisor produces that specific reciprocal. Write the division in
-C; don't hand-write the reciprocal constant yourself.
+Spotting `lfs` then `fmuls` in the target? Work back to the power-of-two divisor behind that reciprocal. Write it as a plain division in C and trust the compiler to make the constant. Typing the reciprocal by hand defeats the point.
 
 ## Your task
 

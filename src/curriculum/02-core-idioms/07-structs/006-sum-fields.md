@@ -17,13 +17,14 @@ hints:
 
 # Two loads, then combine
 
-So far each function has touched a single field. Real code reads *several* fields
-of the same struct and combines them. The shape is exactly what you'd expect:
-**one load per field, all from the same base pointer, then arithmetic to join
-them**. The struct base stays in `r3` the whole time, so you'll see the same
-register reused as the address for every `lwz`, only the displacement changing.
+Up to now every function has read a single field. That isn't how real code
+behaves. It grabs a handful of fields off the same struct and does something with
+them, and the assembly for that is about as plain as it gets: a load per field,
+all hanging off the same base pointer, then some arithmetic to fold them
+together. Since the base lives in `r3` and never moves, every `lwz` points at
+`r3` and just changes the displacement.
 
-Consider a health struct and a function that returns how much health is missing:
+Take a health struct whose function works out how much health is missing.
 
 ```c
 typedef struct { int hp; int maxHp; } Health;
@@ -40,15 +41,15 @@ subf  r3, r4, r0   # r3 = r0 - r4  =  maxHp - hp
 blr
 ```
 
-Two `lwz`s pull the two fields into scratch registers, then `subf` combines them
-(`subf rD, rA, rB` is `rB − rA`). Read each load's offset to name the field it
-fetches; read the combining instruction to see how they're joined. The order the
-fields are *loaded* follows the order they appear in the source expression, not
-their offsets.
+So the two `lwz`s park each field in a scratch register, and `subf` glues them:
+`subf rD, rA, rB` is `rB − rA`. Want to know which field a load grabbed? Look at
+its offset. Want to know how the two were combined? Look at the instruction that
+did it. The one gotcha is ordering. The loads come out in the order the source
+expression mentions the fields, which has nothing to do with their offsets.
 
-The target assembly reads two fields of a different struct and joins them with a
-different operation. Match each `lwz` displacement to a field, then reproduce the
-arithmetic.
+Your assembly pulls the same trick on a different struct and uses a different
+operation to join the values. Pair each `lwz` displacement with a field and
+rebuild the arithmetic.
 
 ## Your task
 

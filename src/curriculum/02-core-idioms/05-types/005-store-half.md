@@ -13,21 +13,22 @@ hints:
 
 # `sth` is the 16-bit store
 
-The halfword store is **`sth`** (*store halfword*), writing the **low 16 bits**
-of a register:
+Writing a halfword goes through **`sth`** (*store halfword*), which lays down the
+**low 16 bits** of a register and nothing above them:
 
 ```asm
 sth  r4, 6(r3)   # table[3] = val
 blr
 ```
 
-Here a function writes to index 3 of a `u16` array (offset 6 bytes). The pointer
-is in `r3`, the value in `r4`.
+The example above writes index 3 of a `u16` array, which lands six bytes in, with
+the pointer in `r3` and the value in `r4`.
 
-The store family mirrors the load family by width: `stb` for bytes, `sth` for
-halfwords, `stw` for words. None of them care about sign — they all just truncate
-to their width and copy. If you later read the value back signed, the *load* is
-where sign-extension happens, never the store.
+Every store has a twin among the loads at the same width, so alongside `sth` you
+get `stb` down at the byte level and `stw` up at the full word. Sign never enters
+into it, since a store only truncates its operand to the right width and copies it
+across. When you do need a signed value back, that work falls to the *load* later
+on, never the store.
 
 ## Your task
 

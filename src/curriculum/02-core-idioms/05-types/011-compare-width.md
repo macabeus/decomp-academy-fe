@@ -16,10 +16,10 @@ hints:
 
 # `cmplwi` vs `cmpwi` is a type tell
 
-When a value feeds a *branch*, the comparison opcode reveals its declared type.
-A **signed** narrow operand compares with **`cmpwi`**, preceded by a sign-extend
-that fills the top bits before comparing. For example, a signed 16-bit parameter
-compared against 100:
+Compares are gossip. The one a branch leans on will tell you, if you bother to
+listen, exactly how its operand was typed. Picture a narrow signed parameter,
+sixteen bits wide, getting tested against 100. It shows up as `cmpwi`, but only
+after `extsh` has reached in and copied the sign bit across everything above it:
 
 ```asm
 extsh  r0,r3       # sign-extend narrow signed value
@@ -28,8 +28,9 @@ bne-   skip
 bl     trigger
 ```
 
-An **unsigned** narrow operand compares with **`cmplwi`** — *compare **l**ogical
-word immediate* — instead, preceded by a zero-extend to clear the high bits:
+Retype that same value as unsigned and the story shifts. The compare grows an
+`l` and turns into `cmplwi` (logical, that is), while the instruction feeding it
+stops caring about sign and just rakes the top bits down to zero:
 
 ```asm
 clrlwi r0,r3,16    # zero-extend narrow unsigned value
@@ -38,11 +39,11 @@ bne-   skip
 bl     trigger
 ```
 
-The difference is one letter — `cmplwi` vs `cmpwi` — and the preceding extend:
-`clrlwi` (zero-extend) for unsigned, `extsh`/`extsb` (sign-extend) for signed.
-The bit-width of the `clrlwi` shift matches the width of the source type. If the
-target uses `cmplwi`, your operand must be unsigned; match the parameter to the
-correct width and sign.
+After that it comes down to the one letter and whichever extend set things up.
+`clrlwi` clearing the high bits points at an unsigned value; `extsh` or `extsb`
+smearing the sign downward points at a signed one. And `clrlwi` is generous, the
+shift it uses spells out the original width. A `cmplwi` in your target therefore
+leaves nothing ambiguous: the source was unsigned, width and all.
 
 ## Your task
 

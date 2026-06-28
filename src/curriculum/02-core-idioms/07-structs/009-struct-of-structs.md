@@ -17,14 +17,14 @@ hints:
 
 # Reaching into two inner structs
 
-The nested-struct lesson collapsed one `.a.b` access into a single offset. Now do
-it for **two** accesses that live in *different* inner structs of the same outer
-struct. Each field still flattens to one absolute offset — you just add the inner
-struct's base to the field's offset within it — and then the two loads combine
-like any other field pair.
+You just saw a `.a.b` access boil down to one offset. Two of them isn't any
+harder, even when each one lives in a separate inner struct of the same outer
+struct. The field you want still has exactly one absolute offset. You get it by
+adding where the inner struct starts to where the field sits inside it. After
+that the two loads just combine, same as any other pair of fields.
 
-When the same inner type appears twice in a row, the second copy sits one whole
-inner-struct further along. Consider a range built from two `Pair`s:
+Put two of the same inner type back to back and the second one starts a whole
+inner-struct later. Here's a range built out of two `Pair`s:
 
 ```c
 typedef struct { int a; int b; } Pair;
@@ -35,8 +35,9 @@ int Range_sumB(Range* r) {
 }
 ```
 
-`lo` begins at offset 0 and `hi` at offset 8 (past the 8-byte `Pair`). The `b`
-field is at +4 inside either `Pair`, so `lo.b` is at 4 and `hi.b` at `8 + 4 = 12`:
+`lo` starts at offset 0. `hi` comes right after it at offset 8, past the 8-byte
+`Pair`. And `b` is always +4 into a `Pair`, so `lo.b` works out to 4 and `hi.b`
+to `8 + 4 = 12`:
 
 ```asm
 lwz   r4, 4(r3)     # r->lo.b   (0 + 4)
@@ -45,13 +46,14 @@ add   r3, r4, r0
 blr
 ```
 
-The two displacements differ by exactly `sizeof(Pair)` because the same field is
-read from two adjacent inner structs. To decode such a pair of loads, split each
-offset into "which inner struct" plus "which field inside it".
+See how the two displacements are exactly `sizeof(Pair)` apart? That's the
+giveaway. It's one field, read out of two inner structs sitting side by side. To
+take a pair of loads like this apart, peel each offset into the inner struct it
+picks and the field it lands on.
 
-The target reads one field from each of two inner structs and joins them with a
-different operation. Decompose each offset into outer + inner, then reproduce the
-combine.
+Your target pulls a field from each inner struct and joins them with a different
+operation. Peel each offset into outer plus inner, then put the combine back
+together.
 
 ## Your task
 

@@ -13,20 +13,22 @@ hints:
 
 # `stb` writes only the low 8 bits
 
-Storing is simpler than loading: there is no signed/unsigned distinction, only
-*width*. Writing through a **`u8*`** uses **`stb`** (*store byte*), which copies
-only the **low 8 bits** of the source register to memory.
+Stores are the easy direction, with nothing like the signed-versus-unsigned split
+that loads care about, only *width*. A write through a **`u8*`** picks **`stb`**
+(*store byte*), and all it moves to memory is the **low 8 bits** of the source
+register.
 
-Consider a function that writes to index 2 of a byte array:
+Take a function that writes into index 2 of a byte array:
 
 ```asm
 stb  r4, 2(r3)   # arr[2] = val  (high bits of r4 ignored)
 blr
 ```
 
-The pointer is in `r3`, the byte value is in `r4`. `stb` silently **truncates**
-— whatever sits in the upper 24 bits of `r4` is discarded. That truncation is
-"free": the compiler doesn't mask the value first, it just narrows the store.
+With the pointer in `r3` and the value in `r4`, `stb` quietly **truncates**,
+throwing away whatever was sitting in the upper 24 bits of `r4`. The nice part is
+that this costs nothing extra, because the compiler never masks the value
+beforehand, it simply narrows the store down to a byte.
 
 ## Your task
 

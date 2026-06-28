@@ -15,13 +15,12 @@ hints:
 
 # A subtract that keeps its order, mid-chain
 
-Unlike the integer world's operand-reversing `subf`, the float unit's `fsubs`
-computes `fD = fA - fB` left-to-right. That regularity matters most inside a
-chain, where you have to keep track of which value is the minuend and which is
-the subtrahend.
+The integer `subf` flips its operands on you. `fsubs` doesn't. It just computes
+`fD = fA - fB`, left to right, no surprises. That plain ordering matters most
+mid-chain, where you have to stay clear on which value is being subtracted from
+which.
 
-Consider `delta(p, q, r)`, which adds the first two arguments and then takes the
-third away:
+Say `delta(p, q, r)` adds the first two arguments, then takes the third away:
 
 ```asm
 fadds f0, f1, f2   # f0 = p + q
@@ -29,13 +28,13 @@ fsubs f1, f0, f3   # f1 = f0 - r  =  (p + q) - r
 blr
 ```
 
-The running total `p + q` lands in `f0`, and `fsubs` keeps it as the **left**
-operand so the result is `(p + q) - r`, not `r - (p + q)`. If the assembly had
-read `fsubs f1, f3, f0` the meaning would flip — the operand order in the
-instruction *is* the order in the C.
+The running total `p + q` sits in `f0`. `fsubs` leaves it on the **left**, so
+the result is `(p + q) - r`, not `r - (p + q)`. Swap the instruction to
+`fsubs f1, f3, f0` and the math swaps with it. Whatever order you read in the
+operands is the order you write in the C.
 
-The target assembly chains an add into a subtract the same way. Read the operand
-order of the `fsubs` to confirm which value is taken away from which.
+Same shape in the target, an add feeding a subtract. Read the operand order on
+the `fsubs` and you will know which value gets subtracted from which.
 
 ## Your task
 

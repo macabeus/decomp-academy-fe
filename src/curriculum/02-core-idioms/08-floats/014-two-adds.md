@@ -15,12 +15,13 @@ hints:
 
 # Threading a running total through the float file
 
-Single float ops chain exactly like integer ones, just in the `f` register
-bank. Each operation reads its inputs and writes a destination; a multi-step
-expression threads a *running value* from one instruction to the next until it
-lands in `f1` to be returned.
+Floats don't do anything special here. Same chaining you already know from
+the integer registers, just over in the `f` bank. One instruction, two inputs,
+one output. Glue a handful together and the partial result keeps getting passed
+forward; the last one has to leave it in `f1` or there is nothing to return.
 
-Consider `tally(p, q, r)`, summing three single-precision values:
+Take `tally(p, q, r)`, three single-precision values added up. The compiler
+spits out:
 
 ```asm
 fadds f0, f1, f2   # f0 = p + q   (running total in a scratch register)
@@ -28,14 +29,14 @@ fadds f1, f3, f0   # f1 = r + f0  =  p + q + r
 blr
 ```
 
-Read the dataflow: the first `fadds` parks `p + q` in **`f0`** (a scratch
-register, not an argument), then the second `fadds` consumes `f0` together with
-the still-untouched third argument `f3`, leaving the final sum in `f1`. The
-arguments `f1`/`f2`/`f3` map to the first/second/third parameters.
+`p + q` goes first. It lands in `f0`, which is just scratch space, not an
+argument register. Then `fadds` number two wants `f0` and it wants `f3` (the
+third argument, still sitting there untouched), and the sum of those two is your
+`f1`. Walk that backwards and the arguments are `f1`, `f2`, `f3`, in parameter
+order.
 
-The target assembly chains the same two single-precision adds. Trace which
-register each step writes and which it reads back, and you can recover the
-order the three arguments are combined.
+You will find those same two adds in the target. Watch what each one writes and
+what it reads back, and the order the arguments combine is yours to reconstruct.
 
 ## Your task
 

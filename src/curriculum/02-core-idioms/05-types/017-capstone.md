@@ -20,14 +20,14 @@ hints:
 
 # Everything at once
 
-This is the capstone of the types chapter. When several operands of different
-widths *and* different signedness meet in one expression, nothing new happens —
-the compiler just applies every rule you've learned at once: widen each operand
-by its own type, then run the arithmetic in dependency order. The disassembly
-becomes a little table of extends, one per parameter, interleaved with the math.
+Here is where the types chapter comes together. Throw several operands with
+assorted widths and assorted signedness into one expression and nothing genuinely
+new turns up. Every rule you have already met simply fires together. Each operand
+still widens by its own type, and then the arithmetic runs in dependency order.
+What you get back is a little catalog of extends, one per parameter, threaded in
+among the math rather than stacked off to the side.
 
-Consider `fold(a, b, c)` with a `u8`, an `s16`, and an `s8`, computing
-`a * b - c`:
+Take `fold(a, b, c)` over a `u8`, an `s16`, and an `s8`, computing `a * b - c`:
 
 ```asm
 clrlwi r3, r3, 24   # a: u8  -> zero-extend (keep low 8)
@@ -38,17 +38,17 @@ subf   r3, r3, r0   # (a * b) - c
 blr
 ```
 
-Every extend is a fingerprint: `clrlwi …,24` is an unsigned byte, `extsh` a
-signed halfword, `extsb` a signed byte. The widen for each operand appears just
-before that operand is first *used*, so the extends interleave with the
-arithmetic rather than all bunching at the top. `mullw` multiplies two variables
-(no immediate), and the running result threads through the scratch register to
-the final combine.
+Each extend is a fingerprint. A `clrlwi …,24` marks an unsigned byte, `extsh` a
+signed halfword, `extsb` a signed byte. Notice too that an operand's widen lands
+right before its first use, which is why the extends weave through the arithmetic
+instead of clustering at the top. The multiply here is `mullw`, two variables and
+no immediate, and the result it produces rides the scratch register down to the
+last step.
 
-The target uses the same three-types-in-one-expression shape, but with a
-*different* assignment of widths and signs to the operands and a different final
-operator. Work through the extends one at a time to type each parameter, then
-trace the arithmetic chain.
+Your target wears the same three-types-in-one shape, only the widths and signs
+are handed out to different operands and the closing operator is not the same.
+Take the extends one by one to pin down each parameter's type, then follow the
+arithmetic chain from there.
 
 ## Your task
 

@@ -14,26 +14,28 @@ hints:
     parameter position it is and return it.
 ---
 
-# The ninth argument has no register
+# Argument nine has to ride the stack
 
-Only the first **eight** integer arguments get registers (`r3`–`r10`). A
-**ninth** argument has nowhere left to go, so the caller places it on the
-**stack**, and the callee reads it back from there. The EABI lays out the
-caller's frame as `0(r1)` = back-chain, `4(r1)` = LR save slot, and `8(r1)`
-onward = the outgoing parameter area. Because `ninth` is a leaf and never
-allocates its own frame, its `r1` on entry still points at the caller's frame —
-so the ninth argument is right there at `8(r1)`:
+The register budget for integer arguments runs out at **eight**, `r3`–`r10`.
+Hand a function a **ninth** and there is simply no register left for it, so the
+caller drops that one on the **stack** and the callee digs it back out. To find
+it you lean on the EABI frame layout. The first two words of the caller's frame
+are spoken for, `0(r1)` for the back-chain and `4(r1)` for a saved LR, and the
+outgoing parameter area starts right after at `8(r1)`. Since `ninth` is a leaf,
+it builds no frame of its own, so on entry `r1` is still aimed at the caller's
+frame. That leaves the ninth argument an easy grab at `8(r1)`:
 
 ```asm
 lwz  r3, 8(r1)    # load the 9th argument from the caller's frame
 blr
 ```
 
-This function is still a leaf — it makes no call, so it needs no frame of its
-own — yet it touches `r1` to fetch an argument that never fit in a register.
-A lone `lwz` from a small positive `r1` offset at the very top of a function is
-the classic tell that a parameter spilled to the stack. Arguments one through
-eight (`a`–`h`) arrived in `r3`–`r10` and, being unused, produce no code.
+Notice it is still a leaf. No call means no frame, yet it reaches into `r1`
+anyway to grab the one argument that never landed in a register. When you spot a
+lone `lwz` reading a small positive `r1` offset right at the top of a function,
+that is the giveaway that an argument spilled onto the stack. The first eight
+(`a`–`h`) showed up in `r3`–`r10`, and since nobody uses them, they emit
+nothing.
 
 ## Your task
 

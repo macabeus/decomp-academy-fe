@@ -14,10 +14,11 @@ hints:
   - "`p[0]++;` on a `u8*` gives `lbz` / `addi` / `stb` and no `extsb`."
 ---
 
-# Read, modify, write — all at byte width
+# Read, modify, write a single byte
 
-Narrow read-modify-write sequences follow a fixed three-instruction pattern on
-PowerPC. Consider a function that adds `2` to the byte at `p[1]`:
+A byte never really changes where it sits. PowerPC fetches it into a register,
+lets you fiddle with it there, then writes the result back, and it reaches for
+the very same trio every time. Here is `p[1]` going up by `2`:
 
 ```c
 void add_two(u8* p) {
@@ -32,22 +33,22 @@ stb   r0, 1(r3)   # truncate and store back
 blr
 ```
 
-Three phases, three instructions: **`lbz`** zero-extends one byte into a
-register; **`addi`** does the arithmetic at 32-bit width; **`stb`** takes the
-low byte of the result and writes it back, discarding the upper bits — so
-`255 + 1` correctly wraps to `0`.
+So the byte rides up into a register zero-padded, picks up its `2` where a whole
+32 bits give the sum room to breathe, and then only its lowest eight bits survive
+the trip back to memory. Everything above those eight is simply thrown out, which
+is the whole reason `255 + 1` does not grow into 256 but loops quietly back to
+`0`.
 
-Notice there is no `extsb` anywhere. That instruction appears only when a
-signed byte value is *widened* to a wider signed integer. Because the byte is
-loaded, modified, and stored back without ever being compared or passed to
-something that needs a sign-extended value, neither `u8` nor `char` generates
-one here. The habit still stands: reach for **`u8` for a raw byte**, because
-the moment a `char` value escapes into a wider signed context you will see a
-spurious `extsb` that `u8` avoids.
+Conspicuously missing from all of this is `extsb`. That one earns a place only
+when a signed byte has to be hauled up into a wider signed type, and nothing of
+the sort happens here, the value just loads, shifts a little, and heads back to
+memory at its original width. So `u8` and `char` agree to leave it out. Still,
+`u8` is the safer habit by far. Let a `char` drift into some wider signed
+expression and `extsb` resurfaces unbidden, the very wrinkle `u8` spares you.
 
-The assembly for `bump` follows the same three-phase structure. The
-displacement and immediate differ — study those numbers and work out what
-operation on which element they represent.
+`bump` follows the very same cut, three phases in the very same order. All that
+moves is the displacement and the immediate, so read those straight off the
+target and puzzle out which element is in play and what happens to it.
 
 ## Your task
 

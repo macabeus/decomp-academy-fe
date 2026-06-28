@@ -14,12 +14,12 @@ hints:
 
 # `p + n` is not `+ n`
 
-Adding to a pointer does not add a raw byte count — it advances by **whole
-elements**. The compiler multiplies the integer you wrote by `sizeof(*p)` before
-it touches a register. For a *constant* offset, that multiplication happens at
-compile time and the scaled result is encoded directly in an `addi`.
+Pointers count in elements. Add `5` to an `int*` and you don't move 5 bytes, you
+move 5 ints. The compiler handles that scaling. It multiplies your offset by
+`sizeof(*p)` before anything reaches a register, and for a constant offset the
+math finishes at compile time, so the byte count is already baked into the `addi`.
 
-Here is a function that steps forward five elements in an `int` array:
+Five elements into an `int` array:
 
 ```c
 int* advance5(int* p) {
@@ -32,16 +32,16 @@ addi r3, r3, 20   # advance p by 5 * sizeof(int) = 20 bytes
 blr
 ```
 
-`sizeof(int)` is 4, so 5 elements = 20 bytes, and that number lands directly in
-the `addi` immediate. To read this backward from disassembly: take the
-immediate, divide by the element size, and you have the element count.
+An `int` is 4 bytes. Five times 4 is 20, and 20 is what the `addi` carries. Going
+backward from the disassembly you flip the operation. Take the immediate, divide
+by the element size, and the quotient is how many elements the pointer moved.
 
-Also note: `p + n` and `&p[n]` compile to identical assembly — both describe
-the address of the nth element. You cannot tell from the output which form the
-author used; pick whichever reads more naturally in context.
+Here's a gotcha. `p + n` and `&p[n]` produce byte-identical assembly, since both
+land on the nth element's address. The output keeps the secret of which one the
+author typed, so just write whichever is easier to read.
 
-Now look at the target assembly for `advance3`. What immediate does the `addi`
-use, and what pointer step does that represent?
+So `advance3`. What's the immediate on its `addi`, and how many elements does that
+work out to?
 
 ## Your task
 

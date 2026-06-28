@@ -14,34 +14,34 @@ hints:
 
 # Byte stores and field alignment
 
-Just as `lbz` reads a byte, **`stb`** writes one. The type still controls the
-width. Consider this color struct:
+Where `lbz` pulled a byte out, **`stb`** puts one back, and the field's type is
+still what fixes the width. Take this color struct:
 
 ```c
 typedef struct { u8 r; u8 g; u8 b; u8 a; } Color;
 ```
 
-Each field is one byte, laid out in declaration order. The **offset** of a field
-is how many bytes from the struct's start it sits. Fields are packed sequentially
-here, so `r` is at 0, `g` at 1, `b` at 2, `a` at 3.
+Every field here is a single byte, sitting in declaration order. A field's
+**offset** is simply its distance in bytes from the start of the struct. Since
+nothing pads these out, `r` lands at 0, `g` at 1, `b` at 2, and `a` at 3.
 
-A `stb` instruction stores a single byte: `stb rS, offset(rA)`. The displacement
-directly encodes which field is being written — read the offset to figure out
-which field the store targets. For example, writing the last byte (offset 3)
-produces:
+The byte store itself is `stb rS, offset(rA)`. Whatever displacement it carries
+names the field being written, so reading that offset tells you the target.
+Writing the final byte, at offset 3, gives:
 
 ```asm
 stb  r4, 3(r3)
 blr
 ```
 
-To reconstruct any `stb`, count bytes from the struct's start until you reach the
-displacement shown in the instruction. That tells you the field.
+Going backwards from any `stb` is the same counting exercise. Step through the
+struct one byte at a time until the running total hits the displacement in the
+instruction, and you've found the field.
 
-Watch alignment when fields have mixed widths: a `u16` cannot start at an odd
-offset, so the compiler inserts padding. In `{ u8 flags; u16 hp; }` the `hp`
-field lands at offset **2**, not 1 — a hidden pad byte sits between them. Getting
-those offsets right is what makes the loads and stores line up.
+Mixed widths are where alignment bites. A `u16` can't begin on an odd offset, so
+the compiler quietly pads to fix it. Declare `{ u8 flags; u16 hp; }` and `hp`
+won't land at 1; it ends up at offset **2**, with a hidden pad byte tucked in
+front of it. Nail those offsets and your loads and stores fall into place.
 
 ## Your task
 

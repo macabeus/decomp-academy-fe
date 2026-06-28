@@ -17,11 +17,12 @@ hints:
 
 # A sum of two products
 
-A sum of two products — the heart of a 2D dot product, a determinant, a complex
-multiply — reads as two multiplies and an add. But the compiler emits only one
-`fmuls`, because the *second* product folds into the add via `fmadds`.
+Two products added together. You see this shape everywhere, a 2D dot product, a
+determinant, a complex multiply. On the face of it that is two multiplies and an
+add, but only one `fmuls` actually shows up, because the *second* product gets
+folded into the add by `fmadds`.
 
-Consider `cross(p, q, r, s)` computing `p*r + q*s`:
+Take `cross(p, q, r, s)`, which works out `p*r + q*s`:
 
 ```asm
 fmuls  f0, f2, f4    # f0 = q * s      (one product, standalone)
@@ -29,15 +30,15 @@ fmadds f1, f1, f3, f0 # f1 = p*r + f0  =  p*r + q*s
 blr
 ```
 
-The compiler chose to compute `q*s` first with `fmuls`, then fold `p*r` and the
-sum into one `fmadds` (recall `fmadds fD, fA, fC, fB` = `fA*fC + fB`). Which
-product becomes the standalone `fmuls` and which rides in the `fmadds` is the
-compiler's choice — what matters is reading the operand registers to see *which
-two arguments pair up* in each multiply. Four float arguments arrive in
-`f1`–`f4`.
+Here the compiler did `q*s` first, as the standalone `fmuls`, then swept `p*r`
+and the running sum into a single `fmadds`. (Same form as ever, `fmadds fD, fA,
+fC, fB` = `fA*fC + fB`.) Which product lands in the lone `fmuls` versus which
+rides along in the `fmadds` is up to the compiler and not worth fighting. What
+you care about is the operand registers, since they tell you *which two arguments
+multiply together*. The four floats come in across `f1`–`f4`.
 
-The target assembly has the same `fmuls` → `fmadds` skeleton. Decode the operand
-registers to recover the two products and confirm they're added together.
+Your target wears the same `fmuls` → `fmadds` skeleton. Read the operand
+registers, pull out the two products, and check that they are added.
 
 ## Your task
 

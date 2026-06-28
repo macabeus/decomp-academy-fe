@@ -14,17 +14,18 @@ hints:
 
 # Reading is rotate-then-mask
 
-Reading a bitfield is the mirror of writing it: load the containing word, then
-**rotate the field down to bit 0 and mask off everything else** with a single
-`rlwinm` (rotate-left-immediate-then-AND-mask). Given:
+Pulling a value out of a bitfield is the write run backwards. Load whichever word
+the field lives in, spin that field down to bit 0, blank out everything else, and
+a single `rlwinm` (rotate-left-immediate, then AND-mask) covers all of it at once.
+Same struct shape as before:
 
 ```c
 typedef struct { u32 r : 5; u32 g : 6; u32 b : 5; u32 a : 16; } Pixel;
 ```
 
-Each read follows the same pattern: load a word or halfword, then extract with
-`rlwinm`. The first field (`r`, 5 bits) sits at the most-significant end of the
-first byte. Reading it produces:
+No matter which field you're after, the steps don't move. In comes a word or
+halfword; out comes the field, carved free by one `rlwinm`. Suppose it's `r` you
+want, 5 bits wide, sitting right at the top of the first byte. That gives you:
 
 ```asm
 lbz     r0, 0(r3)
@@ -32,16 +33,17 @@ rlwinm  r3, r0, 29, 27, 31
 blr
 ```
 
-Read `rlwinm rA, rS, SH, MB, ME` as "rotate `rS` left by `SH`, then keep only
-bits `MB..ME`, zeroing the rest". The rotation brings the field's bits down to
-bit 31, and the mask width equals the field's bit width. Different fields produce
-different rotate amounts and mask bounds — derive them from the field's position
-and width in the struct.
+Spelled out, `rlwinm rA, rS, SH, MB, ME` rotates `rS` left by `SH`, then holds
+onto bits `MB..ME` and clears the rest. Rotating is how the field's bits arrive at
+bit 31; the mask, meanwhile, ends up precisely the width of the field. Switch
+fields and both of those operands move with it, which means you derive them from
+where the field sits and how many bits it spans.
 
-(For a field already sitting at the least-significant position, MWCC may print
-the extended mnemonic `clrlwi` — it's still `rlwinm` underneath.) A lone
-`rlwinm` after a load, with a mask narrower than the load width, almost always
-means **read a bitfield**.
+Now a wrinkle: a field already parked at the least-significant end may show up as
+the extended mnemonic `clrlwi` in MWCC output, even though `rlwinm` is what's
+really running. Either way, a solitary `rlwinm` chasing a load, with a mask
+tighter than the bytes the load fetched, gives away a bitfield read nearly every
+time.
 
 ## Your task
 

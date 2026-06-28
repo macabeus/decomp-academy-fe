@@ -14,19 +14,18 @@ hints:
 
 # Branch on the pointer itself
 
-NULL is address `0`, so `if (p)` and `if (p != NULL)` both compile to an
-unsigned compare of the pointer register against `0`. MWCC uses `cmplwi` (compare
-logical word immediate — unsigned) rather than `cmpwi` because addresses are
-unsigned quantities.
+NULL is just address `0`. So `if (p)` and `if (p != NULL)` come out identical,
+both an unsigned compare of the pointer register against `0`. MWCC reaches for
+`cmplwi` (compare logical word immediate) instead of `cmpwi`, since an address is
+an unsigned quantity.
 
-The branch hint suffixes `-` and `+` are static prediction bits baked into the
-branch encoding, not condition modifiers. `beq-` means "branch if equal, predicted
-*unlikely*". `bne+` means "branch if not equal, predicted *likely*". In a NULL
-guard the early-out path is expected to be rare, so the taken-when-NULL branch
-gets a `-`. Two `blr` instructions appear because each return path ends
-independently.
+Don't read the `-` and `+` on a branch as part of the condition. They're static
+prediction bits, encoded into the branch itself. A `beq-` says branch if equal,
+but I'm betting you won't. A `bne+` says branch if not equal, and I'm betting you
+will. NULL guards almost never trip, so the branch taken on NULL gets stamped with
+the `-`. Two `blr`s show up as well, since each return path finishes on its own.
 
-Here is the same pattern guarding a `u32*` load:
+Here's that pattern wrapped around a `u32*` load:
 
 ```c
 u32 safe_read_u32(u32* p) {
@@ -46,9 +45,8 @@ li      r3,0
 blr
 ```
 
-The `beq-` jumps over the load when `p` is zero. Notice there are two `blr`
-instructions — one per return path. Now apply the same logic to a function that
-guards an `int*` load.
+When `p` is zero the `beq-` hops over the load. Count the `blr`s, there are two,
+one for each way out. Now do the same for a function guarding an `int*` load.
 
 ## Your task
 

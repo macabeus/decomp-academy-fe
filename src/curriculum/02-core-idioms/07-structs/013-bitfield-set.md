@@ -14,16 +14,17 @@ hints:
 
 # Single-Bit Bitfields Compile to rlwimi
 
-Here is a make-or-break idiom. A **single-bit C bitfield** set to 1 does *not*
-compile to a manual OR-mask. Given:
+Get this idiom wrong and nothing matches. A single-bit C bitfield assigned 1 will
+not turn into a hand-rolled OR-mask. Take this struct:
 
 ```c
 typedef struct { u8 active : 1; u8 visible : 1; u8 dead : 1; } Flags;
 ```
 
-Setting any single-bit field loads the whole byte, rotates the new value into the
-right position with `rlwimi` (rotate-left-word-immediate-then-**mask-insert**),
-and stores it back. For example, setting the second bit (`visible`) produces:
+Assigning any one of these bits makes the compiler load the whole byte, rotate
+the new value into the slot that bit occupies with `rlwimi`
+(rotate-left-word-immediate, then mask-insert), and write the byte back. Set the
+second bit, `visible`, and out comes:
 
 ```asm
 lbz     r0, 0(r3)
@@ -33,12 +34,13 @@ stb     r0, 0(r3)
 blr
 ```
 
-Read `rlwimi rA, rS, SH, MB, ME` as "rotate `rS` left by `SH`, then copy bits
-`MB..ME` of the result into `rA`, leaving the rest of `rA` alone". The rotation
-amount and mask bounds differ by one for each successive bit position in the byte
-— the key is that the field's position within the struct drives those values.
+Here's how `rlwimi rA, rS, SH, MB, ME` reads. Rotate `rS` left by `SH`, then drop
+bits `MB..ME` of that result into `rA`, leaving everything else in `rA`
+untouched. Shift the field one bit further along in the byte and the rotate
+amount and the two mask bounds each move by one. So the field's spot inside the
+struct is what sets those numbers.
 
-Contrast the *manual* version `*p |= mask`, which instead emits an `ori`:
+Now contrast the manual spelling, `*p |= mask`. That one emits an `ori` instead:
 
 ```asm
 lbz  r0, 0(r3)
@@ -46,10 +48,10 @@ ori  r0, r0, 1
 stb  r0, 0(r3)
 ```
 
-Same memory effect, **different instructions**. When you see `li; rlwimi`
-writing one bit, the original was a `u8 x:1` bitfield assignment — never a
-hand-written `|= mask`. A manual mask-and-OR produces `ori` instead of `rlwimi`,
-so it won't match the compiled output.
+The bytes end up identical, but the instructions don't. A `li; rlwimi` pair
+writing a single bit always came from a `u8 x:1` bitfield assignment, never from a
+hand-written `|= mask`. Mask-and-OR by hand gives you `ori` rather than `rlwimi`,
+and that simply won't line up with the compiled output.
 
 ## Your task
 

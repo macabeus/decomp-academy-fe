@@ -14,29 +14,30 @@ hints:
 
 # A separate file for floating point
 
-Floating-point arguments do **not** share the `r3`–`r10` integer registers.
-They have their own bank: the first eight `float`/`double` arguments go in
-**`f1`, `f2`, … `f8`**, and a floating-point result comes back in **`f1`**.
+Floats don't borrow the `r3`–`r10` integer registers; they get a bank of their
+own. The first eight `float` or `double` arguments ride in `f1` through `f8`, and a
+floating-point result comes back in `f1`.
 
-Single-precision `f32` math uses the `...s` ("single") variants. For example,
-subtracting one `f32` from another compiles to a single `fsubs`:
+For single-precision `f32` work, you want the `...s` ("single") forms of the
+instructions. Subtract one `f32` from another, say, and it collapses to a lone
+`fsubs`:
 
 ```asm
 fsubs  f1,f1,f2
 blr
 ```
 
-That is `fsub2(f32 a, f32 b) { return a - b; }`. The result lands directly in
-`f1` — the float return register, which mirrors `r3` on the integer side.
+That's `fsub2(f32 a, f32 b) { return a - b; }`. The difference ends up right in
+`f1`, the float return register, the float-side counterpart to `r3`.
 
-When a third `f32` argument joins the operation, `f3` holds it. Because there
-are now two operations, the compiler needs a temporary: it uses `f0`, a
-caller-saved scratch register it reaches for first. The two-instruction
-sequence therefore ends with the final result in `f1`.
+Add a third `f32` and `f3` carries it. Now there are two operations to do, so the
+compiler grabs a scratch register to hold the intermediate, and the one it reaches
+for first is `f0`, which is caller-saved. Two instructions later, the final value
+is back in `f1`.
 
-Now look at the target assembly for `fadd3`. There are two `fadds` instructions.
-Trace the registers to figure out which operands each one combines, and what
-single C expression produces that two-step sequence.
+The target for `fadd3` is two `fadds` in a row. Follow the registers through both
+to see which operands each one folds together, and what single C expression would
+compile down to that pair.
 
 ## Your task
 

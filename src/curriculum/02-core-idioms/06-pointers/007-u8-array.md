@@ -14,16 +14,16 @@ hints:
 
 # Scale of one
 
-(`u8` is the GameCube SDK's typedef for `unsigned char` — `typedef unsigned
-char u8;` — and shows up everywhere in GameCube code. The matching signed and
-wider types are `s8`, `u16`/`s16`, `u32`/`s32`.)
+(`u8` is the GameCube SDK's name for `unsigned char`, spelled `typedef unsigned
+char u8;` in the headers. You'll see it constantly. Its siblings are `s8` when
+signed, then `u16`/`s16` and `u32`/`s32` for the wider sizes.)
 
-In the previous lesson, a variable index required a `slwi` to scale it by the
-element size before the indexed load. The shift amount equals `log2(sizeof(T))`.
-For `u8`, `sizeof(u8)` is 1 — shifting by 0 is a no-op. So no shift appears at
-all; the index register goes straight into the indexed load.
+Last lesson the variable index got an `slwi` to scale it, the shift amount being
+`log2(sizeof(T))`. A `u8` is one byte, though. `log2(1)` is 0, a zero shift does
+nothing, and the compiler just drops it. The raw index register feeds the indexed
+load with no scaling in between.
 
-Here is a function that writes through a `u8` pointer with a variable index:
+Here's a write through a `u8` pointer at a variable index:
 
 ```c
 void set_byte(u8* p, int i, u8 v) {
@@ -36,15 +36,14 @@ stbx  r5, r3, r4  # store byte v at p + i
 blr
 ```
 
-No `slwi` before the `stbx` — because `i * 1 = i`. The store variant `stbx`
-and the load variant `lbzx` both work the same way: two registers, no shift.
+No `slwi` ahead of the `stbx`, since `i * 1` is `i`. The store `stbx` and the
+load `lbzx` behave identically here, two registers and nothing scaled.
 
-`lbzx` zero-extends the byte into the full destination register, which is what
-an unsigned `u8` produces. A diagnostic rule when reading disassembly:
-`lbzx` alone, with no following `extsb`, is strong evidence the original type
-was unsigned. An `lbzx` followed by `extsb` points to a signed `char`/`s8`
-being widened — the `extsb` shows up only when a signed byte is promoted to a
-wider type.
+There's a signedness tell hiding in `lbzx` too. It zero-extends the byte into the
+full register, which is what an unsigned `u8` wants. A lone `lbzx` with nothing
+after it usually means the source was unsigned. Spot an `extsb` glued on right
+behind it and the byte was signed, a `char` or `s8` being widened. That sign
+extend is the giveaway.
 
 ## Your task
 

@@ -17,12 +17,13 @@ hints:
 
 # Two scaled terms, one fused add
 
-A weighted sum `a*w1 + b*w2` looks like two multiplies and an add — three
-operations. With `fp_contract` on, the compiler collapses the trailing
-multiply-and-add into a single `fmadds`, so only one explicit `fmuls` survives.
-The two literal weights each come from the float pool via `lfs`.
+A weighted sum `a*w1 + b*w2` reads like three operations, two multiplies and an
+add. The compiler is cheaper than that. With `fp_contract` on it fuses the last
+multiply and the add into a single `fmadds`, and one standalone `fmuls` is all
+that is left over. The weights are constants, so each one gets loaded out of the
+float pool with an `lfs`.
 
-Consider `blend(p, q)` mixing two values 0.875 / 0.125:
+Take `blend(p, q)`, mixing two values 0.875 / 0.125:
 
 ```asm
 lfs   f0, ...        # load 0.875f from the pool
@@ -32,14 +33,14 @@ fmadds f1, f3, f1, f0 # f1 = 0.125 * q + f0  =  0.875*p + 0.125*q
 blr
 ```
 
-Decode the `fmadds`: `fmadds fD, fA, fC, fB` is `(fA * fC) + fB`. Here `fA`/`fC`
-are the second weight and its argument, and `fB` is the running product from the
-`fmuls`. So one `fmuls` plus one `fmadds` expresses *both* weighted terms and
-their sum. The two `lfs` loads reveal the two constants — read them straight from
-the pool entries.
+The `fmadds` is the dense one. `fmadds fD, fA, fC, fB` computes `(fA * fC) + fB`,
+so here `fA` and `fC` are the second weight times its argument, and `fB` is the
+product `fmuls` already left behind. Both scaled terms and the add, packed into
+those two instructions. And the constants are no mystery, they are exactly what
+the two `lfs` pull off the pool.
 
-The target assembly has the same `lfs`/`lfs`/`fmuls`/`fmadds` skeleton with
-different weights. Identify each loaded constant and which argument it scales.
+Same `lfs`/`lfs`/`fmuls`/`fmadds` skeleton shows up in the target, only the
+weights change. Pin down each loaded constant and which argument it scales.
 
 ## Your task
 

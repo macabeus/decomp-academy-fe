@@ -15,29 +15,20 @@ hints:
 
 # One instruction for multiply-then-add
 
-PowerPC has a **fused multiply-add**: it multiplies and adds in a single
-rounding step. With `fp_contract` **on** (it is, in this environment), MWCC will
-contract a multiply followed by an add into one **`fmadds`** instruction.
+PowerPC can multiply and add in one shot, rounding only once. It's called a **fused multiply-add**. Since `fp_contract` is **on** here, MWCC happily collapses a multiply that feeds an add into a single **`fmadds`**.
 
-Consider three `f32` arguments `p`, `q`, `r` in registers `f1`, `f2`, `f3`:
+Say three `f32` arguments `p`, `q`, `r` arrive in `f1`, `f2`, `f3`:
 
 ```asm
 fmadds f1, f1, f2, f3   # one rounding, single precision
 blr
 ```
 
-Read the operand order carefully: `fmadds fD, fA, fC, fB` computes
-`fD = (fA * fC) + fB`. So in `fmadds f1, f1, f2, f3`, the multiply operands are
-`f1` and `f2`, and `f3` is the addend.
+Operand order is the part that bites you. `fmadds fD, fA, fC, fB` means `fD = (fA * fC) + fB`, so `fmadds f1, f1, f2, f3` multiplies `f1` by `f2` and adds `f3`. The middle two get multiplied; the last is the addend.
 
-This is a key floating-point idiom to recognize. If you write the steps
-as separate `fmuls` + `fadds`, you won't match a contracted target — and
-vice versa. The double-precision cousin is `fmadd` (no `s`); related forms are
-`fmsubs` (`a*b - c`), `fnmadds`, and `fnmsubs`.
+Learn to spot this one. Split it back into a separate `fmuls` and `fadds` and you'll miss a contracted target, and the reverse fails just as surely. Its double-precision twin drops the `s` to become `fmadd`, and the neighbors are `fmsubs` (`a*b - c`), `fnmadds`, and `fnmsubs`.
 
-Now look at the target assembly above for `fma3`. The argument registers are
-`f1`, `f2`, `f3` — map those back to parameters `a`, `b`, `c` and decode the
-operand order to find out which two are multiplied and which is added.
+Back to the target for `fma3`. Its arguments sit in `f1`, `f2`, `f3`. Match those to `a`, `b`, `c`, walk the operand order, and you'll know which pair is multiplied and which value rides along as the addend.
 
 ## Your task
 

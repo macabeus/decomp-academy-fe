@@ -17,13 +17,13 @@ hints:
 
 # A member array is just more offset
 
-The array-of-structs lesson scaled a *runtime* index with `mulli`. An array that
-lives **inside** a struct, indexed by a *constant*, needs no multiply at all: the
-compiler folds the element offset straight into the load displacement. The
-field's array starts at its own offset within the struct, and element `i` adds
-`i * sizeof(element)` on top — all resolved at compile time.
+Last time, scaling a runtime index took a `mulli`. Here's the easy cousin. An
+array living inside a struct, indexed by a constant, needs no multiply whatsoever.
+Whatever offset the element works out to, the compiler folds it straight into the
+load. Its array opens at the field's offset in the struct, then element `i` piles
+`i * sizeof(element)` on top, and all of that is nailed down at compile time.
 
-Consider a struct whose array follows a scalar field:
+Picture a struct that parks an array right after a scalar field:
 
 ```c
 typedef struct { int tag; int data[8]; } Buffer;
@@ -33,8 +33,8 @@ int Buffer_lastPair(Buffer* b) {
 }
 ```
 
-`tag` occupies offset 0, so `data` begins at offset 4. Each `int` element is 4
-bytes, so `data[6]` is at `4 + 6*4 = 28` and `data[7]` at `4 + 7*4 = 32`:
+Offset 0 belongs to `tag`, so `data` opens at offset 4. With 4-byte `int`
+elements, `data[6]` works out to `4 + 6*4 = 28` and `data[7]` to `4 + 7*4 = 32`:
 
 ```asm
 lwz   r4, 28(r3)    # b->data[6]   (4 + 24)
@@ -43,15 +43,15 @@ add   r3, r4, r0
 blr
 ```
 
-No `mulli` or `lwzx` appears — both indices are constants, so each element is
-just a fixed displacement. To recover the access, subtract the array's base
-offset from the load displacement, then divide by the element size to get the
-index. A run of evenly-spaced loads from one base is the signature of stepping
-through a member array.
+Nowhere do you see a `mulli` or an `lwzx`. Constant indices let the compiler bake
+each element down to a fixed displacement. Reversing that is easy enough: peel the
+array's base offset off a load's displacement, divide the leftover by the element
+size, and out comes the index. Evenly spaced loads marching off a single base?
+Something is walking a member array.
 
-The target reads two elements of a member array and combines them. Work out the
-array's base offset from the fields ahead of it, convert each displacement to an
-index, then reproduce the combine.
+Two elements get read from a member array in your target and joined together.
+Recover the array's base offset from whatever fields come before it, turn each
+displacement back into an index, then assemble the combine.
 
 ## Your task
 
