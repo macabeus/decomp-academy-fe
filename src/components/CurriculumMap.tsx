@@ -112,7 +112,9 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
                   <div
                     key={chapter.id}
                     className={`overflow-hidden rounded-xl transition-colors ${
-                      hasResume ? "bg-accent/[0.07]" : "bg-bg-soft/60"
+                      // In light mode the active chapter drops its accent tint and
+                      // matches the inactive surface (the "Continue here" pill still marks it).
+                      hasResume ? "bg-accent/[0.07] theme-light:bg-bg-soft/60" : "bg-bg-soft/60"
                     }`}
                   >
                     <button
@@ -165,7 +167,7 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
                       }`}
                     >
                       <div className="overflow-hidden">
-                        <div className="border-t border-line">
+                        <div className="border-t border-line-soft">
                           {chapter.lessons.map((l) => {
                             const pct = bestPercent(l.id);
                             const ok = pct >= 100;
@@ -174,16 +176,14 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
                               <Link
                                 key={l.id}
                                 href={`/lesson/${l.id}`}
-                                className={`group flex items-center gap-3 border-b border-line/50 px-5 py-3 last:border-0 transition hover:bg-bg-softer/40 ${
-                                  isResume ? "bg-accent/[0.06]" : ""
-                                }`}
+                                className="group flex items-center gap-3 border-b border-line/50 px-5 py-3 last:border-0 transition hover:bg-bg-softer/40"
                               >
                                 {ok ? (
-                                  <IconCircleCheckFilled size={18} className="shrink-0 text-good" />
+                                  <IconCircleCheckFilled size={18} className="shrink-0 text-good-soft" />
                                 ) : l.concept ? (
                                   <IconBook2 size={18} className="shrink-0 text-content-faint" />
                                 ) : pct > 0 ? (
-                                  <IconCircleDashed size={18} className="shrink-0 text-warn" />
+                                  <IconCircleDashed size={18} className="shrink-0 text-warn theme-light:text-amber-500" />
                                 ) : (
                                   <IconCircleDashed size={18} className="shrink-0 text-content-ghost" />
                                 )}

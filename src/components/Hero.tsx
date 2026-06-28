@@ -23,11 +23,11 @@ export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: 
 
   return (
     <header className="relative overflow-hidden border-b border-line">
-      <AsmRain />
       <div className="grid-dots absolute inset-0 opacity-40" />
-      {/* Periwinkle + GameCube-indigo glows for a richer, less-flat backdrop. */}
-      <div className="absolute -top-32 left-1/3 h-72 w-[34rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]" />
-      <div className="absolute -top-24 right-0 h-64 w-[28rem] rounded-full bg-[#4f3d8c]/25 blur-[130px]" />
+      {/* GameCube-indigo glows for a richer, less-flat backdrop. */}
+      <div className="absolute -top-32 left-1/3 h-72 w-[34rem] -translate-x-1/2 rounded-full theme-light:bg-accent/10 bg-accent/20 blur-[120px]" />
+      <div className="absolute -top-24 right-0 h-64 w-[28rem] rounded-full theme-light:bg-[#4f3d8c]/15 bg-[#4f3d8c]/25 blur-[130px]" />
+
       <div className="relative mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-5 pb-16 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pt-20">
         <div>
           <h1 className="max-w-xl text-2xl font-bold leading-snug tracking-tight text-content-bright sm:text-3xl">
@@ -93,56 +93,6 @@ export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: 
   );
 }
 
-// Faint real PowerPC disassembly washing the backdrop — the clearest possible
-// signal that this site is about reading machine code, not generic dark SaaS.
-const RAIN_ASM = `stwu     r1, -0x20(r1)
-mflr     r0
-stw      r0, 0x24(r1)
-stw      r31, 0x1c(r1)
-mr       r31, r3
-lwz      r3, 0x8(r31)
-lfs      f1, 0x40(r3)
-lfs      f0, 0x44(r3)
-fmuls    f1, f1, f1
-fmadds   f1, f0, f0, f1
-frsqrte  f0, f1
-fmuls    f2, f0, f0
-fnmsubs  f2, f2, f1, f13
-fmadds   f0, f0, f2, f0
-cmplwi   r4, 0
-beq-     .L_0x4c
-rlwinm   r0, r5, 2, 0, 29
-lwzx     r6, r3, r0
-add      r6, r6, r0
-stwx     r6, r3, r0
-bl       Vec_Normalize
-li       r3, 1
-lwz      r0, 0x24(r1)
-mtlr     r0
-blr`;
-
-function AsmRain() {
-  return (
-    <div
-      aria-hidden="true"
-      className="asm-rain pointer-events-none absolute inset-0 select-none overflow-hidden"
-      style={{
-        maskImage: "radial-gradient(130% 120% at 80% -10%, #000 25%, transparent 70%)",
-        WebkitMaskImage: "radial-gradient(130% 120% at 80% -10%, #000 25%, transparent 70%)",
-      }}
-    >
-      <pre className="absolute right-2 top-4 hidden text-[11px] leading-[1.45] text-white/[0.06] md:block">
-        {RAIN_ASM}
-        {"\n"}
-        {RAIN_ASM}
-      </pre>
-      <pre className="absolute left-2 top-32 hidden text-[11px] leading-[1.45] text-white/[0.04] lg:block">
-        {RAIN_ASM}
-      </pre>
-    </div>
-  );
-}
-
 // A self-contained mock of the core loop: target asm vs. your output, animating
 // from "almost" to a clean byte-match. This is the product in one glance.
 function MatchPreview() {
@@ -167,7 +117,7 @@ function MatchPreview() {
   ];
 
   return (
-    <div className="animate-slide-up-fade overflow-hidden rounded-xl bg-bg-inset/90 shadow-2xl shadow-black/50 ring-1 ring-white/5 backdrop-blur lg:translate-y-0">
+    <div className="animate-slide-up-fade overflow-hidden rounded-xl theme-light:bg-white bg-bg-inset/90 theme-light:shadow-lg shadow-2xl ring-1 ring-white/5 backdrop-blur lg:translate-y-0">
       <div className="flex items-center gap-2 border-b border-line bg-bg-soft/80 px-3.5 py-2">
         <span className="flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-bad/70" />
@@ -177,7 +127,7 @@ function MatchPreview() {
         <span className="ml-1 font-mono text-2xs text-content-muted">match Vec_Normalize</span>
         <span
           className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold transition-colors duration-500 ${
-            matched ? "bg-good/15 text-good" : "bg-warn/15 text-warn"
+            matched ? "bg-good/15 theme-light:bg-good-soft/15 text-good theme-light:text-good-soft" : "bg-warn/15 theme-light:bg-amber-50 text-warn theme-light:text-amber-500"
           }`}
         >
           {matched ? (

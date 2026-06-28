@@ -22,7 +22,7 @@ import {
   type Seg,
 } from "@/lib/objdiff/client";
 import { AccountMenu } from "./AccountMenu";
-import { Logo } from "./ui";
+import { Logo, ThemeToggle } from "./ui";
 import { createScratch } from "@/lib/playground/decompme";
 import { EXAMPLES, type ExampleCategory, type PlaygroundExample } from "@/lib/playground/examples";
 
@@ -249,6 +249,7 @@ export function PlaygroundWorkspace() {
           MWCC GC/2.0
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          <ThemeToggle />
           <AccountMenu />
         </div>
       </header>

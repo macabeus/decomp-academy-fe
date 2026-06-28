@@ -4,7 +4,7 @@ import { chaptersWithLessons, LESSONS, TIERS } from "@/lib/lessons/registry";
 import { CurriculumMap } from "@/components/CurriculumMap";
 import { MatchLog } from "@/components/MatchLog";
 import { Hero } from "@/components/Hero";
-import { Logo } from "@/components/ui";
+import { Logo, ThemeToggle } from "@/components/ui";
 import { AccountMenu } from "@/components/AccountMenu";
 import { JsonLd } from "@/components/JsonLd";
 import { courseLd } from "@/lib/seo";
@@ -59,6 +59,7 @@ export default function Home() {
             <Link href="#curriculum" className="text-content-secondary transition hover:text-content-primary">
               Curriculum
             </Link>
+            <ThemeToggle />
             <AccountMenu />
           </div>
         </div>

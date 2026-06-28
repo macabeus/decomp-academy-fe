@@ -67,10 +67,11 @@ export function MatchLog({ lessons }: { lessons: HeatLesson[] }) {
           const pct = bestPercent(l.id);
           const cls =
             pct >= 100
-              ? "bg-good hover:ring-good"
+              ? "bg-good theme-light:bg-good-soft hover:ring-good"
               : pct > 0
-                ? "bg-warn/70 hover:ring-warn"
-                : "bg-line-strong/70 hover:ring-accent";
+                ? "bg-warn/70 theme-light:bg-amber-400 hover:ring-warn"
+                // Empty pip: a lighter gray in light mode.
+                : "bg-line-strong/70 theme-light:bg-line-faint hover:ring-accent";
           return (
             <Link
               key={l.id}

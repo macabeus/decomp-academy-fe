@@ -41,6 +41,7 @@ import {
   useProgress,
 } from "@/lib/progress";
 import { AccountMenu } from "./AccountMenu";
+import { ThemeToggle } from "./ui";
 import { FeedbackDialog } from "./FeedbackDialog";
 
 const CodeEditor = dynamic(() => import("./CodeEditor").then((m) => m.CodeEditor), {
@@ -413,9 +414,11 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
             <span className="font-mono text-xs text-content-muted">
               match <span className="text-accent">{lesson.symbol}</span>
             </span>
+
             <span className="hidden items-center gap-1 rounded bg-bg-softer px-1.5 py-0.5 font-mono text-2xs text-content-faint sm:inline-flex">
               mwcceppc.exe -O4,p
             </span>
+
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={reset}
@@ -561,6 +564,7 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
             <IconHelpCircle size={16} />
           </button>
           <div className="mx-1 h-5 w-px bg-line" />
+          <ThemeToggle />
           <AccountMenu />
         </div>
       </header>
@@ -739,7 +743,7 @@ function ResultPanel({
     ? targetRows.map((segs) => ({ kind: "delete" as const, target: segs, user: null }))
     : null;
   return (
-    <div className={`min-h-[260px] flex-[1] flex-col bg-bg-inset/60 lg:min-h-0 ${className}`}>
+    <div className={`min-h-[260px] flex-[1] flex-col theme-light:bg-white/50 bg-bg-inset/60 lg:min-h-0 ${className}`}>
       <div className="flex items-center gap-1 border-b border-line bg-bg-soft/50 px-2">
         <TabButton active={tab === "diff"} onClick={() => setTab("diff")} icon={<IconGitCompare size={14} />}>
           Diff
@@ -754,6 +758,7 @@ function ResultPanel({
           <MatchMeter check={check} />
         </div>
       </div>
+
       <div className="min-h-0 flex-1 overflow-auto">
         {tab === "diff" &&
           (check.status === "running" && !check.vm ? (
@@ -878,8 +883,8 @@ function MatchBanner({
 }) {
   return (
     <div className="relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden p-6 text-center">
-      <div className="pointer-events-none absolute inset-0 animate-success-sweep bg-gradient-to-r from-transparent via-good/15 to-transparent" />
-      <div className="animate-ring-burst flex h-14 w-14 items-center justify-center rounded-full bg-good/15">
+      <div className="pointer-events-none absolute inset-0 animate-success-sweep bg-gradient-to-r from-transparent theme-light:via-good/0 via-good/15 to-transparent" />
+      <div className="animate-ring-burst flex h-14 w-14 items-center justify-center rounded-full theme-light:bg-good-soft/15 bg-good/15">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M5 12.5l4.2 4.2L19 7"
@@ -892,7 +897,7 @@ function MatchBanner({
           />
         </svg>
       </div>
-      <div className="animate-count-pop text-lg font-bold text-good">
+      <div className="animate-count-pop text-lg font-bold theme-light:text-good-soft text-good">
         {firstEver ? "First match. You're decomping now." : `Perfect match — ${percent}%`}
       </div>
       <p className="max-w-sm text-sm text-content-muted">
@@ -901,7 +906,7 @@ function MatchBanner({
           : "Every instruction lines up with the compiler's output. This is exactly how a real decomp function gets checked in. Move on to the next lesson."}
       </p>
       {noHints && (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/30 bg-warn/10 px-3 py-1 text-xs font-semibold text-warn">
+        <span className="inline-flex items-center gap-1.5 rounded-full border theme-light:border-amber-200 border-warn/30 theme-light:bg-amber-50 theme-light:text-amber-600 bg-warn/10 px-3 py-1 text-xs font-semibold text-warn">
           <IconBulb size={13} /> Solved with no hints
         </span>
       )}
@@ -972,7 +977,7 @@ function MatchMeter({ check }: { check: CheckState }) {
       </span>
     );
   if (check.status === "close" && check.matchPercent !== undefined) {
-    const tone = pct >= 90 ? "text-good" : pct >= 60 ? "text-warn" : "text-bad";
+    const tone = pct >= 90 ? "text-good theme-light:text-good-soft" : pct >= 60 ? "text-warn theme-light:text-amber-400" : "text-bad theme-light:text-amber-600";
     return (
       <span className="inline-flex items-baseline gap-1.5 tabular-nums">
         <span className={`text-base font-bold ${tone}`}>{shown.toFixed(1)}%</span>

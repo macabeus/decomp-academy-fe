@@ -5,7 +5,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
+import { IconMoon, IconSun } from "@tabler/icons-react";
 import { BrandMark } from "@/components/BrandMark";
+import { useTheme } from "@/lib/theme-context";
 
 function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
@@ -204,6 +206,34 @@ export function Modal({
   );
 }
 
+/* ------------------------------- ThemeToggle ------------------------------- */
+
+// Dark ⇄ light switch. Renders an inert placeholder until mounted so the icon
+// (which depends on the client-resolved theme) can't trip a hydration mismatch.
+export function ThemeToggle({ className }: { className?: string }) {
+  const { theme, toggle } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const base =
+    "inline-flex h-8 w-8 items-center justify-center rounded-md text-content-secondary transition hover:bg-bg-softer hover:text-content-primary";
+
+  if (!mounted) {
+    return <span className={cx(base, className)} aria-hidden="true" />;
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      title={theme === "dark" ? "Light mode" : "Dark mode"}
+      className={cx(base, className)}
+    >
+      {theme === "dark" ? <IconSun size={17} /> : <IconMoon size={17} />}
+    </button>
+  );
+}
+
 /* ----------------------------------- Logo ---------------------------------- */
 
 // A terminal-prompt mark: chevron + blinking underscore. Mono-forward identity
@@ -211,7 +241,8 @@ export function Modal({
 // The {dA} brand mark. `size` sets the rendered height; width follows the
 // mark's aspect ratio. (See components/BrandMark for the generated SVG.)
 export function Logo({ size = 28, className }: { size?: number; className?: string }) {
-  return <BrandMark height={size} className={cx("block w-auto", className)} />;
+  // text-content-bright drives the mark's letter fill (currentColor) per theme.
+  return <BrandMark height={size} className={cx("block w-auto text-content-bright", className)} />;
 }
 
 export { cx };

@@ -2,27 +2,25 @@
 
 import Editor, { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useRef } from "react";
-import { palette } from "@/lib/theme";
+import { useEffect, useRef } from "react";
+import { palette, paletteLight } from "@/lib/theme";
+import { useTheme, type Theme } from "@/lib/theme-context";
 
 const hx = (c: string) => c.replace("#", "");
 
-export function CodeEditor({
-  value,
-  onChange,
-  onRun,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onRun?: () => void;
-}) {
-  const onRunRef = useRef(onRun);
-  onRunRef.current = onRun;
-
-  function handleMount(ed: editor.IStandaloneCodeEditor, monaco: Monaco) {
-    const s = palette.syntax;
-    monaco.editor.defineTheme("decomp", {
-      base: "vs-dark",
+// One Monaco theme per app theme, both derived from the shared palette so the
+// editor's syntax colours always match the asm diff. The two keys differ only in
+// the few editor-chrome colours Monaco needs that aren't in the palette.
+function defineThemes(monaco: Monaco) {
+  const build = (
+    name: string,
+    base: "vs" | "vs-dark",
+    pal: typeof palette,
+    chrome: { lineHighlight: string; selection: string },
+  ) => {
+    const s = pal.syntax;
+    monaco.editor.defineTheme(name, {
+      base,
       inherit: true,
       rules: [
         { token: "comment", foreground: hx(s.comment), fontStyle: "italic" },
@@ -33,16 +31,46 @@ export function CodeEditor({
         { token: "identifier", foreground: hx(s.ident) },
       ],
       colors: {
-        "editor.background": palette.bg.inset,
-        "editor.lineHighlightBackground": "#12171f",
-        "editorLineNumber.foreground": palette.content.ghost,
-        "editorLineNumber.activeForeground": palette.accent.DEFAULT,
-        "editor.selectionBackground": "#2b3960",
-        "editorCursor.foreground": palette.accent.DEFAULT,
-        "editorIndentGuide.background1": palette.line.faint,
+        "editor.background": pal.bg.soft,
+        "editor.lineHighlightBackground": chrome.lineHighlight,
+        "editorLineNumber.foreground": pal.content.ghost,
+        "editorLineNumber.activeForeground": pal.accent.DEFAULT,
+        "editor.selectionBackground": chrome.selection,
+        "editorCursor.foreground": pal.accent.DEFAULT,
+        "editorIndentGuide.background1": pal.line.faint,
       },
     });
-    monaco.editor.setTheme("decomp");
+  };
+
+  build("decomp-dark", "vs-dark", palette, { lineHighlight: "#12171f", selection: "#2b3960" });
+  build("decomp-light", "vs", paletteLight, { lineHighlight: "#efedf9", selection: "#d8d0f3" });
+}
+
+const themeName = (t: Theme) => (t === "light" ? "decomp-light" : "decomp-dark");
+
+export function CodeEditor({
+  value,
+  onChange,
+  onRun,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onRun?: () => void;
+}) {
+  const { theme } = useTheme();
+  const onRunRef = useRef(onRun);
+  onRunRef.current = onRun;
+  const monacoRef = useRef<Monaco | null>(null);
+
+  // Re-point Monaco at the matching theme whenever the app theme changes.
+  useEffect(() => {
+    monacoRef.current?.editor.setTheme(themeName(theme));
+  }, [theme]);
+
+  function handleMount(ed: editor.IStandaloneCodeEditor, monaco: Monaco) {
+    monacoRef.current = monaco;
+    defineThemes(monaco);
+    monaco.editor.setTheme(themeName(theme));
     ed.addCommand(
       monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
       () => onRunRef.current?.(),
@@ -53,7 +81,7 @@ export function CodeEditor({
     <Editor
       height="100%"
       language="c"
-      theme="decomp"
+      theme={themeName(theme)}
       value={value}
       onChange={(v) => onChange(v ?? "")}
       onMount={handleMount}

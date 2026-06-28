@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { GLOSSARY } from "@/lib/glossary";
-import { Logo } from "@/components/ui";
+import { Logo, ThemeToggle } from "@/components/ui";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbLd, definedTermSetLd, SITE_URL } from "@/lib/seo";
 
@@ -44,12 +44,15 @@ export default function GlossaryPage() {
             <Logo size={28} />
             <span className="font-bold tracking-tight text-content-primary">Decomp Academy</span>
           </Link>
-          <Link
-            href="/"
-            className="ml-auto inline-flex items-center gap-1.5 text-sm text-content-secondary transition hover:text-content-primary"
-          >
-            <IconArrowLeft size={16} /> Back to lessons
-          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm text-content-secondary transition hover:text-content-primary"
+            >
+              <IconArrowLeft size={16} /> Back to lessons
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -71,9 +74,9 @@ export default function GlossaryPage() {
       </header>
 
       <section className="mx-auto max-w-3xl px-5 py-10">
-        <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line">
+        <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line theme-light:border-line-strong theme-light:bg-line-strong">
           {TERMS.map((e) => (
-            <div key={e.term} id={e.term} className="scroll-mt-20 bg-bg p-5">
+            <div key={e.term} id={e.term} className="scroll-mt-20 bg-bg p-5 theme-light:bg-bg-soft">
               <dt className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 <span className="font-mono text-lg font-semibold text-accent">{e.term}</span>
                 <span className="text-sm text-content-secondary">{e.full}</span>

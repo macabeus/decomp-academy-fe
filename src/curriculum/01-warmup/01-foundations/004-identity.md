@@ -23,9 +23,9 @@ blr
 
 One `blr`, and that's a whole valid function. Further integer and pointer
 arguments stack up in `r4`, `r5`, `r6`, and so on through `r10`. Floats play by
-different rules, riding in `f1`–`f8` without ever eating an integer slot.
+different rules, riding in `f1`–`f8` without consuming an integer slot.
 
-So when the listing is just a `blr` with nothing touching `r3`, here's the
+So when the assembly is just a `blr` with nothing touching `r3`, here's the
 question to ask: what would the input and output have to be for no work to be
 needed at all?
 

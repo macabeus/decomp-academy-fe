@@ -16,16 +16,16 @@ import type {
 
 // Distinct hues for objdiff's "rotating" color — used so each branch's pair of
 // arrows (source + target) shares a colour you can trace, and adjacent branches
-// stay easy to tell apart.
+// stay easy to tell apart. The hues themselves (per-theme) live in the palette.
 const ROT = [
-  "text-[#e3b341]", // yellow
-  "text-[#56d4dd]", // cyan
-  "text-[#db61a2]", // pink
-  "text-[#a371f7]", // purple
-  "text-[#3fb950]", // green
-  "text-[#f0883e]", // orange
-  "text-[#6cb6ff]", // blue
-  "text-[#f47067]", // red
+  "text-rot-0", // yellow / amber
+  "text-rot-1", // cyan / teal
+  "text-rot-2", // pink
+  "text-rot-3", // purple
+  "text-rot-4", // green
+  "text-rot-5", // orange
+  "text-rot-6", // blue
+  "text-rot-7", // red
 ];
 
 function tokClass(tok: string): string {
@@ -48,9 +48,10 @@ function tokClass(tok: string): string {
 function segClass(s: Seg): string {
   switch (s.color) {
     // "replace" highlights the specific token that differs within an otherwise
-    // matching line — box it so the eye lands on it.
+    // matching line — box it so the eye lands on it. In light, gold-on-gold goes
+    // muddy, so the token text flips to near-black on a clearer amber box.
     case "replace":
-      return "rounded-[3px] bg-warn/20 text-warn ring-1 ring-warn/30";
+      return "rounded-[3px] bg-warn/20 text-warn ring-1 ring-warn/30 theme-light:bg-warn/[0.15] theme-light:text-content-bright theme-light:ring-warn/50";
     // Whole-line add/remove: solid colour, no box (the row tint + −/+ mark carry it).
     case "delete":
       return "text-bad";
@@ -245,6 +246,7 @@ function Line({ segs }: { segs: Seg[] | null }) {
           onMouseLeave: tip.hide,
         }
       : undefined;
+
   return (
     <span className={mnemonic ? "cursor-help whitespace-pre" : "whitespace-pre"} {...hover}>
       {segs.map((s, i) => (
@@ -256,13 +258,14 @@ function Line({ segs }: { segs: Seg[] | null }) {
   );
 }
 
+// The faint row tints need a touch more alpha in light to read on white.
 const ROW_META: Record<RowKind, { bg: string; mark: string; markColor: string; label: string }> = {
   none: { bg: "", mark: "", markColor: "", label: "matches" },
-  replace: { bg: "bg-warn/[0.07]", mark: "≠", markColor: "text-warn", label: "differs" },
-  "op-mismatch": { bg: "bg-warn/[0.07]", mark: "≠", markColor: "text-warn", label: "opcode differs" },
-  "arg-mismatch": { bg: "bg-warn/[0.07]", mark: "≠", markColor: "text-warn", label: "operand differs" },
-  delete: { bg: "bg-bad/[0.07]", mark: "−", markColor: "text-bad", label: "missing from your code" },
-  insert: { bg: "bg-accent/[0.07]", mark: "+", markColor: "text-accent", label: "extra in your code" },
+  replace: { bg: "bg-warn/[0.07] theme-light:bg-warn/[0.11]", mark: "≠", markColor: "text-warn", label: "differs" },
+  "op-mismatch": { bg: "bg-warn/[0.07] theme-light:bg-amber-50", mark: "≠", markColor: "text-warn", label: "opcode differs" },
+  "arg-mismatch": { bg: "bg-warn/[0.07] theme-light:bg-amber-50", mark: "≠", markColor: "text-warn", label: "operand differs" },
+  delete: { bg: "bg-bad/[0.07] theme-light:bg-red-50", mark: "−", markColor: "text-bad", label: "missing from your code" },
+  insert: { bg: "bg-accent/[0.07] theme-light:bg-emerald-50", mark: "+", markColor: "text-accent", label: "extra in your code" },
 };
 
 export function ObjDiff({ rows }: { rows: DiffRowVM[] }) {

@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
-import { palette } from "./src/lib/theme";
+import plugin from "tailwindcss/plugin";
+import { tailwindColors } from "./src/lib/theme";
 
 const config: Config = {
   content: [
@@ -7,16 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {
-        bg: palette.bg,
-        line: palette.line,
-        content: palette.content,
-        accent: palette.accent,
-        good: palette.good,
-        warn: palette.warn,
-        bad: palette.bad,
-        syntax: palette.syntax,
-      },
+      // Semantic colours are CSS-var references (see src/lib/theme.ts), so every
+      // utility — and its /opacity modifier — resolves against the active theme.
+      colors: tailwindColors,
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -86,7 +80,14 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Ancestor-scoped theme variants so a handful of surfaces (e.g. the diff
+    // highlight) can diverge per theme without disturbing the other one.
+    plugin(({ addVariant }) => {
+      addVariant("theme-light", ':root[data-theme="light"] &');
+      addVariant("theme-dark", ':root:not([data-theme="light"]) &');
+    }),
+  ],
 };
 
 export default config;

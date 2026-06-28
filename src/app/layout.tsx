@@ -4,6 +4,8 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import { ProgressProvider } from "@/lib/auth/ProgressProvider";
+import { ThemeProvider, themeInitScript } from "@/lib/theme-context";
+import { themeStyles } from "@/lib/theme";
 import { EngagementPrompts } from "@/components/EngagementPrompts";
 import { JsonLd } from "@/components/JsonLd";
 import { organizationLd, websiteLd, SITE_DESCRIPTION } from "@/lib/seo";
@@ -70,7 +72,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#3A1E6E",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f6fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0c16" },
+  ],
 };
 
 export default function RootLayout({
@@ -79,15 +84,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    // data-theme defaults to dark for SSR; the pre-paint script (below) corrects
+    // it from storage / OS preference before first paint. suppressHydrationWarning
+    // because that script mutates the attribute before React hydrates.
+    <html
+      lang="en"
+      data-theme="dark"
+      suppressHydrationWarning
+      className={`${sans.variable} ${mono.variable}`}
+    >
+      <head>
+        {/* Per-theme CSS variables, then the no-flash theme resolver. */}
+        <style dangerouslySetInnerHTML={{ __html: themeStyles }} />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="font-sans antialiased">
         <JsonLd data={[organizationLd(), websiteLd()]} />
-        <AuthProvider>
-          <ProgressProvider>
-            {children}
-            <EngagementPrompts />
-          </ProgressProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ProgressProvider>
+              {children}
+              <EngagementPrompts />
+            </ProgressProvider>
+          </AuthProvider>
+        </ThemeProvider>
         {/* Cloudflare Web Analytics */}
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"
