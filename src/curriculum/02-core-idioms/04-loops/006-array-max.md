@@ -14,14 +14,13 @@ hints:
   - A known trip count makes MWCC use `mtctr` / `bdnz` for the loop.
 ---
 
-# A known trip count uses the count register
+# When the trip count is known up front
 
-This loop scans an array keeping track of the best value seen. Because the trip
-count is known *before* the loop starts, MWCC loads it into the special
-**count register** with `mtctr` and uses `bdnz` ("decrement CTR, branch if
-non-zero") as the loop branch — no explicit counter compare needed. The body
-is data-dependent (the running result is only updated conditionally), so the
-loop stays rolled even at full `-O4,p`:
+I still remember the first max-scan that fooled me. The count was no secret, `n`
+sat right there, and MWCC noticed. Watch what it did. `n - 1` went straight into
+the **count register** via `mtctr`, and from then on `bdnz` ("decrement CTR,
+branch if non-zero") carried the loop. Search the body all you like, you won't
+find a counter compare.
 
 ```asm
 addi r0, r4, -1     # trip count = n - 1
@@ -41,10 +40,14 @@ bdnz+ body          # CTR--, loop while non-zero
 blr
 ```
 
-Two idioms to bank: `mtctr`/`bdnz` is *the* signature of a counted loop with a
-precomputed trip count, and `blelr-` is "compare-then-return" fused into the
-early exit. Keep the `mtctr`/`bdnz` pair in mind — it returns in the break
-lesson, where the same count register drives a loop that also has an early exit.
+What fooled me was expecting an unrolled body. Nope. My running max only budged
+when a candidate beat it, and MWCC won't unroll across a dependency like that, so
+the loop stayed put even at `-O4,p`.
+
+So, two souvenirs. `mtctr` cuddled up next to `bdnz`? Trip count was known before
+the loop ever ran. `blelr-`? Compare-and-return, fused, the early bail when
+there's nothing to scan. Keep that `mtctr`/`bdnz` couple in view, it walks back
+on stage in the break lesson driving a loop that bails early too.
 
 ## Your task
 

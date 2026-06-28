@@ -18,19 +18,19 @@ hints:
 
 # Tying the chapter together
 
-This capstone combines what the whole chapter built: an **early-return guard**,
-some real arithmetic, and two **branchless-style clamps** — all in one function,
-back to back. Nothing here is new; the only skill is reading three familiar
-stages in sequence and noticing how MWCC fuses each clamp's compare into the
-arithmetic that precedes it.
+This last one is a mash-up. The function leans on an **early-return guard** to
+drop junk inputs, runs a little arithmetic, then uses **branchless-style clamps**
+to keep the answer in bounds. No new instruction appears. The challenge is
+recognising machinery you've already built, plus one MWCC habit of welding a
+clamp's compare onto the arithmetic that just ran.
 
-The fusion trick: instructions ending in `.` (like `subf.`, `add.`) update the
-condition register *as a side effect*. So when a value is computed and then
-immediately clamped, MWCC skips the separate `cmpwi` — the dotted arithmetic
-already set the flags the branch reads.
+The weld hangs on the trailing dot. When a mnemonic carries a `.`, say `add.` or
+`subf.`, it updates the condition register as a *side effect* of its real work.
+So a freshly computed value that needs clamping skips its own `cmpwi`; the dotted
+op already set the flags the branch will test.
 
-Consider `step(pos, delta, limit)`: it ignores a non-positive limit, advances
-`pos` by `delta`, then clamps the result into `[0, limit]`:
+In `step(pos, delta, limit)`, a non-positive limit gets ignored outright, `pos`
+moves up by `delta`, and the result ends up wedged inside `[0, limit]`:
 
 ```asm
 cmpwi r5,0         # guard: limit <= 0 ?
@@ -45,15 +45,15 @@ mr    r3,r5        # otherwise saturate to limit
 blr
 ```
 
-Three stages: the `blelr-` guard returns early; `add.` does the work *and* arms
-the floor's `bge-` with no extra compare; the final `cmpw`/`blelr-`/`mr` caps the
-top. Each piece is a lesson you've already done — the capstone is recognising
-them stacked.
+The `blelr-` near the top is the guard, gone the moment it must be. Right after,
+`add.` does the arithmetic and, for free, arms the floor's `bge-`. The tail,
+`cmpw` into `blelr-` into `mr`, holds the value under the ceiling. You've coded
+each move already; the real exercise is noticing them strung together.
 
-Your target is a different guarded-then-clamped function. Trace it stage by
-stage: find the guard and its sentinel, the arithmetic in the middle, and the
-clamp(s) that bound the result. Watch for dotted instructions feeding a branch
-with no compare between them.
+Yours guards and clamps something different, but you read it the same way. The
+guard and its return value come first, the working arithmetic sits in the middle,
+a clamp or two fences the result at the end. Spot a dotted op pressed against a
+branch with no compare in the gap, and the fusion is showing its face again.
 
 ## Your task
 

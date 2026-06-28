@@ -15,10 +15,10 @@ hints:
 
 # No counter, just a moving pointer
 
-Some loops have no numeric bound at all — they advance a pointer until they hit a
-**sentinel** value, like the `'\0'` that terminates a C string. Here there is no
-induction integer; the pointer in `r3` *is* the loop state. Each iteration loads
-a byte with `lbz` (load byte, zero-extended), tests it, and bumps the pointer:
+This one threw me the first time, because there's nothing to count. The loop
+just walks a pointer until it meets a **sentinel**, here the `'\0'` ending a C
+string. No loop variable anywhere. `r3` is the loop itself, and each turn loads a
+byte with `lbz` (load byte, zero-extended), checks it, and steps on.
 
 ```asm
 li   r4, 0          # counter = 0
@@ -34,15 +34,14 @@ mr   r3, r4
 blr
 ```
 
-Two things to notice. The byte load is `lbz` because the data is `u8`, and the
-test is `cmplwi` — an *unsigned* compare, because `u8` is unsigned. Typing the
-pointer as `u8*` (not `char*`) is what keeps the load clean with no sign-extend.
+Two snags that bit me. The load is `lbz` only because the data is a `u8`. The
+compare is `cmplwi` only because that `u8` is unsigned. Type the pointer `u8*`
+rather than `char*` and the load comes out clean.
 
-`u8` is the project's own name for an unsigned byte — `typedef unsigned char
-u8;` from a shared header, the same `u8`/`u16`/`u32` convention nearly every GC
-decompilation uses. It matters here: `char` would invite a sign-extending load,
-giving subtly different asm, so reach for the exact project type the target was
-built with.
+That `u8` is the project's own unsigned byte, just `typedef unsigned char u8;` in
+a shared header, the `u8`/`u16`/`u32` style nearly every GC decomp uses. Pick
+`char` instead and you'd get a sign-extending load and slightly different asm, so
+I always match the type the target was built with.
 
 ## Your task
 

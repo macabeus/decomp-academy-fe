@@ -15,10 +15,10 @@ hints:
 
 # Two ways out of one loop
 
-A `break` gives a loop a *second* exit. This linear search runs a counted loop
-(so MWCC still uses `mtctr`/`bdnz` for the normal termination) but adds an inner
-`beq-` that jumps straight out the moment it finds `k`. Both exits land on the
-same `mr r3, r6` that returns the index `i`:
+A `break` hands a loop a second door out. This is a plain linear search, so the
+counted part still rides `mtctr`/`bdnz` to its normal finish, but there's an
+extra `beq-` tucked inside that bolts the instant it spots `k`. Notice both exits
+funnel into the same `mr r3, r6`, the one that hands back the index `i`.
 
 ```asm
 li   r6, 0          # index = 0
@@ -37,9 +37,9 @@ mr   r3, r6         # return index
 blr
 ```
 
-When you see a loop with a CTR-driven `bdnz` *and* an extra conditional branch
-out of the middle, that middle branch is your `break`. If `k` is never found the
-loop falls through normally with `i == n`.
+So the tell is simple. A CTR-driven `bdnz` plus a stray conditional branch
+leaping out of the middle? That middle branch is the `break`. Miss `k` entirely
+and the loop just runs out the normal way, leaving `i == n`.
 
 ## Your task
 

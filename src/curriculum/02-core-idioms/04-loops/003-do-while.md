@@ -16,14 +16,15 @@ hints:
 
 # One branch, none wasted
 
-A `do { } while ()` loop always runs its body **at least once**, so the compiler
-doesn't need the pre-test. That leading `b test` from the `for`/`while` shape
-*disappears*. What's left is the tightest possible loop: body, test, branch back
-— a single conditional branch and nothing else.
+Run a `do { } while ()` and the body always executes **at least once**, which
+means the compiler can skip the pre-test entirely. The leading `b test` you saw
+in the `for`/`while` shape just *disappears*. You're left with the leanest loop
+there is, body then test then a branch back, one conditional jump carrying the
+whole thing.
 
-Here is `squares(n)` — summing 1 through `n` — written as a `do`/`while`. There
-is no pre-test branch; the body runs immediately and the compare appears only at
-the bottom:
+Below, `squares(n)` sums 1 through `n` as a `do`/`while`. No pre-test branch this
+time; the body fires straight away and the compare shows up only at the very
+bottom:
 
 ```asm
 li   r4, 1          # i = 1
@@ -37,20 +38,20 @@ mr   r3, r0
 blr
 ```
 
-Because this form is so clean, MWCC at full `-O4,p` is happy to leave it rolled —
-no `#pragma` needed here. When you spot a loop with **no pre-test branch at the
-top**, the original was almost certainly a `do`/`while` — or a loop where the
-author had reason to guarantee the body would run. Notice that `sum` starts its
-induction variable at 0, not 1, so the initializer and test condition in your
-answer will differ from this example.
+The shape is clean enough that MWCC at full `-O4,p` leaves it rolled on its own,
+so there's no `#pragma` to add here. Run into a loop with **no pre-test branch at
+the top** and you're almost surely looking at a `do`/`while`, or at least a loop
+whose author knew the body would always run. And remember `sum` kicks its
+induction variable off at 0 rather than 1, which pushes its initializer and test
+away from what this example shows.
 
-> **A caution on semantics.** A `do`/`while` runs the body even when the guard
-> is false on entry. For this sum that happens to be harmless — `n == 0` runs
-> the body once (`s += 0`, `i` becomes 1), then `1 < 0` is false and we return
-> 0, which is still correct, but only by accident of the arithmetic. In real
-> decompilation you choose `do`/`while` only when you can confirm the loop is
-> always entered at least once — often because a caller-side check guarantees
-> `n` is positive. Don't reach for it just to drop the pre-test branch.
+> **A caution on semantics.** A `do`/`while` runs its body even when the guard is
+> already false at entry. Here that's harmless luck. With `n == 0` the body runs
+> once (`s += 0`, and `i` becomes 1), `1 < 0` then fails, and we hand back 0,
+> which is right purely by accident of the arithmetic. When you actually
+> decompile, reach for `do`/`while` only once you can prove the loop is always
+> entered, often thanks to a caller-side check that keeps `n` positive. Dropping
+> the pre-test branch is never reason enough on its own.
 
 ## Your task
 

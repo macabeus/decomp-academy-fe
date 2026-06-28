@@ -16,18 +16,18 @@ hints:
 
 # A loop is just a backward branch
 
-Until now every function ran straight down to its `blr`. A loop adds one new
-idea: a **branch that jumps backwards** so the same instructions run again. The
-classic shape MWCC emits for a `for` loop puts the **test at the bottom**: the
-body sits in the middle, the comparison and the conditional branch sit at the
-*bottom*, and a single unconditional `b` at the top jumps *into* that test
-first. That leading `b` is what makes the loop behave as **pre-tested** — the
-condition is checked before the body ever runs, so the zero-iteration case is
-handled. (Two names, one shape: the test is *physically* at the bottom, but
-*behaviorally* the loop is pre-tested thanks to that jump-to-test at the top.)
+Up to now control has only flowed downhill toward `blr`. A loop bends that line
+back on itself with a single **branch that jumps backwards**, letting the same
+instructions run more than once. Watch how MWCC threads a `for` loop. You enter
+at a `b` that skips ahead to the comparison; the comparison decides whether any
+work remains, and when it passes, control drops into the body. The body runs,
+bumps the counter, and lands back on that same comparison. Since the test is the
+first thing reached, the body can run zero times when the count begins empty.
+That early check is why people call the loop **pre-tested** even though the
+compare physically sits at the bottom; the jump-first wiring just makes it behave
+as if the test came first.
 
-Here is a concrete example — `squares(n)`, which sums the integers from 1
-through `n`:
+Take `squares(n)`, which totals the integers from 1 up through `n`:
 
 ```asm
 li   r0, 0          # s = 0
@@ -43,17 +43,18 @@ mr   r3, r0         # return s
 blr
 ```
 
-The variable `i` (here `r4`) that drives the loop is its **induction variable**.
-Notice the test is at the bottom, reached first via that leading `b` — if
-`n < 1` the body never runs. Your function `sum` counts from 0, not 1, and
-stops before `n` rather than at `n`, so both the initializer and the test
-condition will differ from this example.
+The counter driving all this, `i` over in `r4`, is the loop's **induction
+variable**. And notice where the test lands, down at the bottom, reached first by
+way of that leading `b`, which is exactly why an `n` under 1 leaves the body
+untouched. Your own `sum` counts from 0 rather than 1 and quits one short of `n`
+instead of including it, so its starting value and its test won't match the ones
+here.
 
-> **A note on optimization.** At the project's full `-O4,p` setting MWCC would
-> *unroll* this tiny sum into a long pipelined mess, because it can compute the
-> trip count in advance. To study the clean loop skeleton we dial the optimizer
-> down one notch with `#pragma optimization_level 1`. Keep that pragma in your
-> answer — it is part of the target.
+> **A note on optimization.** Turn the dial up to the project's real `-O4,p` and
+> MWCC *unrolls* this little sum into a sprawling pipelined mess, having figured
+> out the trip count in advance. To keep the skeleton legible, we back the
+> optimizer off by one notch with `#pragma optimization_level 1`. Don't drop that
+> pragma; it's genuinely part of the target.
 
 ## Your task
 

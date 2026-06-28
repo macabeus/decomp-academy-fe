@@ -16,16 +16,16 @@ hints:
 
 # Compare against zero, not a bound
 
-Counting *up* to `n` forces the loop test to compare the induction variable
-against `n` — a register-to-register `cmpw`. Counting *down* to zero lets the
-compiler compare against the constant 0 instead, using the immediate form
-`cmpwi rA, 0`. There is no separate bound to keep live, so the loop is a touch
-cheaper and the variable can double as both counter and value.
+Why should the direction of a loop matter to the compiler? Count *up* toward `n`
+and the test has to weigh the induction variable against `n`, a
+register-to-register `cmpw`. Count *down* toward zero instead and it can weigh
+against a flat constant 0 through the immediate form `cmpwi rA, 0`. No register
+sits around holding the bound. That trims the loop slightly, and it lets a single
+variable be both the counter and the value.
 
-Here is an example: `countdown_ex(m)` counts `m` down to 1 and accumulates
-double each value. The key insight is that `r3` (the parameter `m`) is used as
-both the accumulator index *and* the loop counter — no separate `i` variable
-needed:
+Take `countdown_ex(m)`, which walks `m` down to 1 while piling up double of each
+value. What makes it tick is `r3`, the parameter `m`, pulling double duty as the
+accumulator index *and* the loop counter, so there's no separate `i` to carry:
 
 ```asm
 li   r4, 0          # s = 0
@@ -41,18 +41,19 @@ mr   r3, r4
 blr
 ```
 
-This is why hand-tuned 2002 game code so often counts down: `cmpwi rX, 0` needs
-no register for the limit. For `sum` your body is simpler — there's no multiply
-— but the loop skeleton (pre-test `b`, decrement with `addi r3,r3,-1`, and
-`cmpwi r3,0`) is the same shape.
+That's why heaps of hand-tuned 2002 game code counts down, because `cmpwi rX, 0`
+spends no register on a limit. Your `sum` runs a plainer body, no multiply
+anywhere. The surrounding loop, though, keeps the bones you already know: a
+pre-test `b`, a decrement through `addi r3,r3,-1`, and a `cmpwi r3,0`.
 
-> A count-down in the asm does **not** always mean the developer wrote one.
-> Optimizing compilers will sometimes flip a count-up loop into count-down form
-> for exactly this reason, so don't reflexively assume the source counted down —
-> match what the asm shows, and reach for count-down in your own C only when it
-> is what reproduces the target.
+> Seeing a count-down in the asm does **not** prove the developer wrote one.
+> Optimizers will quietly rewrite a count-up loop into count-down form for this
+> very reason. Don't assume the source counted down just because the asm does.
+> Follow what the asm puts in front of you. Use count-down in your own C only
+> where it's what reproduces the target.
 
-> `#pragma optimization_level 1` again keeps the loop from unrolling.
+> And `#pragma optimization_level 1` is back again, keeping the loop from
+> unrolling.
 
 ## Your task
 
