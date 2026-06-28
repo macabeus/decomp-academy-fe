@@ -16,12 +16,12 @@ hints:
 
 # A shift feeding an OR
 
-Bitwise chaining starts the moment the result of one operation becomes an input
-to the next. The simplest case: shift a value left to make room, then OR another
-value into the vacated low bits.
+Chaining bitwise work means the result of one operation immediately becomes fuel
+for the next. The bread-and-butter version goes like this: you slide a value left
+to open up some room, then OR a second value down into the bits you just cleared.
 
-Consider `make_word(hi, lo)`, which shifts the high part left by 16 bits and
-slots the low part into the bottom half:
+`make_word(hi, lo)` is a fine example. It pushes the high part up by 16 and drops
+the low part in underneath it.
 
 ```asm
 slwi    r0,r3,16
@@ -29,17 +29,17 @@ or      r3,r0,r4
 blr
 ```
 
-`slwi r0, r3, 16` is *shift left word immediate* — it moves every bit of `r3`
-up by 16 positions and writes the result into `r0`. The 16 low bits of `r0` are
-now zero, creating a gap. `or r3, r0, r4` then fills that gap with `r4`: any bit
-set in either operand appears in `r3`.
+The first line, `slwi r0, r3, 16`, is shift-left-word-immediate. Every bit of
+`r3` climbs 16 places and the result parks in `r0`, which leaves the bottom 16
+bits of `r0` sitting at zero. There's your gap. Now `or r3, r0, r4` fills it
+straight from `r4`, because any bit set in either operand still shows up in `r3`.
 
-The chain is two instructions but one conceptual operation: the `slwi` result is
-live for exactly one cycle before `or` consumes it.
+Two instructions, sure, but one idea. The `slwi` output only has to stay alive
+for a single cycle before `or` eats it.
 
-For the target assembly, read the `slwi` shift amount to know how far the high
-value is being moved, then check the `or` to see which register provides each
-half.
+Your target unpacks the same way: the `slwi` amount is how far the high value
+travels, and the two `or` operands tell you which register is carrying which
+half, which between them is enough to write the C.
 
 ## Your task
 

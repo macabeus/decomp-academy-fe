@@ -15,10 +15,10 @@ hints:
 
 # A guard that compiles to no branch at all
 
-Some `if`/`else` patterns look like they need a comparison and a jump, but
-MWCC recognises certain shapes and collapses them into pure data flow. Clamping
-a signed value against zero is one such shape — no `cmpwi`, no branch, just two
-instructions:
+An `if`/`else` usually means a comparison followed by a jump. Not always. MWCC
+matches a handful of shapes and rewrites them as arithmetic, control flow and
+all. The canonical one is clamping a signed value up against zero. Two
+instructions, no `cmpwi`, no branch:
 
 ```asm
 srawi r0, r3, 31   # arithmetic shift right 31: produces a sign mask in r0
@@ -26,20 +26,21 @@ andc  r3, r3, r0   # r3 = r3 AND (NOT r0)
 blr
 ```
 
-`srawi r0, r3, 31` is an **arithmetic right shift by 31**. Because the shift is
-*arithmetic*, it sign-extends: for a negative input the result is `0xFFFFFFFF`
-(all ones); for a non-negative input the result is `0` (all zeros). This
-produces a *sign mask* in `r0`.
+Start with `srawi r0, r3, 31`. It's an **arithmetic right shift by 31**.
+Arithmetic shifts replicate the sign bit rather than feeding in zeros, so the
+result is `0xFFFFFFFF` when `r3` was negative and `0` when it wasn't. `r0` now
+holds a sign mask.
 
-`andc rD, rA, rB` computes `rA AND (NOT rB)`. When the mask is all-ones,
-`NOT rB` is all-zeros, so `rA AND 0 = 0`. When the mask is all-zeros, `NOT rB`
-is all-ones, so `rA AND ~0 = rA` — the original value passes through unchanged.
+`andc rD, rA, rB` is the second half. It evaluates `rA AND (NOT rB)`. Hand it
+an all-ones mask and the inversion becomes all-zeros, dragging the result down
+to `0`. An all-zeros mask inverts to all-ones, and `rA` passes straight through.
+So the mask decides which of the two you get.
 
-Why branchless? MWCC recognises the clamp shape when both paths return a value
-derived from the *same* register, and folds it into this `srawi`/`andc` pair.
-Beware that writing the logically equivalent `if (x >= 0) return x; return 0;`
-falls *outside* the recognised pattern and compiles to a different sequence —
-source form can decide codegen.
+Notice there's no test anywhere. That's the whole trick, and MWCC will only use
+it when both arms of the original return something derived from the *same*
+register. Swap the order of the branches and the spell breaks: write
+`if (x >= 0) return x; return 0;` and you get a different sequence. The shape of
+the source matters as much as what it computes.
 
 ## Your task
 

@@ -14,14 +14,14 @@ hints:
   - The two `or` instructions fold the three shifted values together, one pair at a time.
 ---
 
-# Many shifts, many ORs — packing a full word
+# Many shifts, many ORs, packing a full word
 
-This capstone brings together everything from the chapter. Three independent
-shifts position three values at distinct byte lanes, and two chained ORs merge
-them into a single 32-bit word.
+Here's the capstone, and it leans on every trick the chapter built up. Three
+separate shifts park three values in their own byte lanes, then a pair of chained
+ORs fuse the lot into one 32-bit word.
 
-Consider `pack_word(hi, mid, lo)`, which packs three bytes at positions 24, 16,
-and 0 of a 32-bit result:
+Take `pack_word(hi, mid, lo)`. It drops three bytes at positions 24, 16, and 0 of
+the result.
 
 ```asm
 slwi    r3,r3,24
@@ -31,18 +31,16 @@ or      r3,r5,r0
 blr
 ```
 
-- `slwi r3, r3, 24` shifts `hi` up to bits 31–24 (the top byte).
-- `slwi r0, r4, 16` shifts `mid` up to bits 23–16 (the second byte).
-- `or   r0, r3, r0` merges the two shifted values: `r0` now holds `hi` and
-  `mid` in their correct positions, with the rest zero.
-- `or   r3, r5, r0` inserts `lo` (unshifted, occupying bits 7–0) into the word.
+The first `slwi r3, r3, 24` lifts `hi` all the way up into bits 31–24, the top
+byte. Right behind it, `slwi r0, r4, 16` puts `mid` into bits 23–16. Those two
+get welded together by `or r0, r3, r0`, so `r0` is now carrying `hi` and `mid` in
+place with zeros everywhere else. Last comes `or r3, r5, r0`, which folds in `lo`
+untouched down at bits 7–0. Read top to bottom that's two shifts, an OR for the
+high pair, then an OR to seat the final byte.
 
-The chain reads left to right: two shifts, a first OR that combines the high
-pair, then a second OR that slots in the final unshifted byte.
-
-The target assembly uses the same four-instruction shape but with different shift
-amounts. Read the two `slwi` amounts to find where each value lands, then trace
-the ORs to reconstruct the full expression.
+The target keeps that same four-instruction skeleton but moves the shift amounts.
+Read the two `slwi` counts to learn where each value lands, then follow the ORs
+back to the expression that produced them.
 
 ## Your task
 

@@ -14,9 +14,10 @@ hints:
 
 # When a comparison drives control flow
 
-Returning *different constants* from the two arms of an `if`/`else` is the
-first time you'll see a real **compare-and-branch**. The comparison no longer
-produces a number — it sets the condition register, and a branch reads it:
+Two different return values, one per arm of an `if`/`else`. That's all it takes
+to summon your first genuine **compare-and-branch**. The comparison quits handing
+you a number. It sets the condition register, and a branch reads that register to
+choose a direction.
 
 ```asm
 cmpw  r3, r4      # compare a and b, set cr0
@@ -26,15 +27,16 @@ li    r3, 10      # fall-through: load the other return value
 blr
 ```
 
-First, that trailing `-` on `bnelr-` is a branch-prediction hint, not an
-operand. Two things to notice. MWCC **speculatively loads one constant** before
-the branch, and a *conditional return* (`bnelr` — "branch to link register if
-not equal") collapses an entire else-arm into one instruction.
+Quick warning about `bnelr-`. The trailing `-` is a branch-prediction hint, not
+an operand, so peel it off in your head. What's left is worth dwelling on. MWCC
+loads `20` speculatively, before the branch knows a thing, betting it'll stick.
+And `bnelr` is a conditional return, "branch to link register if not equal", a
+single instruction standing in for the entire else.
 
-To read the pattern: the `cmpw` sets cr0; the first `li` seeds a speculative
-result; the conditional `blr`-style branch either exits early or falls through;
-the second `li` then applies for the other case. The branch mnemonic tells you
-*when* the function exits early, and therefore which `li` belongs to which arm.
+Trace it. `cmpw` sets cr0. The first `li` plants a guess. The conditional return
+bails on the spot or drops through, and on the drop-through the second `li`
+overwrites that guess. Watch the branch mnemonic above all else. Where the early
+exit fires is what nails each `li` to its arm.
 
 ## Your task
 

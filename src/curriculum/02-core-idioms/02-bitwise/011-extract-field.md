@@ -15,31 +15,32 @@ hints:
     bits."
 ---
 
-# Shift *and* mask, fused into a single instruction
+# One rlwinm does the shift and the mask
 
-Extracting a packed field means shifting it down to bit 0 and masking off the
-neighbours. In C that reads like two operations, but `rlwinm` does **rotate and
-mask together**, so MWCC fuses the whole thing into one instruction.
+In C, prying a packed field loose reads as two steps. Shift it down to bit 0,
+then mask off the neighbours that tagged along. PowerPC won't spend two
+instructions on that. `rlwinm` rotates and masks together, and MWCC leans on it
+every chance it gets.
 
-Consider extracting the 4-bit nibble at bits 8-11 (the second-lowest nibble):
+Suppose the field you want is the 4-bit nibble at bits 8-11, one notch up from
+the bottom nibble.
 
 ```asm
 rlwinm  r3,r3,24,28,31
 blr
 ```
 
-Read the operands: rotate left by **24** (the same as rotating *right* by 8,
-moving bits 8-11 down to bits 0-3). Concretely, `0x00000F00` rotated left by 24
-becomes `0x0000000F` — the nibble at bits 8-11 lands at bits 0-3. Then the mask
-`[28,31]` keeps only the bottom 4 bits.
+Start with the `24`. A left rotate by 24 is just a right rotate by 8 wearing a
+different hat, and it drops bits 8-11 squarely onto bits 0-3. Don't trust me,
+trace a value. `0x00000F00` rotated left by 24 comes out `0x0000000F`. Anything
+still hanging around above the low 4 bits is wiped by that `[28,31]` mask.
 
-One `rlwinm` expresses the entire shift-then-AND field extract. The general
-pattern: a rotate amount `r` paired with a low-bit mask `[32-w, 31]` is a
-right-shift of `r` followed by a keep of the bottom `w` bits.
+There's your whole shift-and-AND in a single instruction. Memorise the shape and
+you'll spot it everywhere: rotate by `r`, mask `[32-w, 31]`, and what you've
+really written is a right shift of `r` keeping the bottom `w` bits.
 
-For your target assembly, decode the rotate amount to find the right-shift count,
-and decode the mask `[MB,ME]` to find the bit-width of the field, then write the
-equivalent C.
+Now your target. The rotate amount hands you the right-shift count, the mask
+`[MB,ME]` hands you the width, and the C falls out of the two.
 
 ## Your task
 

@@ -17,16 +17,16 @@ hints:
 
 # Bit select: choosing bits from two sources with a mask
 
-A bit-select (sometimes called a bitwise mux) picks individual bits from one of
-two sources depending on a mask: where the mask is 1 take from one source, where
-it is 0 take from the other. In C that is three operations — two ANDs and an OR —
-but PowerPC has an instruction that eliminates one of the ANDs.
+A bit-select, or bitwise mux if you prefer, builds a result one bit at a time
+out of two sources. Where the mask bit is 1, you copy from one source; where it's
+0, from the other. In C that's three operations, two ANDs and an OR. PowerPC
+shaves it to two by killing one of the ANDs.
 
-**`andc rD, rA, rB`** computes `rA & ~rB`, AND-with-complement, in a single
-instruction. No separate `not` needed.
+The instruction earning that saving is **`andc rD, rA, rB`**. It works out
+`rA & ~rB` by itself, no separate `not` sitting in front of it.
 
-Consider `bit_blend(x, y, mask)`, which selects bits from `x` where the mask is
-clear and from `y` where the mask is set:
+Say `bit_blend(x, y, mask)` pulls bits from `x` where the mask is clear and from
+`y` where it's set.
 
 ```asm
 andc    r3,r3,r5
@@ -35,15 +35,16 @@ or      r3,r3,r0
 blr
 ```
 
-- `andc r3, r3, r5` = `x & ~mask` (keeps `x` bits where the mask is 0).
-- `and  r0, r4, r5` = `y & mask`  (keeps `y` bits where the mask is 1).
-- `or   r3, r3, r0` merges both halves: the final register holds one bit from
-  `x` or `y` at every position, never both and never neither.
+The `andc r3, r3, r5` gives you `x & ~mask`, so `x` survives only at the bit
+positions where the mask reads 0. Its partner `and r0, r4, r5` does the mirror
+image, `y & mask`, keeping `y` where the mask reads 1. Now the two halves cover
+disjoint positions, so `or r3, r3, r0` can glue them into a single word and you
+land exactly one bit, from `x` or `y`, at every position. Never both. Never
+neither.
 
-The target assembly does the same three-instruction sequence in the same order,
-but with operands in different registers. Identify which register holds the mask
-(`r5`), which register contributes bits through `andc`, and which through `and`,
-then express that in C.
+Your target walks those same three instructions in the same order, just with the
+registers shuffled. Spot which one carries the mask (`r5`), which feeds the
+`andc`, and which feeds the `and`, and the C falls right out.
 
 ## Your task
 
