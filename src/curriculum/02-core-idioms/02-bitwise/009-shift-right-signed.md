@@ -16,26 +16,26 @@ hints:
 
 # `srawi` — shift right, fill with the sign
 
-Right-shifting a **signed** value is an *arithmetic* shift: the vacated high bits
-are filled with copies of the sign bit, so a negative number stays negative. This
-needs a dedicated instruction, **`srawi`** (shift right algebraic word
-immediate). For example, shifting a signed value right by 5:
+Shift a *signed* value right and the shift turns *arithmetic*. The high bits left
+empty get backfilled with copies of the sign bit, which keeps a negative number
+negative. PowerPC has a purpose-built opcode for that, `srawi`, the
+shift-right-algebraic-word-immediate. Watch a signed value shifted right by 5:
 
 ```asm
 srawi   r3,r3,5
 blr
 ```
 
-Notice this is a *real* opcode, not an `rlwinm` mnemonic — sign extension cannot
-be done with a rotate-and-mask. The signed/unsigned distinction is invisible in
-the C operator (`>>` either way) and decided **entirely by the operand's type**:
-`srwi` for `u32`, `srawi` for `s32`.
+Note that this one is a genuine opcode, not an `rlwinm` in disguise, since a
+rotate-and-mask simply can't manufacture sign extension. Nothing in the C
+operator gives the choice away, because `>>` reads the same either way. The
+operand's type is what settles it, `srwi` for a `u32` and `srawi` for an `s32`.
 
-When the shift *amount* is a variable instead of a constant, you get the
-register-form `sraw`/`srw`/`slw` — the next lesson.
+Once the shift *amount* becomes a variable rather than a constant, you move to
+the register forms `sraw`/`srw`/`slw`, which the next lesson covers.
 
-Look at the shift count in the target `srawi` and the declared type of the
-parameter; those two facts are all you need.
+Two facts in the target tell you everything, the shift count next to `srawi` and
+the parameter's declared type.
 
 ## Your task
 

@@ -16,25 +16,25 @@ hints:
 
 # When the shift count is a register
 
-Every shift so far used a *constant* amount, which let MWCC fold it into an
-`rlwinm` (`slwi`/`srwi`) or an `srawi`. When the amount is a **runtime value**,
-there's nothing to fold — PowerPC has dedicated register-shift opcodes that take
-the count in a second register. For example, a logical right shift by a variable
-amount:
+Up to now every shift moved by a *constant*, which is exactly why MWCC could fold
+the count into an `rlwinm` (`slwi`/`srwi`) or an `srawi`. A *runtime* amount
+leaves nothing to fold. PowerPC keeps separate register-shift opcodes for that
+case, each one reading its count out of a second register. Here's a logical right
+shift by a variable amount:
 
 ```asm
 srw     r3,r3,r4
 blr
 ```
 
-The family mirrors the constant case by sign: **`slw`** (shift left), **`srw`**
-(shift right, logical — for unsigned), and **`sraw`** (shift right algebraic —
-for signed). Same signed/unsigned rule as before; the only difference is the
-count lives in a register instead of the instruction.
+These three track the constant forms by sign. `slw` shifts left, `srw` shifts
+right logically for unsigned values, and `sraw` shifts right algebraically for
+signed ones. The signed-versus-unsigned rule hasn't changed at all; the one new
+wrinkle is that the count rides in a register rather than inside the instruction.
 
-Seeing `slw`/`srw`/`sraw` (no trailing `i`) tells you the shift distance was a
-variable in the original C. Match the direction and sign from the mnemonic, and
-the second function argument provides the count.
+Spot any of `slw`/`srw`/`sraw` with no trailing `i` and you know the shift
+distance came from a variable in the source. Take the direction and sign straight
+from the mnemonic, and let the second argument carry the count.
 
 ## Your task
 

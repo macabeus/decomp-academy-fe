@@ -14,25 +14,25 @@ hints:
 
 # `slwi` — shift left, fill with zeros
 
-Shifting left by a constant moves bits toward the high end and pads the low end
-with zeros. PowerPC has no dedicated immediate left-shift opcode; instead MWCC
-uses `rlwinm` and the assembler prints the friendly **`slwi`** extended mnemonic.
-For example, a left shift by 3:
+Shift left and the bits climb toward the high end while zeros flood in
+underneath. PowerPC has no immediate left-shift opcode at all, so MWCC works
+around it by reaching for `rlwinm`, which the assembler then prints as the tidier
+`slwi`. Take a shift by 3:
 
 ```asm
 slwi    r3,r3,3
 blr
 ```
 
-Under the hood `slwi r3, r3, 3` *is* `rlwinm r3, r3, 3, 0, 28` — rotate left by 3
-and keep the top 29 bits. You don't have to decode that by hand; recognizing the
-`slwi` mnemonic as "left shift by a constant" is enough. The immediate field is
-the shift count directly.
+That `slwi r3, r3, 3` is really `rlwinm r3, r3, 3, 0, 28` wearing a nicer name, a
+rotate by 3 that holds onto the top 29 bits. No need to decode it by hand. Spot
+`slwi`, read it as a constant left shift, and the immediate sitting beside it is
+the shift count, plain as that.
 
-As a mental check, `x << n` equals `x * 2^n` arithmetically, so MWCC will also
-strength-reduce a power-of-two multiply to a `slwi`. Write whichever form matches
-the original's intent; look at the shift count in the target assembly and pick the
-matching constant.
+There's a second route to the same instruction. Since `x << n` carries the same
+value as `x * 2^n`, MWCC strength-reduces a power-of-two multiply straight into a
+`slwi`. Whichever the source intended, pull the shift count off the target and
+pick the constant that lines up.
 
 ## Your task
 
