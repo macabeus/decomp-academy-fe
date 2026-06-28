@@ -6,7 +6,7 @@ import { getFeedback, deleteFeedback, type FeedbackRow } from "@/lib/admin/feedb
 import type { Sentiment } from "@/lib/feedback";
 
 const SENTIMENT_META: Record<Sentiment, { label: string; emoji: string; cls: string }> = {
-  good: { label: "Good", emoji: "👍", cls: "bg-good/15 text-good" },
+  good: { label: "Good", emoji: "👍", cls: "bg-good/15 theme-light:bg-good-soft/15 text-good theme-light:text-good-soft" },
   confusing: { label: "Confusing", emoji: "😕", cls: "bg-warn/15 text-warn" },
   bug: { label: "Bug", emoji: "🐞", cls: "bg-bad/15 text-bad" },
 };

@@ -382,7 +382,7 @@ function UnifiedDiff({ rows }: { rows: DiffRowVM[] }) {
 // ---- Object overview: the two-column section/symbol navigator ----
 
 function pctTone(v: number): string {
-  return v >= 100 ? "text-good" : v >= 50 ? "text-warn" : "text-bad";
+  return v >= 100 ? "text-good theme-light:text-good-soft" : v >= 50 ? "text-warn" : "text-bad";
 }
 
 function Pct({ v }: { v: number }) {

@@ -50,7 +50,7 @@ function ConfirmForm() {
       <form onSubmit={onSubmit} className="space-y-3">
         <AuthError message={error} />
         {notice && (
-          <div className="mb-3 rounded-lg border border-good/25 bg-good/[0.08] px-3 py-2 text-xs text-good">
+          <div className="mb-3 rounded-lg border border-good/25 theme-light:border-good-soft/25 bg-good/[0.08] theme-light:bg-good-soft/[0.08] px-3 py-2 text-xs text-good theme-light:text-good-soft">
             {notice}
           </div>
         )}

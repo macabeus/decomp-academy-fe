@@ -62,7 +62,7 @@ export function Hero({
             <div className="flex items-center gap-5 rounded-lg bg-bg-soft/70 px-5 py-3 text-sm backdrop-blur">
               <Stat icon={<IconBolt size={16} className="text-warn" />} label="Lessons" value={`${total}`} />
               <div className="h-8 w-px bg-line" />
-              <Stat icon={<IconGitMerge size={16} className="text-good" />} label="Solved" value={`${solvedCount}`} />
+              <Stat icon={<IconGitMerge size={16} className="text-good theme-light:text-good-soft" />} label="Solved" value={`${solvedCount}`} />
               <div className="h-8 w-px bg-line" />
               <div className="min-w-[7rem]">
                 <div className="mb-1 flex justify-between text-xs text-content-muted">
@@ -81,7 +81,7 @@ export function Hero({
           {/* Trust strip — pull the real credibility out of the footer. */}
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-content-faint">
             <span className="inline-flex items-center gap-1.5">
-              <IconCheck size={13} className="text-good" /> Graded by the real
+              <IconCheck size={13} className="text-good theme-light:text-good-soft" /> Graded by the real
               <span className="font-mono text-content-muted">mwcceppc.exe</span>
             </span>
             <a
@@ -130,7 +130,7 @@ function MatchPreview() {
         <span className="flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-bad/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-warn/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-good/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-good/70 theme-light:bg-good-soft/70" />
         </span>
         <span className="ml-1 font-mono text-2xs text-content-muted">match Vec_Normalize</span>
         <span
@@ -167,7 +167,7 @@ function MatchPreview() {
               </div>
               <div
                 className={`border-t border-line/40 px-3 py-1.5 transition-colors duration-500 ${
-                  isMatch ? "text-good" : "bg-bad/10 text-bad"
+                  isMatch ? "text-good theme-light:text-good-soft" : "bg-bad/10 text-bad"
                 }`}
               >
                 {matched ? t : y}

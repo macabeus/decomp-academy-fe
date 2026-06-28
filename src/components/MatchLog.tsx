@@ -47,7 +47,7 @@ export function MatchLog({ lessons, courseId }: { lessons: HeatLesson[]; courseI
     <div className="rounded-xl bg-bg-soft/60 p-5">
       <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-3">
         <div className="flex items-center gap-2">
-          <IconGitMerge size={18} className="text-good" />
+          <IconGitMerge size={18} className="text-good theme-light:text-good-soft" />
           <div>
             <div className="font-semibold leading-none text-content-primary">
               <span className="tabular-nums">{solved}</span>

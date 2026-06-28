@@ -408,7 +408,7 @@ function CreateScratchButton({
         href={scratch.url}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-md bg-good/15 px-2.5 py-1 text-xs font-semibold text-good transition hover:bg-good/25"
+        className="inline-flex items-center gap-1.5 rounded-md bg-good/15 theme-light:bg-good-soft/15 px-2.5 py-1 text-xs font-semibold text-good theme-light:text-good-soft transition hover:bg-good/25 theme-light:hover:bg-good-soft/25"
       >
         <IconExternalLink size={13} /> Open on decomp.me
       </a>

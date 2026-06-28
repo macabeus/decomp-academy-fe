@@ -94,7 +94,7 @@ export function FeedbackDialog({
     <Modal onClose={onClose} labelledBy="feedback-title">
       {state === "done" ? (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
-          <IconCircleCheckFilled size={44} className="text-good" />
+          <IconCircleCheckFilled size={44} className="text-good theme-light:text-good-soft" />
           <h2 className="text-lg font-bold text-content-bright">Thanks for the feedback!</h2>
           <p className="text-sm text-content-muted">
             It goes straight to the team — we read every note.

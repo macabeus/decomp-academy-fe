@@ -432,7 +432,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
               {solved ? (
                 <Link
                   href={nextHref}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-good px-3.5 py-1.5 text-xs font-semibold text-bg transition hover:bg-good-soft active:scale-[0.97]"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-good theme-light:bg-good-soft px-3.5 py-1.5 text-xs font-semibold text-bg transition hover:bg-good-soft active:scale-[0.97]"
                 >
                   <IconCheck size={14} />
                   {lesson.next ? "Next lesson" : "Finish"}
@@ -964,7 +964,7 @@ function MatchMeter({ check }: { check: CheckState }) {
     );
   if (check.status === "match")
     return (
-      <span className="inline-flex animate-count-pop items-center gap-1 rounded-full bg-good/15 px-2.5 py-1 text-xs font-semibold text-good">
+      <span className="inline-flex animate-count-pop items-center gap-1 rounded-full bg-good/15 theme-light:bg-good-soft/15 px-2.5 py-1 text-xs font-semibold text-good theme-light:text-good-soft">
         <IconCheck size={13} /> 100% match
       </span>
     );

@@ -19,7 +19,7 @@ function cx(...parts: (string | false | null | undefined)[]) {
 export function ProgressBar({
   pct,
   className,
-  barClassName = "bg-good",
+  barClassName = "bg-good theme-light:bg-good-soft",
   height = "h-1.5",
 }: {
   pct: number;
@@ -115,7 +115,7 @@ type BadgeTone = "accent" | "muted" | "good" | "warn" | "bad";
 const BADGE_TONE: Record<BadgeTone, string> = {
   accent: "bg-accent/10 text-accent",
   muted: "bg-bg-softer text-content-muted",
-  good: "bg-good/15 text-good",
+  good: "bg-good/15 theme-light:bg-good-soft/15 text-good theme-light:text-good-soft",
   warn: "bg-warn/15 text-warn",
   bad: "bg-bad/15 text-bad",
 };

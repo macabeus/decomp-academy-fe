@@ -101,7 +101,7 @@ export function CurriculumMap({
             <div className="mb-3 flex items-center gap-3">
               <span
                 className={`flex h-7 w-7 items-center justify-center rounded-md font-mono text-xs font-bold ${
-                  tierDone ? "bg-good/15 text-good" : "bg-accent/10 text-accent"
+                  tierDone ? "bg-good/15 theme-light:bg-good-soft/15 text-good theme-light:text-good-soft" : "bg-accent/10 text-accent"
                 }`}
               >
                 {toRoman(tier.order)}
@@ -143,7 +143,7 @@ export function CurriculumMap({
                     >
                       <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
-                          done ? "bg-good/15 text-good" : "bg-accent/10 text-accent"
+                          done ? "bg-good/15 theme-light:bg-good-soft/15 text-good theme-light:text-good-soft" : "bg-accent/10 text-accent"
                         }`}
                       >
                         {done ? <IconCircleCheckFilled size={18} /> : globalIdx + 1}
@@ -242,7 +242,7 @@ function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg bg-bg-soft/50 px-4 py-2.5 text-2xs text-content-muted">
       <span className="inline-flex items-center gap-1.5">
-        <IconCircleCheckFilled size={14} className="text-good" /> Solved
+        <IconCircleCheckFilled size={14} className="text-good theme-light:text-good-soft" /> Solved
       </span>
       <span className="inline-flex items-center gap-1.5">
         <IconCircleDashed size={14} className="text-warn" /> Attempted
@@ -271,7 +271,7 @@ export function Difficulty({ level }: { level: number }) {
       {[1, 2, 3, 4, 5].map((i) => (
         <span
           key={i}
-          className={`h-1.5 w-1.5 rounded-full ${i <= level ? "bg-accent/80" : "bg-line-strong"}`}
+          className={`h-1.5 w-1.5 rounded-full ${i <= level ? "bg-accent/80" : "bg-line-strong theme-light:bg-line-faint"}`}
         />
       ))}
     </span>
