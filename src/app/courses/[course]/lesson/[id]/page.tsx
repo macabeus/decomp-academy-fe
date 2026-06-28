@@ -1,39 +1,42 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { adjacentLessons, getLesson, LESSONS } from "@/lib/lessons/registry";
-import { CHAPTER_BY_ID } from "@/curriculum/chapters";
+import { getChapter } from "@/curriculum/chapters";
+import { COURSE_BY_ID } from "@/curriculum/courses";
 import { renderMarkdown, stripMarkdown } from "@/lib/markdown";
 import { LessonWorkspace, LessonDTO } from "@/components/LessonWorkspace";
 import { JsonLd } from "@/components/JsonLd";
-import { breadcrumbLd, lessonLd, SITE_URL } from "@/lib/seo";
+import { breadcrumbLd, lessonLd, lessonPath, SITE_URL } from "@/lib/seo";
 
 // Pre-render every lesson at build time (the data is fully static, from the
-// curriculum registry) so each page ships as crawlable, indexable HTML.
+// curriculum registry) so each page ships as crawlable, indexable HTML. The
+// route is scoped under its course, so a lesson is reachable at exactly one URL.
 export function generateStaticParams() {
-  return LESSONS.map((l) => ({ id: l.id }));
+  return LESSONS.map((l) => ({ course: l.course, id: l.id }));
 }
 
-// Per-lesson title + description, so all 258 lessons are distinct to search
-// engines instead of inheriting the generic site-wide metadata.
+// Per-lesson title + description, so every lesson is distinct to search engines
+// instead of inheriting the generic site-wide metadata.
 export function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: { course: string; id: string };
 }): Metadata {
-  const lesson = getLesson(params.id);
+  const lesson = getLesson(params.course, params.id);
   if (!lesson) return {};
 
-  const chapter = CHAPTER_BY_ID.get(lesson.chapter);
+  const chapter = getChapter(lesson.course, lesson.tier, lesson.chapter);
   const chapterTitle = chapter?.title ?? lesson.chapter;
   const kind = lesson.concept ? "concept" : "exercise";
   const description = stripMarkdown(lesson.brief);
-  const url = `${SITE_URL}/lesson/${lesson.id}`;
+  const path = lessonPath(lesson.course, lesson.id);
+  const url = `${SITE_URL}${path}`;
 
   return {
     title: `${lesson.title} — ${chapterTitle}`,
     description,
     keywords: lesson.concepts,
-    alternates: { canonical: `/lesson/${lesson.id}` },
+    alternates: { canonical: path },
     openGraph: {
       type: "article",
       title: `${lesson.title} — ${chapterTitle} · Decomp Academy`,
@@ -49,16 +52,24 @@ export function generateMetadata({
   };
 }
 
-export default function LessonPage({ params }: { params: { id: string } }) {
-  const lesson = getLesson(params.id);
+export default function LessonPage({
+  params,
+}: {
+  params: { course: string; id: string };
+}) {
+  // Keyed by (course, id): a URL whose course/slug pair doesn't exist — a stale
+  // or hand-typed link — resolves to nothing and 404s, rather than a wrong page.
+  const lesson = getLesson(params.course, params.id);
   if (!lesson) notFound();
 
-  const { prev, next } = adjacentLessons(lesson.id);
-  const chapter = CHAPTER_BY_ID.get(lesson.chapter);
+  const { prev, next } = adjacentLessons(lesson.course, lesson.id);
+  const chapter = getChapter(lesson.course, lesson.tier, lesson.chapter);
   const chapterTitle = chapter?.title ?? lesson.chapter;
+  const course = COURSE_BY_ID.get(lesson.course);
 
   const dto: LessonDTO = {
     id: lesson.id,
+    course: lesson.course,
     title: lesson.title,
     chapterId: lesson.chapter,
     chapterTitle,
@@ -80,6 +91,7 @@ export default function LessonPage({ params }: { params: { id: string } }) {
         data={[
           lessonLd({
             id: lesson.id,
+            course: lesson.course,
             title: lesson.title,
             description: stripMarkdown(lesson.brief),
             concepts: lesson.concepts,
@@ -88,8 +100,9 @@ export default function LessonPage({ params }: { params: { id: string } }) {
           }),
           breadcrumbLd([
             { name: "Decomp Academy", url: SITE_URL },
+            ...(course ? [{ name: course.title, url: `${SITE_URL}/#curriculum` }] : []),
             { name: chapterTitle, url: `${SITE_URL}/#curriculum` },
-            { name: lesson.title, url: `${SITE_URL}/lesson/${lesson.id}` },
+            { name: lesson.title, url: `${SITE_URL}${lessonPath(lesson.course, lesson.id)}` },
           ]),
         ]}
       />

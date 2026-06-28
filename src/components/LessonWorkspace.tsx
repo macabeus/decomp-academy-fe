@@ -43,6 +43,7 @@ import {
 import { AccountMenu } from "./AccountMenu";
 import { ThemeToggle } from "./ui";
 import { FeedbackDialog } from "./FeedbackDialog";
+import { lessonPath } from "@/lib/seo";
 
 const CodeEditor = dynamic(() => import("./CodeEditor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -55,6 +56,8 @@ const CodeEditor = dynamic(() => import("./CodeEditor").then((m) => m.CodeEditor
 
 export interface LessonDTO {
   id: string;
+  /** id of the enclosing course — drives the lesson/prev/next URLs. */
+  course: string;
   title: string;
   chapterId: string;
   chapterTitle: string;
@@ -160,12 +163,12 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
         setTab("diff");
         setMobilePane("result");
       }
-      saveCode(lesson.id, codeRef.current);
+      saveCode(lesson.course, lesson.id, codeRef.current);
       try {
         const res = await fetch("/api/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lesson: lesson.id, code: codeAtRun }),
+          body: JSON.stringify({ course: lesson.course, lesson: lesson.id, code: codeAtRun }),
         });
         const d = await res.json();
         if (loadIdRef.current !== myRun) return; // lesson changed mid-flight
@@ -213,10 +216,10 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
         const firstEver = exact && totalSolved() === 0;
         const sessionNoHints = exact && hintsShown === 0 && !showSolution;
         // Pre-compiling the starter on open is not a solve attempt — don't record it.
-        if (!initial) recordResult(lesson.id, exact ? 100 : pct, { noHints: sessionNoHints });
+        if (!initial) recordResult(lesson.course, lesson.id, exact ? 100 : pct, { noHints: sessionNoHints });
         // Show the badge from the persisted truth, not the live counter, so a
         // re-run after refresh (hintsShown reset to 0) can't resurrect it.
-        const noHints = exact && solvedWithoutHints(lesson.id);
+        const noHints = exact && solvedWithoutHints(lesson.course, lesson.id);
         setCheck({ status: exact ? "match" : "close", matchPercent: pct, vm, firstEver, noHints });
         setTab("diff");
       } catch {
@@ -253,7 +256,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
   // learner's starting code once so a diff is visible immediately (no blank state).
   useEffect(() => {
     const myLoad = ++loadIdRef.current;
-    const saved = loadCode(lesson.id);
+    const saved = loadCode(lesson.course, lesson.id);
     const initialCode = saved ?? lesson.starter;
     setCode(initialCode);
     codeRef.current = initialCode;
@@ -275,7 +278,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     preloadObjdiff();
     preloadGlossary();
 
-    fetch(`/api/target?lesson=${lesson.id}`)
+    fetch(`/api/target?course=${lesson.course}&lesson=${lesson.id}`)
       .then((r) => r.json())
       .then(async (d) => {
         if (loadIdRef.current !== myLoad || !d.ok || !d.objBase64) return;
@@ -302,7 +305,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
   // learner hasn't touched what we last seeded.
   useEffect(() => {
     if (lesson.concept || !progressReady) return;
-    const saved = loadCode(lesson.id);
+    const saved = loadCode(lesson.course, lesson.id);
     if (!saved || saved === codeRef.current || codeRef.current !== seededRef.current) return;
     setCode(saved);
     codeRef.current = saved;
@@ -316,7 +319,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     // pre-reset code (setCode only updates codeRef on the next render).
     codeRef.current = lesson.starter;
     seededRef.current = lesson.starter;
-    saveCode(lesson.id, lesson.starter);
+    saveCode(lesson.course, lesson.id, lesson.starter);
     setSelectedSymbol(lesson.symbol);
     setTab("diff");
     // Re-diff the reset starter, exactly like the on-open auto-compile, so the
@@ -334,7 +337,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
     check.status === "match" &&
     selectedSymbol === lesson.symbol &&
     code === checkedCodeRef.current;
-  const nextHref = lesson.next ? `/lesson/${lesson.next.id}` : "/";
+  const nextHref = lesson.next ? lessonPath(lesson.course, lesson.next.id) : "/";
   const onRun = () => (solved ? router.push(nextHref) : run());
 
   return (
@@ -398,7 +401,7 @@ export function LessonWorkspace({ lesson }: { lesson: LessonDTO }) {
               onToggle={() => setShowSolution((s) => !s)}
               onUse={() => {
                 setCode(lesson.solution);
-                saveCode(lesson.id, lesson.solution);
+                saveCode(lesson.course, lesson.id, lesson.solution);
               }}
             />
           </div>
@@ -500,8 +503,8 @@ function ConceptView({ lesson }: { lesson: LessonDTO }) {
             <span className="text-sm text-content-muted">Got it? Lock it in and move on.</span>
             {lesson.next ? (
               <Link
-                href={`/lesson/${lesson.next.id}`}
-                onClick={() => recordResult(lesson.id, 100)}
+                href={lessonPath(lesson.course, lesson.next.id)}
+                onClick={() => recordResult(lesson.course, lesson.id, 100)}
                 className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.98]"
               >
                 <IconCheck size={17} /> Mark read &amp; continue
@@ -510,7 +513,7 @@ function ConceptView({ lesson }: { lesson: LessonDTO }) {
             ) : (
               <Link
                 href="/"
-                onClick={() => recordResult(lesson.id, 100)}
+                onClick={() => recordResult(lesson.course, lesson.id, 100)}
                 className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-accent-on transition hover:bg-accent-hover active:scale-[0.98]"
               >
                 <IconCheck size={17} /> Finish
@@ -539,7 +542,7 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
         <div className="ml-auto flex items-center gap-1.5">
           {lesson.prev ? (
             <Link
-              href={`/lesson/${lesson.prev.id}`}
+              href={lessonPath(lesson.course, lesson.prev.id)}
               className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-content-secondary transition hover:bg-bg-softer"
               title={lesson.prev.title}
             >
@@ -548,7 +551,7 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
           ) : null}
           {lesson.next ? (
             <Link
-              href={`/lesson/${lesson.next.id}`}
+              href={lessonPath(lesson.course, lesson.next.id)}
               className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-content-secondary transition hover:bg-bg-softer"
               title={lesson.next.title}
             >
@@ -572,6 +575,7 @@ function TopBar({ lesson }: { lesson: LessonDTO }) {
         open={feedbackOpen}
         onClose={() => setFeedbackOpen(false)}
         source="lesson"
+        course={lesson.course}
         lessonId={lesson.id}
         lessonTitle={lesson.title}
         heading="Lesson feedback"

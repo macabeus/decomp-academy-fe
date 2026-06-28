@@ -12,6 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { useProgress } from "@/lib/progress";
 import { ProgressBar } from "@/components/ui";
+import { lessonPath } from "@/lib/seo";
 
 interface LessonLite {
   id: string;
@@ -51,15 +52,29 @@ function chapterMinutes(c: ChapterLite) {
   return c.lessons.reduce((s, l) => s + estMinutes(l), 0);
 }
 
-export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; tiers: TierLite[] }) {
+export function CurriculumMap({
+  chapters,
+  tiers,
+  courseId,
+}: {
+  chapters: ChapterLite[];
+  tiers: TierLite[];
+  /** Course these chapters belong to — scopes the lesson links. */
+  courseId: string;
+}) {
   const { isSolved, bestPercent } = useProgress();
+
+  // A chapter id is only unique within its tier (e.g. two "finale" chapters), so
+  // expand-state and the resume highlight are keyed by tier+id, not bare id —
+  // otherwise toggling one "finale" would toggle the other.
+  const ckey = (c: { tier: string; id: string }) => `${c.tier}/${c.id}`;
 
   // The single lesson the learner should do next: first not-yet-solved, in order.
   const ordered = useMemo(
-    () => chapters.flatMap((c) => c.lessons.map((l) => ({ chapterId: c.id, lessonId: l.id }))),
+    () => chapters.flatMap((c) => c.lessons.map((l) => ({ chapterKey: ckey(c), lessonId: l.id }))),
     [chapters],
   );
-  const resume = ordered.find((x) => bestPercent(x.lessonId) < 100) ?? ordered[0];
+  const resume = ordered.find((x) => bestPercent(courseId, x.lessonId) < 100) ?? ordered[0];
 
   // Start with nothing forced open (matches SSR, before localStorage progress
   // loads). Until the learner manually toggles a chapter, keep exactly the first
@@ -69,7 +84,7 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
   const userToggled = useRef(false);
   useEffect(() => {
     if (userToggled.current || !resume) return;
-    setOpen({ [resume.chapterId]: true });
+    setOpen({ [resume.chapterKey]: true });
   }, [resume]);
 
   return (
@@ -79,7 +94,7 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
         const tierChapters = chapters.filter((c) => c.tier === tier.id);
         if (!tierChapters.length) return null;
         const tierLessons = tierChapters.flatMap((c) => c.lessons);
-        const tierSolved = tierLessons.filter((l) => isSolved(l.id)).length;
+        const tierSolved = tierLessons.filter((l) => isSolved(courseId, l.id)).length;
         const tierDone = tierLessons.length > 0 && tierSolved === tierLessons.length;
         return (
           <section key={tier.id}>
@@ -104,13 +119,14 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
             <div className="space-y-3 border-l border-line/60 pl-4">
               {tierChapters.map((chapter, ci) => {
                 const globalIdx = chapters.indexOf(chapter);
-                const solved = chapter.lessons.filter((l) => isSolved(l.id)).length;
+                const key = ckey(chapter);
+                const solved = chapter.lessons.filter((l) => isSolved(courseId, l.id)).length;
                 const done = solved === chapter.lessons.length;
-                const isOpen = open[chapter.id];
-                const hasResume = chapter.id === resume?.chapterId;
+                const isOpen = open[key];
+                const hasResume = key === resume?.chapterKey;
                 return (
                   <div
-                    key={chapter.id}
+                    key={key}
                     className={`overflow-hidden rounded-xl transition-colors ${
                       // In light mode the active chapter drops its accent tint and
                       // matches the inactive surface (the "Continue here" pill still marks it).
@@ -120,7 +136,7 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
                     <button
                       onClick={() => {
                         userToggled.current = true;
-                        setOpen((o) => ({ ...o, [chapter.id]: !o[chapter.id] }));
+                        setOpen((o) => ({ ...o, [key]: !o[key] }));
                       }}
                       aria-expanded={isOpen}
                       className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-bg-softer/50"
@@ -169,13 +185,13 @@ export function CurriculumMap({ chapters, tiers }: { chapters: ChapterLite[]; ti
                       <div className="overflow-hidden">
                         <div className="border-t border-line theme-light:border-line-faint">
                           {chapter.lessons.map((l) => {
-                            const pct = bestPercent(l.id);
+                            const pct = bestPercent(courseId, l.id);
                             const ok = pct >= 100;
                             const isResume = l.id === resume?.lessonId;
                             return (
                               <Link
                                 key={l.id}
-                                href={`/lesson/${l.id}`}
+                                href={lessonPath(courseId, l.id)}
                                 className="group flex items-center gap-3 border-b border-line/50 px-5 py-3 last:border-0 transition hover:bg-bg-softer/40"
                               >
                                 {ok ? (

@@ -6,11 +6,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const course = req.nextUrl.searchParams.get("course");
   const id = req.nextUrl.searchParams.get("lesson");
-  if (!id) {
-    return NextResponse.json({ ok: false, error: "Missing lesson id." }, { status: 400 });
+  if (!course || !id) {
+    return NextResponse.json({ ok: false, error: "Missing course or lesson id." }, { status: 400 });
   }
-  const lesson = getLesson(id);
+  const lesson = getLesson(course, id);
   if (!lesson) {
     return NextResponse.json({ ok: false, error: "Unknown lesson." }, { status: 404 });
   }

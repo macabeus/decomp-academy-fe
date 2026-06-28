@@ -8,6 +8,13 @@ export const SITE_URL = "https://decomp-academy.dev";
 export const SITE_NAME = "Decomp Academy";
 export const GITHUB_URL = "https://github.com/JackPriceBurns/decomp-academy-fe";
 
+/** Canonical site-relative path to a lesson. Lessons live under their course, so
+ *  every internal link and structured-data URL funnels through here. The legacy
+ *  "/lesson/<id>" path 308-redirects to this (see next.config.mjs). */
+export function lessonPath(course: string, id: string): string {
+  return `/courses/${course}/lesson/${id}`;
+}
+
 export const SITE_DESCRIPTION =
   "Learn to decompile GameCube PowerPC assembly into byte-matching C, graded " +
   "live by the real Metrowerks CodeWarrior GC/2.0 compiler. Free, interactive lessons.";
@@ -73,6 +80,7 @@ export function courseLd() {
 /** A single lesson, as a free LearningResource that is part of the Course. */
 export function lessonLd(args: {
   id: string;
+  course: string;
   title: string;
   description: string;
   concepts: string[];
@@ -83,7 +91,7 @@ export function lessonLd(args: {
     "@context": "https://schema.org",
     "@type": "LearningResource",
     name: args.title,
-    url: `${SITE_URL}/lesson/${args.id}`,
+    url: `${SITE_URL}${lessonPath(args.course, args.id)}`,
     description: args.description,
     learningResourceType: args.concept ? "concept" : "exercise",
     educationalLevel: `Difficulty ${args.difficulty}/5`,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { IconFlame, IconTrophy, IconGitMerge } from "@tabler/icons-react";
 import { useProgress } from "@/lib/progress";
+import { lessonPath } from "@/lib/seo";
 
 export interface HeatLesson {
   id: string;
@@ -14,7 +15,7 @@ export interface HeatLesson {
 
 // Contribution-style grid of every lesson — instantly familiar to the
 // GitHub-native decomp audience, and turns "0/306" into a fillable canvas.
-export function MatchLog({ lessons }: { lessons: HeatLesson[] }) {
+export function MatchLog({ lessons, courseId }: { lessons: HeatLesson[]; courseId: string }) {
   const { bestPercent } = useProgress();
 
   const { solved, attempted, xp } = useMemo(() => {
@@ -22,7 +23,7 @@ export function MatchLog({ lessons }: { lessons: HeatLesson[] }) {
     let attempted = 0;
     let xp = 0;
     for (const l of lessons) {
-      const pct = bestPercent(l.id);
+      const pct = bestPercent(courseId, l.id);
       if (pct >= 100) {
         solved++;
         xp += l.concept ? 5 : l.difficulty * 10;
@@ -64,7 +65,7 @@ export function MatchLog({ lessons }: { lessons: HeatLesson[] }) {
 
       <div className="flex flex-wrap gap-[3px]" role="img" aria-label={`${solved} of ${total} lessons matched`}>
         {lessons.map((l) => {
-          const pct = bestPercent(l.id);
+          const pct = bestPercent(courseId, l.id);
           const cls =
             pct >= 100
               ? "bg-good theme-light:bg-good-soft hover:ring-good"
@@ -75,7 +76,7 @@ export function MatchLog({ lessons }: { lessons: HeatLesson[] }) {
           return (
             <Link
               key={l.id}
-              href={`/lesson/${l.id}`}
+              href={lessonPath(courseId, l.id)}
               title={`${l.title}${pct >= 100 ? " — matched" : pct > 0 ? ` — ${pct}%` : ""}`}
               className={`h-2.5 w-2.5 rounded-[2px] ring-offset-1 ring-offset-bg-soft transition hover:ring-1 ${cls}`}
             />

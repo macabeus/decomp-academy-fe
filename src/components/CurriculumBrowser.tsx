@@ -1,0 +1,111 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { CurriculumMap } from "@/components/CurriculumMap";
+import { MatchLog, HeatLesson } from "@/components/MatchLog";
+import { lessonPath } from "@/lib/seo";
+
+interface LessonLite {
+  id: string;
+  title: string;
+  order: number;
+  difficulty: number;
+  concepts: string[];
+  concept?: boolean;
+}
+interface ChapterLite {
+  id: string;
+  title: string;
+  blurb: string;
+  order: number;
+  tier: string;
+  lessons: LessonLite[];
+}
+interface TierLite {
+  id: string;
+  title: string;
+  blurb: string;
+  order: number;
+}
+
+export interface CourseView {
+  id: string;
+  title: string;
+  blurb: string;
+  /** First lesson in curriculum order — the "jump back in" target. */
+  firstLessonId?: string;
+  tiers: TierLite[];
+  chapters: ChapterLite[];
+  heatLessons: HeatLesson[];
+}
+
+// The curriculum browser: a course selector (a segmented control, not a
+// dropdown) above the map, then the heatmap + chapter map for the selected
+// course. State lives here so switching courses is instant and client-only.
+export function CurriculumBrowser({ courses }: { courses: CourseView[] }) {
+  const [selectedId, setSelectedId] = useState(courses[0]?.id);
+  const course = courses.find((c) => c.id === selectedId) ?? courses[0];
+  if (!course) return null;
+
+  return (
+    <>
+      <div className="mb-4 flex items-baseline justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-content-bright">The Curriculum</h2>
+          <p className="mt-1 text-sm text-content-muted">
+            Read the asm · write the source · the compiler grades it byte-for-byte.
+          </p>
+        </div>
+        {course.firstLessonId && (
+          <Link
+            href={lessonPath(course.id, course.firstLessonId)}
+            className="shrink-0 text-sm text-accent transition hover:text-accent-hover hover:underline"
+          >
+            Jump back in →
+          </Link>
+        )}
+      </div>
+
+      {/* Course selector, sitting under the heading. A single course still
+          renders as one highlighted tab, so the framing reads as "pick a track"
+          the moment more are added. */}
+      <div
+        role="tablist"
+        aria-label="Course"
+        className="mb-6 inline-flex flex-wrap gap-1.5 rounded-xl bg-bg-soft/60 p-1.5"
+      >
+        {courses.map((c) => {
+          const active = c.id === course.id;
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setSelectedId(c.id)}
+              title={c.blurb}
+              className={`rounded-lg px-4 py-2 text-sm transition ${
+                active
+                  ? "bg-accent font-semibold text-accent-on shadow-sm"
+                  : "font-medium text-content-secondary hover:bg-bg-softer/60 hover:text-content-primary"
+              }`}
+            >
+              {c.title}
+              <span className={`ml-2 text-2xs tabular-nums ${active ? "opacity-80" : "opacity-60"}`}>
+                {c.heatLessons.length}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* key={course.id} remounts both on a course switch so CurriculumMap's
+          internal expand/resume state doesn't leak across courses. */}
+      <div className="mb-8">
+        <MatchLog key={course.id} lessons={course.heatLessons} courseId={course.id} />
+      </div>
+
+      <CurriculumMap key={course.id} chapters={course.chapters} tiers={course.tiers} courseId={course.id} />
+    </>
+  );
+}

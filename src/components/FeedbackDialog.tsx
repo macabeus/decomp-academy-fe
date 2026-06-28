@@ -16,6 +16,7 @@ export function FeedbackDialog({
   open,
   onClose,
   source,
+  course,
   lessonId,
   lessonTitle,
   heading = "Send feedback",
@@ -24,6 +25,7 @@ export function FeedbackDialog({
   open: boolean;
   onClose: () => void;
   source: FeedbackSource;
+  course?: string;
   lessonId?: string;
   lessonTitle?: string;
   heading?: string;
@@ -74,6 +76,7 @@ export function FeedbackDialog({
     try {
       await submitFeedback({
         source,
+        course,
         lessonId,
         lessonTitle,
         sentiment: sentiment ?? undefined,

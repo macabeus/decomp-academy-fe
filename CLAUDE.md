@@ -4,9 +4,16 @@ A Next.js app that teaches decompiling GameCube PowerPC assembly back into
 matching C. Lessons live as Markdown under `src/curriculum/` and are compiled to
 JSON by `scripts/build-curriculum.mjs` (runs on `predev`/`prebuild`).
 
+The tree is course → tier → chapter → lesson, each level a `<NN>-<id>` folder
+with a `_course.md` / `_tier.md` / `_chapter.md` (lessons are the leaf `.md`
+files). Today there is one course, `01-gamecube-c`; more can be added as sibling
+course folders. Lessons render at `/courses/<course>/lesson/<slug>` (the bare
+`/lesson/<slug>` 308-redirects to the default course).
+
 ## Authoring exercise lessons
 
-Each exercise lesson is `src/curriculum/<NN>-<tier>/<NN>-<chapter>/<NNN>-<slug>.md`:
+Each exercise lesson is
+`src/curriculum/<NN>-<course>/<NN>-<tier>/<NN>-<chapter>/<NNN>-<slug>.md`:
 YAML frontmatter, a prose body, a `<!-- starter -->` ```c block, and a
 `<!-- solution -->` ```c block. The app shows the learner the target assembly (in
 the diff view) and they write C that compiles to it.

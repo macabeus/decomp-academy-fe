@@ -12,14 +12,22 @@ import {
 import { useProgress } from "@/lib/progress";
 import { LESSONS } from "@/lib/lessons/registry.client";
 import { ProgressBar } from "@/components/ui";
+import { lessonPath } from "@/lib/seo";
 
-export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: string }) {
+export function Hero({
+  total,
+  firstLesson,
+}: {
+  total: number;
+  firstLesson?: { id: string; course: string };
+}) {
   const { bestPercent } = useProgress();
-  const solvedCount = LESSONS.filter((l) => bestPercent(l.id) >= 100).length;
+  const solvedCount = LESSONS.filter((l) => bestPercent(l.course, l.id) >= 100).length;
   const pct = total ? Math.round((solvedCount / total) * 100) : 0;
 
-  // Resume at the first unsolved lesson if we have progress.
-  const resumeId = LESSONS.find((l) => bestPercent(l.id) < 100)?.id || firstLessonId;
+  // Resume at the first unsolved lesson if we have progress, else the first lesson.
+  const resume = LESSONS.find((l) => bestPercent(l.course, l.id) < 100) ?? firstLesson;
+  const resumeHref = resume ? lessonPath(resume.course, resume.id) : "#";
 
   return (
     <header className="relative overflow-hidden border-b border-line">
@@ -45,7 +53,7 @@ export function Hero({ total, firstLessonId }: { total: number; firstLessonId?: 
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href={resumeId ? `/lesson/${resumeId}` : "#"}
+              href={resumeHref}
               className="group inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 font-semibold text-accent-on shadow-lg shadow-accent/20 transition hover:-translate-y-px hover:bg-accent-hover active:translate-y-0 active:scale-[0.98]"
             >
               {solvedCount > 0 ? "Resume training" : "Start from zero"}

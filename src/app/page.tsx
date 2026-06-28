@@ -1,38 +1,50 @@
 import Link from "next/link";
 import { IconBrandGithub } from "@tabler/icons-react";
-import { chaptersWithLessons, LESSONS, TIERS } from "@/lib/lessons/registry";
-import { CurriculumMap } from "@/components/CurriculumMap";
-import { MatchLog } from "@/components/MatchLog";
+import { chaptersWithLessons, COURSES, LESSONS, TIERS } from "@/lib/lessons/registry";
+import { CurriculumBrowser, CourseView } from "@/components/CurriculumBrowser";
 import { Hero } from "@/components/Hero";
 import { Logo, ThemeToggle } from "@/components/ui";
 import { AccountMenu } from "@/components/AccountMenu";
 import { JsonLd } from "@/components/JsonLd";
-import { courseLd } from "@/lib/seo";
+import { courseLd, lessonPath } from "@/lib/seo";
 
 export default function Home() {
   // Slim the payload: the map only needs lesson metadata, never briefs/solutions.
-  const chapters = chaptersWithLessons()
-    .filter((c) => c.lessons.length > 0)
-    .map((c) => ({
-      id: c.id,
-      title: c.title,
-      blurb: c.blurb,
-      order: c.order,
-      tier: c.tier,
-      lessons: c.lessons.map((l) => ({
-        id: l.id,
-        title: l.title,
-        order: l.order,
-        difficulty: l.difficulty,
-        concepts: l.concepts,
-        concept: l.concept ?? false,
-      })),
-    }));
+  // Built per course so the selector can switch between tracks client-side.
+  const courses: CourseView[] = COURSES.map((course) => {
+    const chapters = chaptersWithLessons(course.id)
+      .filter((c) => c.lessons.length > 0)
+      .map((c) => ({
+        id: c.id,
+        title: c.title,
+        blurb: c.blurb,
+        order: c.order,
+        tier: c.tier,
+        lessons: c.lessons.map((l) => ({
+          id: l.id,
+          title: l.title,
+          order: l.order,
+          difficulty: l.difficulty,
+          concepts: l.concepts,
+          concept: l.concept ?? false,
+        })),
+      }));
+    const heatLessons = chapters.flatMap((c) =>
+      c.lessons.map((l) => ({ id: l.id, title: l.title, difficulty: l.difficulty, concept: l.concept })),
+    );
+    return {
+      id: course.id,
+      title: course.title,
+      blurb: course.blurb,
+      firstLessonId: chapters[0]?.lessons[0]?.id,
+      tiers: TIERS.filter((t) => t.course === course.id),
+      chapters,
+      heatLessons,
+    };
+  }).filter((c) => c.chapters.length > 0);
+
   const total = LESSONS.length;
   const firstLesson = LESSONS[0];
-  const heatLessons = chapters.flatMap((c) =>
-    c.lessons.map((l) => ({ id: l.id, title: l.title, difficulty: l.difficulty, concept: l.concept })),
-  );
 
   return (
     <main className="min-h-screen">
@@ -58,27 +70,13 @@ export default function Home() {
           </div>
         </div>
       </nav>
-      <Hero total={total} firstLessonId={firstLesson?.id} />
+      <Hero
+        total={total}
+        firstLesson={firstLesson ? { id: firstLesson.id, course: firstLesson.course } : undefined}
+      />
 
       <section id="curriculum" className="mx-auto max-w-5xl scroll-mt-16 px-5 pb-24 pt-14">
-        <div className="mb-6 flex items-baseline justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-content-bright">The Curriculum</h2>
-            <p className="mt-1 text-sm text-content-muted">
-              Read the asm · write the C · the compiler grades it byte-for-byte.
-            </p>
-          </div>
-          <Link
-            href={firstLesson ? `/lesson/${firstLesson.id}` : "#"}
-            className="shrink-0 text-sm text-accent transition hover:text-accent-hover hover:underline"
-          >
-            Jump back in →
-          </Link>
-        </div>
-        <div className="mb-8">
-          <MatchLog lessons={heatLessons} />
-        </div>
-        <CurriculumMap chapters={chapters} tiers={TIERS} />
+        <CurriculumBrowser courses={courses} />
       </section>
       <footer className="border-t border-line bg-bg-soft/40">
         <div className="mx-auto max-w-5xl px-5 py-12">
@@ -105,7 +103,7 @@ export default function Home() {
 
             {/* Learn */}
             <FooterCol title="Learn">
-              <FooterLink href={firstLesson ? `/lesson/${firstLesson.id}` : "/"}>Start training</FooterLink>
+              <FooterLink href={firstLesson ? lessonPath(firstLesson.course, firstLesson.id) : "/"}>Start training</FooterLink>
               <FooterLink href="/playground">Playground</FooterLink>
               <FooterLink href="/glossary">Glossary</FooterLink>
               <FooterLink href="/#curriculum">Curriculum · {total} lessons</FooterLink>

@@ -1,5 +1,5 @@
-import { chaptersWithLessons, LESSONS, TIERS } from "@/lib/lessons/registry";
-import { SITE_URL } from "@/lib/seo";
+import { chaptersWithLessons, COURSES, LESSONS, TIERS } from "@/lib/lessons/registry";
+import { lessonPath, SITE_URL } from "@/lib/seo";
 
 // Served at /llms.txt — a plain-text, AI-friendly map of the whole site, built
 // from the live curriculum so it never drifts. Follows the llms.txt convention:
@@ -7,8 +7,6 @@ import { SITE_URL } from "@/lib/seo";
 export const dynamic = "force-static";
 
 export function GET() {
-  const chapters = chaptersWithLessons().filter((c) => c.lessons.length > 0);
-  const tiers = [...TIERS].sort((a, b) => a.order - b.order);
   const first = LESSONS[0];
   const lines: string[] = [];
 
@@ -32,7 +30,7 @@ export function GET() {
     "- Audience: programmers learning reverse engineering and decompilation, " +
       "contributors to GameCube/Wii decompilation projects, and anyone curious " +
       "how C compiles down to PowerPC.",
-    `- Format: ${LESSONS.length} hands-on lessons across ${tiers.length} tiers, ` +
+    `- Format: ${LESSONS.length} hands-on lessons across ${COURSES.length} course${COURSES.length === 1 ? "" : "s"}, ` +
       "in the browser, free, with no signup required to start.",
     "- Topics: PowerPC (Gekko) assembly, the PowerPC EABI, MWCC GC/2.0 code " +
       "generation, integer/float/bitwise idioms, stack frames, globals, the " +
@@ -43,7 +41,7 @@ export function GET() {
   lines.push("## Key pages");
   if (first) {
     lines.push(
-      `- [Start the course](${SITE_URL}/lesson/${first.id}): the first lesson, from zero.`,
+      `- [Start the course](${SITE_URL}${lessonPath(first.course, first.id)}): the first lesson, from zero.`,
     );
   }
   lines.push(
@@ -53,16 +51,27 @@ export function GET() {
   );
 
   lines.push("## Curriculum");
-  for (const t of tiers) {
-    lines.push("", `### ${t.title} — ${t.blurb}`);
-    const tierChapters = chapters
-      .filter((c) => c.tier === t.id)
-      .sort((a, b) => a.order - b.order);
-    for (const c of tierChapters) {
-      lines.push("", `#### ${c.title} — ${c.blurb}`);
-      for (const l of c.lessons) {
-        const tag = l.concepts?.length ? ` — ${l.concepts.join(", ")}` : "";
-        lines.push(`- [${l.title}](${SITE_URL}/lesson/${l.id})${tag}`);
+  // Tier and chapter ids restart per course, so everything below is scoped by
+  // course — filtering chapters by `c.tier === t.id` alone would cross-join
+  // same-id tiers/chapters across courses.
+  for (const course of COURSES) {
+    const courseChapters = chaptersWithLessons(course.id).filter((c) => c.lessons.length > 0);
+    if (!courseChapters.length) continue;
+    const courseTiers = TIERS.filter((t) => t.course === course.id).sort((a, b) => a.order - b.order);
+
+    lines.push("", `### ${course.title} — ${course.blurb}`);
+    for (const t of courseTiers) {
+      const tierChapters = courseChapters
+        .filter((c) => c.tier === t.id)
+        .sort((a, b) => a.order - b.order);
+      if (!tierChapters.length) continue;
+      lines.push("", `#### ${t.title} — ${t.blurb}`);
+      for (const c of tierChapters) {
+        lines.push("", `##### ${c.title} — ${c.blurb}`);
+        for (const l of c.lessons) {
+          const tag = l.concepts?.length ? ` — ${l.concepts.join(", ")}` : "";
+          lines.push(`- [${l.title}](${SITE_URL}${lessonPath(l.course, l.id)})${tag}`);
+        }
       }
     }
   }

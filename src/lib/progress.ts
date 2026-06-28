@@ -10,14 +10,55 @@ const CODE_PREFIX = "decomp-code-";
 const codeKey = (id: string) => `${CODE_PREFIX}${id}`;
 
 // Progress is keyed by a lesson's stable UUIDv5 (progressId) everywhere it's
-// persisted or transmitted — never the human slug. Components still call us with
-// the slug `lesson.id`; we translate here so they don't have to care. `resolveId`
-// maps slug → progressId; `normalizeKeys` upgrades any legacy slug-keyed data
-// (older localStorage / server rows) to the progressId keyspace on read.
-const SLUG_TO_PID = new Map(LESSONS.map((l) => [l.id, l.progressId]));
+// persisted or transmitted — never the human slug. Components call us with the
+// (course, slug) pair; we translate here so they don't have to care. A slug is
+// only unique within its course, so the component-facing lookup is keyed by
+// "<course>/<slug>".
+const courseSlugKey = (course: string, slug: string) => `${course}/${slug}`;
+const SLUG_TO_PID = new Map(
+  LESSONS.map((l) => [courseSlugKey(l.course, l.id), l.progressId]),
+);
 
-function resolveId(id: string): string {
-  return SLUG_TO_PID.get(id) ?? id;
+// `normalizeKeys` upgrades data stored under an OLD key shape to the current
+// progressId. Two old shapes exist, both predating courses (when slugs were
+// globally unique):
+//   - a bare slug (the pre-progressId scheme), and
+//   - a pre-course progressId (`legacyProgressId`, hashed without the course).
+// A bare-slug row can therefore be resolved with a global slug→pid map; on the
+// off chance a newer course reuses a slug, first-wins keeps the original (the
+// slim list is in curriculum order, so the original course is seen first).
+const GLOBAL_SLUG_TO_PID = new Map<string, string>();
+for (const l of LESSONS) if (!GLOBAL_SLUG_TO_PID.has(l.id)) GLOBAL_SLUG_TO_PID.set(l.id, l.progressId);
+
+// Grace-period migration: introducing courses re-hashed every lesson's
+// progressId (the course id is now part of the hash). `legacyProgressId` is the
+// pre-course id, so rows the server/localStorage still hold under it map forward
+// to the current key. New writes always use the current progressId, so this
+// fold (and `legacyProgressId` itself) can be dropped once learners have
+// transitioned.
+//
+// `legacyProgressId` is hashed WITHOUT the course, so if a slug is duplicated
+// across courses (e.g. a course cloned from another) the same legacy id appears
+// in both. Legacy data predates courses — it can only belong to the ORIGINAL
+// course — so first-wins (the slim list is in curriculum order, original course
+// first) maps it back to that course, never a later clone. Skip blank ids.
+const LEGACY_PID_TO_PID = new Map<string, string>();
+for (const l of LESSONS) {
+  if (l.legacyProgressId && !LEGACY_PID_TO_PID.has(l.legacyProgressId)) {
+    LEGACY_PID_TO_PID.set(l.legacyProgressId, l.progressId);
+  }
+}
+
+// Map a STORED key — bare slug, pre-course progressId, or current progressId —
+// to the current progressId. Unknown keys pass through unchanged.
+function toProgressId(key: string): string {
+  return GLOBAL_SLUG_TO_PID.get(key) ?? LEGACY_PID_TO_PID.get(key) ?? key;
+}
+
+// Map a component's (course, slug) to the current progressId. Falls back to the
+// global slug map (course unrecognized) and finally to the key itself.
+function resolveId(course: string, id: string): string {
+  return SLUG_TO_PID.get(courseSlugKey(course, id)) ?? GLOBAL_SLUG_TO_PID.get(id) ?? id;
 }
 
 // The most recent of two ISO timestamps (ISO-8601 sorts lexically).
@@ -44,14 +85,14 @@ function chooseCode(
 function normalizeKeys(ls: Lessons): Lessons {
   const out: Lessons = {};
   for (const [k, v] of Object.entries(ls)) {
-    const id = SLUG_TO_PID.get(k) ?? k; // legacy slug → progressId; else unchanged
+    const id = toProgressId(k); // legacy slug / pre-course pid → current pid; else unchanged
     const prev = out[id];
     if (!prev) {
       out[id] = v;
       continue;
     }
-    // A legacy slug row and its progressId row can coexist mid-migration — fold
-    // them: highest score wins, and the code follows the higher-scoring side.
+    // A legacy row and its current-progressId row can coexist mid-migration —
+    // fold them: highest score wins, and the code follows the higher-scoring side.
     const best = Math.max(prev.bestPercent ?? 0, v.bestPercent ?? 0);
     out[id] = {
       bestPercent: best,
@@ -268,12 +309,13 @@ function putBestServer(id: string, bestPercent: number) {
 /* ------------------------------- public API ------------------------------ */
 
 export function recordResult(
+  course: string,
   lessonId: string,
   percent: number,
   opts?: { noHints?: boolean },
 ) {
   primeLocal();
-  const id = resolveId(lessonId);
+  const id = resolveId(course, lessonId);
   const prev = lessons[id]?.bestPercent ?? 0;
   if (percent <= prev) return; // bestPercent only moves up (server enforces this too)
   const completed = percent >= 100;
@@ -295,9 +337,9 @@ export function recordResult(
   // "loading": in-memory only until auth resolves.
 }
 
-export function saveCode(lessonId: string, code: string) {
+export function saveCode(course: string, lessonId: string, code: string) {
   primeLocal();
-  const id = resolveId(lessonId);
+  const id = resolveId(course, lessonId);
   const existing = lessons[id] ?? { bestPercent: 0, completed: false };
   lessons[id] = { ...existing, code };
   if (mode === "authed") putCodeServer(id, code);
@@ -306,9 +348,9 @@ export function saveCode(lessonId: string, code: string) {
 }
 
 // Synchronous read of the learner's last saved code (from the hydrated map).
-export function loadCode(lessonId: string): string | null {
+export function loadCode(course: string, lessonId: string): string | null {
   primeLocal();
-  return lessons[resolveId(lessonId)]?.code ?? null;
+  return lessons[resolveId(course, lessonId)]?.code ?? null;
 }
 
 export function totalSolved(): number {
@@ -318,9 +360,9 @@ export function totalSolved(): number {
 
 // Whether the lesson's recorded completion was earned without revealing hints.
 // Read from the persisted store so a re-run after refresh can't fake the badge.
-export function solvedWithoutHints(lessonId: string): boolean {
+export function solvedWithoutHints(course: string, lessonId: string): boolean {
   primeLocal();
-  return lessons[resolveId(lessonId)]?.solvedWithoutHints === true;
+  return lessons[resolveId(course, lessonId)]?.solvedWithoutHints === true;
 }
 
 /* ---------------------------- reconciliation ----------------------------- */
@@ -646,11 +688,11 @@ export function useProgress() {
   // Keyed on `tick` so consumers' useMemo (e.g. MatchLog) re-runs when progress
   // changes — the callbacks must change identity, not just close over live data.
   const isSolved = useCallback(
-    (id: string) => (lessons[resolveId(id)]?.bestPercent ?? 0) >= 100,
+    (course: string, id: string) => (lessons[resolveId(course, id)]?.bestPercent ?? 0) >= 100,
     [tick],
   );
   const bestPercent = useCallback(
-    (id: string) => lessons[resolveId(id)]?.bestPercent ?? 0,
+    (course: string, id: string) => lessons[resolveId(course, id)]?.bestPercent ?? 0,
     [tick],
   );
 

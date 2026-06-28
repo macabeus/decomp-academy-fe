@@ -75,10 +75,11 @@ export interface CheckResult {
 
 /** Compile the learner's code and return its object file for browser-side diffing. */
 export async function checkLesson(
+  course: string,
   lessonId: string,
   code: string,
 ): Promise<CheckResult> {
-  const lesson = getLesson(lessonId);
+  const lesson = getLesson(course, lessonId);
   if (!lesson) return { ok: false, error: "Unknown lesson." };
   if (lesson.concept) return { ok: false, error: "This lesson has no exercise." };
 

@@ -10,9 +10,14 @@ export type FeedbackSource = "lesson" | "prompt";
 
 // Progress is keyed by progressId everywhere it's stored (see lib/progress.ts);
 // resolve the human slug the UI passes us so admin feedback joins the same key.
-const SLUG_TO_PID = new Map(LESSONS.map((l) => [l.id, l.progressId]));
+// A slug is only unique within its course, so the map is keyed by "<course>/<slug>"
+// — keying by bare slug would collapse same-slug lessons from different courses
+// onto one progressId and misattribute their feedback.
+const SLUG_TO_PID = new Map(LESSONS.map((l) => [`${l.course}/${l.id}`, l.progressId]));
 
 export interface FeedbackPayload {
+  /** id of the lesson's course (paired with lessonId to resolve the progressId). */
+  course?: string;
   /** Human slug of the lesson (omitted for general feedback). */
   lessonId?: string;
   lessonTitle?: string;
@@ -26,7 +31,10 @@ export interface FeedbackPayload {
 // give feedback too, so this mirrors recordCompile's same-origin-free POST rather
 // than the authed `api()` helper. Throws on a non-2xx so the dialog can surface it.
 export async function submitFeedback(p: FeedbackPayload): Promise<void> {
-  const lessonId = p.lessonId ? SLUG_TO_PID.get(p.lessonId) ?? p.lessonId : undefined;
+  const lessonId =
+    p.lessonId && p.course
+      ? SLUG_TO_PID.get(`${p.course}/${p.lessonId}`) ?? p.lessonId
+      : p.lessonId;
   const res = await fetch(`${API_URL}/feedback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

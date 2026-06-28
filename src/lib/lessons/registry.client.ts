@@ -4,11 +4,16 @@
 // scripts/build-curriculum.mjs and is already in canonical order.
 import slim from "@/curriculum/generated/lessons.client.json";
 import { CHAPTERS } from "@/curriculum/chapters";
+import { COURSES, DEFAULT_COURSE } from "@/curriculum/courses";
 
 export interface LessonMeta {
   id: string;
   /** Stable backend/storage key (UUIDv5); see LessonSource.progressId. */
   progressId: string;
+  /** Pre-course progressId, kept for grace-period migration (see progress.ts). */
+  legacyProgressId: string;
+  /** id of the enclosing course. */
+  course: string;
   title: string;
   chapter: string;
   order: number;
@@ -19,4 +24,4 @@ export interface LessonMeta {
 
 export const LESSONS = slim as unknown as LessonMeta[];
 
-export { CHAPTERS };
+export { CHAPTERS, COURSES, DEFAULT_COURSE };

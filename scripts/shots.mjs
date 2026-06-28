@@ -30,15 +30,15 @@ await shot("02-home-curriculum", "/", {
   },
 });
 // 3. A coding lesson workspace (editor + target asm)
-await shot("03-lesson-workspace", "/lesson/foundations-add", {
+await shot("03-lesson-workspace", "/courses/gamecube-c/lesson/foundations-add", {
   prep: async (p) => p.waitForTimeout(1200),
 });
 // 4. A concept (reading) lesson
-await shot("04-concept-lesson", "/lesson/workflow-what-matching-means", {
+await shot("04-concept-lesson", "/courses/gamecube-c/lesson/workflow-what-matching-means", {
   prep: async (p) => p.waitForTimeout(500),
 });
 // 5. A successful 100% match — load the solution and check
-await shot("05-match-success", "/lesson/foundations-add", {
+await shot("05-match-success", "/courses/gamecube-c/lesson/foundations-add", {
   prep: async (p) => {
     await p.waitForTimeout(1200);
     // Reveal + load the reference solution into the editor, then check.
@@ -53,19 +53,19 @@ await shot("05-match-success", "/lesson/foundations-add", {
   },
 });
 // 6. A mid-difficulty lesson with the diff tab after a wrong-ish answer
-await shot("06-lesson-diff", "/lesson/loops-array-sum", {
+await shot("06-lesson-diff", "/courses/gamecube-c/lesson/loops-array-sum", {
   prep: async (p) => p.waitForTimeout(1200),
 });
 // 7. Mobile home
 await shot("07-home-mobile", "/", { width: 390, height: 844 });
 // 7b. Mobile lesson workspace (must stack and scroll, not cram)
-await shot("07b-lesson-mobile", "/lesson/foundations-add", {
+await shot("07b-lesson-mobile", "/courses/gamecube-c/lesson/foundations-add", {
   width: 390,
   height: 844,
   prep: async (p) => p.waitForTimeout(1200),
 });
 // 7c. A lesson whose brief has a blockquote (verify it renders styled)
-await shot("07c-blockquote", "/lesson/loops-array-sum", {
+await shot("07c-blockquote", "/courses/gamecube-c/lesson/loops-array-sum", {
   prep: async (p) => {
     await p.waitForTimeout(800);
     await p.evaluate(() => {
@@ -76,7 +76,7 @@ await shot("07c-blockquote", "/lesson/loops-array-sum", {
   },
 });
 // 8. A hard mastery lesson (long target asm)
-await shot("08-mastery", "/lesson/mastery-mine-reset", {
+await shot("08-mastery", "/courses/gamecube-c/lesson/mastery-mine-reset", {
   prep: async (p) => p.waitForTimeout(1400),
 });
 
