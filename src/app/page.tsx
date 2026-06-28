@@ -45,20 +45,14 @@ export default function Home() {
             MWCC GC/2.0
           </span>
           <div className="ml-auto flex items-center gap-4 text-sm">
-            <a
-              href="https://github.com/JackPriceBurns/decomp-academy-fe"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden items-center gap-1.5 text-content-secondary transition hover:text-content-primary sm:inline-flex"
-            >
-              <IconBrandGithub size={16} /> GitHub
-            </a>
             <Link href="/playground" className="text-content-secondary transition hover:text-content-primary">
               Playground
             </Link>
+
             <Link href="#curriculum" className="text-content-secondary transition hover:text-content-primary">
               Curriculum
             </Link>
+
             <ThemeToggle />
             <AccountMenu />
           </div>

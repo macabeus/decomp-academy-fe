@@ -261,7 +261,7 @@ function Line({ segs }: { segs: Seg[] | null }) {
 // The faint row tints need a touch more alpha in light to read on white.
 const ROW_META: Record<RowKind, { bg: string; mark: string; markColor: string; label: string }> = {
   none: { bg: "", mark: "", markColor: "", label: "matches" },
-  replace: { bg: "bg-warn/[0.07] theme-light:bg-warn/[0.11]", mark: "≠", markColor: "text-warn", label: "differs" },
+  replace: { bg: "bg-warn/[0.07] theme-light:bg-amber-50", mark: "≠", markColor: "text-warn", label: "differs" },
   "op-mismatch": { bg: "bg-warn/[0.07] theme-light:bg-amber-50", mark: "≠", markColor: "text-warn", label: "opcode differs" },
   "arg-mismatch": { bg: "bg-warn/[0.07] theme-light:bg-amber-50", mark: "≠", markColor: "text-warn", label: "operand differs" },
   delete: { bg: "bg-bad/[0.07] theme-light:bg-red-50", mark: "−", markColor: "text-bad", label: "missing from your code" },
