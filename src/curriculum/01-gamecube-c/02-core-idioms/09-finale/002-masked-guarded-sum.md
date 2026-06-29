@@ -47,7 +47,7 @@ blt+    body
 ```
 
 The mask width is encoded in the `clrlwi` count: clearing 28 bits leaves the low
-4. The dot makes it double as the guard's compare, and `beq-` skips the lone
+4 bits. The dot makes it double as the guard's compare, and `beq-` skips the lone
 `add` when the masked value is zero.
 
 Your `sum_low_bytes` is the same loop, mask, and guard — but it keeps a

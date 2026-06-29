@@ -32,9 +32,9 @@ near enough for the high half. So MWCC leans on `rlwinm` instead, rotating by 0
 and masking off everything except the single bit it's clearing.
 
 Decoding the mask is the fiddly part. PowerPC numbers bits from the MSB, so bit 0
-is `0x80000000` and bit 31 is `0x1`. That puts value bit 6 (`0x40`) at PPC bit
-25. The `[MB,ME] = [26,24]` pair *wraps* around the end of the word, lighting up
-bits 26-31 and 0-24, everything but bit 25.
+is `0x80000000` and bit 31 is `0x1`. That puts value bit 6 (`0x40`) at PPC bit 25,
+so the `[MB,ME] = [26,24]` pair *wraps* around the end of the word, lighting up
+bits 26-31 and 0-24 — every bit but 25 itself.
 
 You'll meet this idiom constantly. The `~` is the trigger; it produces a 32-bit
 constant and that's what pulls in `rlwinm`. Drop in a bare literal like

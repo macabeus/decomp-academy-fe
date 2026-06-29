@@ -27,8 +27,8 @@ srwi r3, r3, 3    # n >> 3  ==  n / 8 (unsigned)
 blr
 ```
 
-The shift count is log base 2 of the divisor, so `2^3 = 8` lands on a shift of
-3. A target that shifts right by `N` is dividing by `2^N`, which means the shift
+The shift count is log base 2 of the divisor, so `2^3 = 8` lands on a shift of 3 —
+a target that shifts right by `N` is dividing by `2^N`, which means the shift
 count alone tells you the divisor.
 
 **Signed** division by a power of two is a different beast. It has to round
