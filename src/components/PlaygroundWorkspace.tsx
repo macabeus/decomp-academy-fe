@@ -171,7 +171,8 @@ export function PlaygroundWorkspace() {
   // the assembly is visible immediately.
   useEffect(() => {
     preloadObjdiff();
-    preloadGlossary();
+    // The playground compiles only GameCube PowerPC, so its glossary is the PPC one.
+    preloadGlossary("ppc");
     let initial = DEFAULT_CODE;
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -330,11 +331,10 @@ export function PlaygroundWorkspace() {
                     setSelected(s);
                     setTab("asm");
                   }}
-                  className={`rounded px-2 py-0.5 font-mono text-2xs transition ${
-                    s === selected
+                  className={`rounded px-2 py-0.5 font-mono text-2xs transition ${s === selected
                       ? "bg-accent/15 text-accent ring-1 ring-inset ring-accent/30"
                       : "text-content-muted hover:bg-bg-softer hover:text-content-primary"
-                  }`}
+                    }`}
                 >
                   {s}
                 </button>
@@ -439,9 +439,8 @@ function Console({ status, message }: { status: Status; message: string }) {
   const isErr = status === "compileError" || status === "error";
   return (
     <pre
-      className={`h-full whitespace-pre-wrap px-4 py-3 font-mono text-xs leading-relaxed ${
-        isErr ? "text-bad-text" : "text-content-muted"
-      }`}
+      className={`h-full whitespace-pre-wrap px-4 py-3 font-mono text-xs leading-relaxed ${isErr ? "text-bad-text" : "text-content-muted"
+        }`}
     >
       {message || (status === "ok" ? "Compiled cleanly." : "No compiler output yet.")}
     </pre>
@@ -462,11 +461,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition ${
-        active
+      className={`inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition ${active
           ? "border-accent text-content-primary"
           : "border-transparent text-content-muted hover:text-content-secondary"
-      }`}
+        }`}
     >
       {icon}
       {children}
