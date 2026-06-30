@@ -72,6 +72,11 @@ Part of the wider decompilation community —
 Next.js (App Router) frontend, with the real MWCC GC/2.0 toolchain in the grading
 loop and `objdiff` for byte-accurate assembly diffing.
 
+The compile + user-data API is a separate serverless backend —
+**[decomp-academy-be](https://github.com/JackPriceBurns/decomp-academy-be)** (AWS
+SAM, Rust Lambdas) — which runs the CodeWarrior compilers under `wibo` and grades
+submissions.
+
 ## Running it locally
 
 Requires Node 18+ and the sibling [`../sfa`](../sfa) decompilation project present

@@ -97,14 +97,24 @@ export default function Home() {
                 Learn to decompile GameCube PowerPC assembly into byte-matching C — graded live
                 by the real Metrowerks CodeWarrior GC/2.0 compiler.
               </p>
-              <a
-                href="https://github.com/JackPriceBurns/decomp-academy-fe"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm text-content-muted transition hover:text-content"
-              >
-                <IconBrandGithub size={15} /> Source on GitHub
-              </a>
+              <div className="mt-4 flex flex-col gap-1.5">
+                <a
+                  href="https://github.com/JackPriceBurns/decomp-academy-fe"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-content-muted transition hover:text-content"
+                >
+                  <IconBrandGithub size={15} /> Frontend on GitHub
+                </a>
+                <a
+                  href="https://github.com/JackPriceBurns/decomp-academy-be"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-content-muted transition hover:text-content"
+                >
+                  <IconBrandGithub size={15} /> Backend on GitHub
+                </a>
+              </div>
             </div>
 
             {/* Learn */}
